@@ -2,11 +2,12 @@ package(default_visibility = ["//visibility:public"])
 
 py_library(
     name = "layers",
-    srcs = ([
+    srcs = [
         "__init__.py",
         "tcn.py",
+#        "trellis.py",
         "wrappers.py",
-    ]),
+    ],
     srcs_version = "PY2AND3",
 )
 
@@ -16,6 +17,13 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [":layers"],
 )
+
+#py_test(
+#    name = "trellis_test",
+#    srcs = ["trellis_test.py"],
+#    srcs_version = "PY2AND3",
+#    deps = [":layers"],
+#)
 
 py_test(
     name = "wrappers_test",

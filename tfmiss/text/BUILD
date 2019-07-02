@@ -2,11 +2,11 @@ package(default_visibility = ["//visibility:public"])
 
 py_library(
     name = "text",
-    srcs = ([
+    srcs = [
         "__init__.py",
         "unicode_expand.py",
         "unicode_transform.py",
-    ]),
+    ],
     data = [
         "//tfmiss/ops"
     ],

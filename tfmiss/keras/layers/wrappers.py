@@ -17,7 +17,7 @@ class WeightNorm(keras.layers.Wrapper):
 
     Arguments:
       layer: The `Layer` instance to be wrapped.
-      weight_name: name of weights `Tensor` in wrapped layer to be normalized
+      weight_name: name of weights `Tensor` (or list of names) in wrapped layer to be normalized
     """
 
     def __init__(self, layer, weight_names='kernel', **kwargs):
@@ -38,19 +38,20 @@ class WeightNorm(keras.layers.Wrapper):
         if not len(self.weight_names):
             raise ValueError('Weight names could not be empty.')
 
-        self.v = None
-        self.norm_axes = None
-        self.g = None
+        for name in self.weight_names:
+            setattr(self, '{}_v'.format(name), None)
+            setattr(self, '{}_g'.format(name), None)
+            setattr(self, '{}_norm_axes'.format(name), None)
 
         super(WeightNorm, self).__init__(layer, **kwargs)
-        self.supports_masking = layer.supports_masking
         self.input_spec = layer.input_spec
+        self.supports_masking = layer.supports_masking
 
     def build(self, input_shape=None):
-        self.input_spec = keras.layers.InputSpec(shape=input_shape)
-
         if not self.layer.built:
             self.layer.build(input_shape)
+
+        self.input_spec = self.layer.input_spec
 
         for name in self.weight_names:
             if not hasattr(self.layer, name):
@@ -59,7 +60,7 @@ class WeightNorm(keras.layers.Wrapper):
                     '{} not found in layer {}'.format(name, self.layer))
 
             v = getattr(self.layer, name)
-            norm_axes = list(range(v.shape.ndims - 1))
+            norm_axes = list(range(v.shape.rank - 1))
 
             def g_init(*args, **kwargs):
                 v_init = v.read_value()
@@ -80,10 +81,11 @@ class WeightNorm(keras.layers.Wrapper):
             setattr(self, '{}_v'.format(name), v)
             setattr(self, '{}_g'.format(name), g)
             setattr(self, '{}_norm_axes'.format(name), norm_axes)
+            setattr(self.layer, name, None)
 
         super(WeightNorm, self).build()
 
-    def call(self, inputs, **kwargs):
+    def compute_weights(self):
         for name in self.weight_names:
             v = getattr(self, '{}_v'.format(name))
             g = getattr(self, '{}_g'.format(name))
@@ -91,6 +93,15 @@ class WeightNorm(keras.layers.Wrapper):
 
             w = K.nn.l2_normalize(v, axis=norm_axes) * g
             setattr(self.layer, name, w)
+
+    def call(self, inputs, **kwargs):
+        compute_weights = kwargs.pop('compute_weights', True)
+        if compute_weights:
+            self.compute_weights()
+
+        for name in self.weight_names:
+            if getattr(self.layer, name) is None:
+                raise ValueError('You need to compute weights before using WeightNorm')
 
         return self.layer.call(inputs, **kwargs)
 

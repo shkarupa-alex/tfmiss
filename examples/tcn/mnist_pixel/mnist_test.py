@@ -31,7 +31,7 @@ if __name__ == "__main__":
 
     train_dataset, test_dataset = data_generator(argv.permute, argv.batch_size)
 
-    kernels = {
+    filters = {
         MnistModel.CORE_GRU: [argv.gru_units],
         MnistModel.CORE_LSTM: [argv.lstm_units],
         MnistModel.CORE_TCN: [argv.nhid] * argv.levels,
@@ -42,7 +42,7 @@ if __name__ == "__main__":
     for core in [MnistModel.CORE_GRU, MnistModel.CORE_LSTM, MnistModel.CORE_TCN]:
         model = MnistModel(
             core=core,
-            kernels=kernels[core],
+            filters=filters[core],
             kernel_size=argv.ksize,
             dropout=argv.dropout,
         )

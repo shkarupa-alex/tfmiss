@@ -30,7 +30,7 @@ setup(
     packages=find_packages(),
     install_requires=[
         # https://github.com/tensorflow/tensorflow/issues/7166
-        # 'tensorflow>=2.0.0-alpha0',
+        # 'tensorflow>=2.0.0-beta0',
     ],
     extras_require={
         'tf_cpu': ['tensorflow>=2.0.0-beta0'],

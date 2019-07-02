@@ -4,7 +4,6 @@ from __future__ import print_function
 
 import argparse
 import numpy as np
-import tensorflow as tf
 from matplotlib import pyplot
 from tensorflow import keras
 from tensorflow.python.keras import backend as K
@@ -30,13 +29,14 @@ if __name__ == "__main__":
     parser.add_argument('--gru_units', type=int, default=1000, help='Number of hidden units for GRU layer')
     parser.add_argument('--lstm_units', type=int, default=850, help='Number of hidden units for LSTM layer')
     argv, _ = parser.parse_known_args()
+    # --dataset text8 --ksize 2 --levels 5 --nhid 520 --gru_units 1280 --lstm_units 1152
 
     np.random.seed(argv.seed)
     K.random_ops.random_seed.set_random_seed(argv.seed)
 
     train_dataset, test_dataset, vocab_size = data_generator(argv.dataset, argv.seq_len, argv.batch_size)
 
-    kernels = {
+    filters = {
         CharModel.CORE_GRU: [argv.gru_units],
         CharModel.CORE_LSTM: [argv.lstm_units],
         CharModel.CORE_TCN: [argv.nhid] * argv.levels,
@@ -44,13 +44,13 @@ if __name__ == "__main__":
     }
 
     histories = {}
-    for core in [CharModel.CORE_GRU, CharModel.CORE_LSTM, CharModel.CORE_TCN]:
+    for core in [CharModel.CORE_LSTM, CharModel.CORE_GRU, CharModel.CORE_TCN]:
         model = CharModel(
             seq_len=argv.seq_len,
             vocab_size=vocab_size,
             embed_size=argv.embed_size,
             core=core,
-            kernels=kernels[core],
+            filters=filters[core],
             kernel_size=argv.ksize,
             dropout=argv.dropout,
             embed_dropout=argv.embed_dropout
@@ -86,20 +86,3 @@ if __name__ == "__main__":
 
     for (core, m), color in zip(histories.items(), colors):
         pyplot.plot(interval, np.exp(m['loss']), color=color, label=core)
-
-    pyplot.title('Character LM on {}'.format(argv.dataset.upper()))
-    pyplot.xlabel('Epoch')
-    pyplot.ylabel('Perplexity')
-    pyplot.legend()
-    pyplot.savefig('perplexity_{}.png'.format(argv.dataset))
-    pyplot.close()
-
-    for (core, m), color in zip(histories.items(), colors):
-        pyplot.plot(interval, m['loss'] ^ np.e, color=color, label=core)
-
-    pyplot.title('Character LM on {}'.format(argv.dataset.upper()))
-    pyplot.xlabel('Epoch')
-    pyplot.ylabel('BPEe')
-    pyplot.legend()
-    pyplot.savefig('bpee_{}.png'.format(argv.dataset))
-    pyplot.close()
