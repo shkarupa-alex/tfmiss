@@ -6,7 +6,7 @@ py_library(
         "__init__.py",
     ],
     data = [
-        ":layers",
+        "//tfmiss/keras/layers",
     ],
     srcs_version = "PY2AND3",
 )

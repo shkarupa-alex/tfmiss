@@ -6,13 +6,10 @@ py_library(
         "__init__.py",
     ],
     deps = [
-        "//tfmiss/ops",
-    ],
-    data = [
-        ":keras",
-        ":preprocessing",
-        ":text",
-        ":training",
+        "//tfmiss/keras",
+        "//tfmiss/preprocessing",
+        "//tfmiss/text",
+        "//tfmiss/training",
     ],
     srcs_version = "PY2AND3",
 )

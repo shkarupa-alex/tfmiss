@@ -2,12 +2,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensorflow import keras
-from tensorflow.python.keras import backend as K
+import tensorflow as tf
 from tfmiss.keras.layers.wrappers import WeightNorm
 
 
-class TemporalBlock(keras.layers.Layer):
+class TemporalBlock(tf.keras.layers.Layer):
     """Residual block for Temporal Convolutional Network.
     Reference: https://arxiv.org/abs/1803.01271
     An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling
@@ -44,14 +43,14 @@ class TemporalBlock(keras.layers.Layer):
         self.dropout = dropout
         self.padding = padding
 
-        self.activation = keras.activations.get(activation)
+        self.activation = tf.keras.activations.get(activation)
         self.use_bias = use_bias
-        self.kernel_initializer = keras.initializers.get(kernel_initializer)
-        self.bias_initializer = keras.initializers.get(bias_initializer)
-        self.kernel_regularizer = keras.regularizers.get(kernel_regularizer)
-        self.bias_regularizer = keras.regularizers.get(bias_regularizer)
-        self.kernel_constraint = keras.constraints.get(kernel_constraint)
-        self.bias_constraint = keras.constraints.get(bias_constraint)
+        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
+        self.bias_initializer = tf.keras.initializers.get(bias_initializer)
+        self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
+        self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
+        self.kernel_constraint = tf.keras.constraints.get(kernel_constraint)
+        self.bias_constraint = tf.keras.constraints.get(bias_constraint)
 
         self.conv1d1 = None
         self.conv1d2 = None
@@ -62,8 +61,8 @@ class TemporalBlock(keras.layers.Layer):
         self.act = None
 
         super(TemporalBlock, self).__init__(
-            activity_regularizer=keras.regularizers.get(activity_regularizer), *args, **kwargs)
-        self.input_spec = keras.layers.InputSpec(ndim=3)
+            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), *args, **kwargs)
+        self.input_spec = tf.keras.layers.InputSpec(ndim=3)
         # self.supports_masking = True # TODO
 
     def build(self, input_shape):
@@ -74,9 +73,9 @@ class TemporalBlock(keras.layers.Layer):
         if num_channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        self.input_spec = keras.layers.InputSpec(ndim=3, axes={-1: num_channels})
+        self.input_spec = tf.keras.layers.InputSpec(ndim=3, axes={-1: num_channels})
 
-        self.conv1d1 = WeightNorm(keras.layers.Conv1D(
+        self.conv1d1 = WeightNorm(tf.keras.layers.Conv1D(
             filters=self.filters,
             kernel_size=self.kernel_size,
             strides=self._STRIDES,
@@ -92,7 +91,7 @@ class TemporalBlock(keras.layers.Layer):
             kernel_constraint=self.kernel_constraint,
             bias_constraint=self.bias_constraint,
         ))
-        self.conv1d2 = WeightNorm(keras.layers.Conv1D(
+        self.conv1d2 = WeightNorm(tf.keras.layers.Conv1D(
             filters=self.filters,
             kernel_size=self.kernel_size,
             strides=self._STRIDES,
@@ -109,11 +108,11 @@ class TemporalBlock(keras.layers.Layer):
             bias_constraint=self.bias_constraint,
         ))
 
-        self.dropout1 = keras.layers.SpatialDropout1D(rate=self.dropout)
-        self.dropout2 = keras.layers.SpatialDropout1D(rate=self.dropout)
+        self.dropout1 = tf.keras.layers.SpatialDropout1D(rate=self.dropout)
+        self.dropout2 = tf.keras.layers.SpatialDropout1D(rate=self.dropout)
 
         if num_channels != self.filters:
-            self.downsample = keras.layers.Conv1D(
+            self.downsample = tf.keras.layers.Conv1D(
                 self.filters,
                 kernel_size=1,
                 padding='valid',
@@ -128,8 +127,8 @@ class TemporalBlock(keras.layers.Layer):
                 bias_constraint=self.bias_constraint,
             )
 
-        self.add = keras.layers.Add()
-        self.act = keras.layers.Activation(activation=self.activation)
+        self.add = tf.keras.layers.Add()
+        self.act = tf.keras.layers.Activation(activation=self.activation)
 
         super(TemporalBlock, self).build(input_shape)
 
@@ -157,22 +156,22 @@ class TemporalBlock(keras.layers.Layer):
             'dilation': self.dilation,
             'dropout': self.dropout,
             'padding': self.padding,
-            'activation': keras.activations.serialize(self.activation),
+            'activation': tf.keras.activations.serialize(self.activation),
             'use_bias': self.use_bias,
-            'kernel_initializer': keras.initializers.serialize(self.kernel_initializer),
-            'bias_initializer': keras.initializers.serialize(self.bias_initializer),
-            'kernel_regularizer': keras.regularizers.serialize(self.kernel_regularizer),
-            'bias_regularizer': keras.regularizers.serialize(self.bias_regularizer),
-            'activity_regularizer': keras.regularizers.serialize(self.activity_regularizer),
-            'kernel_constraint': keras.constraints.serialize(self.kernel_constraint),
-            'bias_constraint': keras.constraints.serialize(self.bias_constraint),
+            'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
+            'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
+            'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
+            'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
+            'activity_regularizer': tf.keras.regularizers.serialize(self.activity_regularizer),
+            'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
+            'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
         }
         base_config = super(TemporalBlock, self).get_config()
 
         return dict(list(base_config.items()) + list(config.items()))
 
 
-class TemporalConvNet(keras.layers.Layer):
+class TemporalConvNet(tf.keras.layers.Layer):
     """Temporal Convolutional Network layer.
     Reference: https://arxiv.org/abs/1803.01271
     An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling
@@ -206,18 +205,18 @@ class TemporalConvNet(keras.layers.Layer):
         self.dropout = dropout
         self.padding = padding
 
-        self.activation = keras.activations.get(activation)
+        self.activation = tf.keras.activations.get(activation)
         self.use_bias = use_bias
-        self.kernel_initializer = keras.initializers.get(kernel_initializer)
-        self.bias_initializer = keras.initializers.get(bias_initializer)
-        self.kernel_regularizer = keras.regularizers.get(kernel_regularizer)
-        self.bias_regularizer = keras.regularizers.get(bias_regularizer)
-        self.kernel_constraint = keras.constraints.get(kernel_constraint)
-        self.bias_constraint = keras.constraints.get(bias_constraint)
+        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
+        self.bias_initializer = tf.keras.initializers.get(bias_initializer)
+        self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
+        self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
+        self.kernel_constraint = tf.keras.constraints.get(kernel_constraint)
+        self.bias_constraint = tf.keras.constraints.get(bias_constraint)
 
         super(TemporalConvNet, self).__init__(
-            activity_regularizer=keras.regularizers.get(activity_regularizer), *args, **kwargs)
-        self.input_spec = keras.layers.InputSpec(ndim=3)
+            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), *args, **kwargs)
+        self.input_spec = tf.keras.layers.InputSpec(ndim=3)
         # self.supports_masking = True # TODO
 
     def build(self, input_shape):
@@ -228,7 +227,7 @@ class TemporalConvNet(keras.layers.Layer):
         if num_channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        self.input_spec = keras.layers.InputSpec(ndim=3, axes={-1: num_channels})
+        self.input_spec = tf.keras.layers.InputSpec(ndim=3, axes={-1: num_channels})
 
         self.layers = []
         num_levels = len(self.filters)
@@ -274,15 +273,15 @@ class TemporalConvNet(keras.layers.Layer):
             'kernel_size': self.kernel_size,
             'dropout': self.dropout,
             'padding': self.padding,
-            'activation': keras.activations.serialize(self.activation),
+            'activation': tf.keras.activations.serialize(self.activation),
             'use_bias': self.use_bias,
-            'kernel_initializer': keras.initializers.serialize(self.kernel_initializer),
-            'bias_initializer': keras.initializers.serialize(self.bias_initializer),
-            'kernel_regularizer': keras.regularizers.serialize(self.kernel_regularizer),
-            'bias_regularizer': keras.regularizers.serialize(self.bias_regularizer),
-            'activity_regularizer': keras.regularizers.serialize(self.activity_regularizer),
-            'kernel_constraint': keras.constraints.serialize(self.kernel_constraint),
-            'bias_constraint': keras.constraints.serialize(self.bias_constraint),
+            'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
+            'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
+            'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
+            'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
+            'activity_regularizer': tf.keras.regularizers.serialize(self.activity_regularizer),
+            'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
+            'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
         }
         base_config = super(TemporalConvNet, self).get_config()
 

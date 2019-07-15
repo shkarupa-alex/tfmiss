@@ -2,11 +2,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from tensorflow import keras
-from tensorflow.python.keras import backend as K
+import tensorflow as tf
+from tensorflow.python.keras.utils import generic_utils
 
 
-class WeightNorm(keras.layers.Wrapper):
+class WeightNorm(tf.keras.layers.Wrapper):
     """ Applies weight normalization to a layer. Weight normalization is a reparameterization that decouples the
     magnitude of a weight tensor from its direction. This speeds up convergence by improving the conditioning of the
     optimization problem.
@@ -21,7 +21,7 @@ class WeightNorm(keras.layers.Wrapper):
     """
 
     def __init__(self, layer, weight_names='kernel', **kwargs):
-        if not isinstance(layer, keras.layers.Layer):
+        if not isinstance(layer, tf.keras.layers.Layer):
             raise ValueError(
                 'Please initialize `WeightNorm` layer with a '
                 '`Layer` instance. You passed: {input}'.format(input=layer))
@@ -64,10 +64,10 @@ class WeightNorm(keras.layers.Wrapper):
 
             def g_init(*args, **kwargs):
                 v_init = v.read_value()
-                c = K.shape(v_init)[-1]
-                v_init = K.reshape(v_init, [-1, c])
+                c = tf.shape(v_init)[-1]
+                v_init = tf.reshape(v_init, [-1, c])
 
-                return K.linalg_ops.norm(v_init, ord=2, axis=0)
+                return tf.norm(v_init, ord=2, axis=0)
 
             g = self.add_variable(
                 name='{}_g'.format(name),
@@ -75,7 +75,7 @@ class WeightNorm(keras.layers.Wrapper):
                 initializer=g_init,
                 dtype=v.dtype,
                 trainable=True,
-                aggregation=K.variables_module.VariableAggregation.MEAN
+                aggregation=tf.VariableAggregation.MEAN
             )
 
             setattr(self, '{}_v'.format(name), v)
@@ -91,7 +91,7 @@ class WeightNorm(keras.layers.Wrapper):
             g = getattr(self, '{}_g'.format(name))
             norm_axes = getattr(self, '{}_norm_axes'.format(name))
 
-            w = K.nn.l2_normalize(v, axis=norm_axes) * g
+            w = tf.nn.l2_normalize(v, axis=norm_axes) * g
             setattr(self.layer, name, w)
 
     def call(self, inputs, **kwargs):
@@ -103,7 +103,12 @@ class WeightNorm(keras.layers.Wrapper):
             if getattr(self.layer, name) is None:
                 raise ValueError('You need to compute weights before using WeightNorm')
 
-        return self.layer.call(inputs, **kwargs)
+        layer_kwargs = {}
+        for key in kwargs.keys():
+            if generic_utils.has_arg(self.layer.call, key):
+                layer_kwargs[key] = kwargs[key]
+
+        return self.layer.call(inputs, **layer_kwargs)
 
     def compute_output_shape(self, input_shape):
         return self.layer.compute_output_shape(input_shape)

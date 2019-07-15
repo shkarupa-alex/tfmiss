@@ -32,7 +32,7 @@ pip install wheels/*.whl
 Now you can test out the pip package:
 ```bash
 cd /
-python -c "import tensorflow as tf;import tfmiss as tfu;print(tfu.text.zero_digits('123').numpy()"
+python -c "import tensorflow as tf;import tfmiss as tfm;print(tfm.text.zero_digits('123').numpy()"
 ```
 
 You should see the op zeroed out all nonzero digits in string "123":
