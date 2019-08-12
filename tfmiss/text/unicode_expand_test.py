@@ -496,11 +496,55 @@ class SplitWordsTest(tf.test.TestCase):
 
             # \uFF0E
             u' word．word ',
-        ], stop=True)
+        ], extended=True)
         self.assertIsInstance(result, tf.RaggedTensor)
         result = result.to_tensor(default_value='')
 
         expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
+
+    def testComplexStop(self):
+        dangerous = u'\',.:;‘’\u00AD'
+        source = []
+        for c in dangerous:
+            source.append(u' {}00 '.format(c))  # before number
+            source.append(u' {}zz '.format(c))  # before letter
+            source.append(u' 00{}00 '.format(c))  # inside numbers
+            source.append(u' zz{}zz '.format(c))  # inside letters
+            source.append(u' 00{} '.format(c))  # after number
+            source.append(u' zz{} '.format(c))  # after letter
+        expected = tf.constant([
+            [' ', u'\'', '00', ' ', ''], [' ', u'\'', 'zz', ' ', ''], [' ', u'00\'00', ' ', '', ''],
+            [' ', u'zz\'zz', ' ', '', ''], [' ', '00', u'\'', ' ', ''], [' ', 'zz', u'\'', ' ', ''],
+            
+            [' ', u',', '00', ' ', ''], [' ', u',', 'zz', ' ', ''], [' ', u'00,00', ' ', '', ''],
+            [' ', 'zz', u',', 'zz', ' '], [' ', '00', u',', ' ', ''], [' ', 'zz', u',', ' ', ''],
+            
+            [' ', u'.', '00', ' ', ''], [' ', u'.', 'zz', ' ', ''], [' ', u'00.00', ' ', '', ''],
+            [' ', u'zz.zz', ' ', '', ''], [' ', '00', u'.', ' ', ''], [' ', 'zz', u'.', ' ', ''],
+            
+            [' ', u':', '00', ' ', ''], [' ', u':', 'zz', ' ', ''], [' ', '00', u':', '00', ' '],
+            [' ', u'zz:zz', ' ', '', ''], [' ', '00', u':', ' ', ''], [' ', 'zz', u':', ' ', ''],
+            
+            [' ', u';', '00', ' ', ''], [' ', u';', 'zz', ' ', ''], [' ', u'00;00', ' ', '', ''],
+            [' ', 'zz', u';', 'zz', ' '], [' ', '00', u';', ' ', ''], [' ', 'zz', u';', ' ', ''],
+            
+            [' ', u'‘', '00', ' ', ''], [' ', u'‘', 'zz', ' ', ''], [' ', u'00‘00', ' ', '', ''],
+            [' ', u'zz‘zz', ' ', '', ''], [' ', '00', u'‘', ' ', ''], [' ', 'zz', u'‘', ' ', ''],
+            
+            [' ', u'’', '00', ' ', ''], [' ', u'’', 'zz', ' ', ''], [' ', u'00’00', ' ', '', ''], 
+            [' ', u'zz’zz', ' ', '', ''], [' ', '00', u'’', ' ', ''], [' ', 'zz', u'’', ' ', ''],
+            
+            [u' \xad', '00', ' ', '', ''], [u' \xad', 'zz', ' ', '', ''], [' ', u'00\xad00', ' ', '', ''], 
+            [' ', u'zz\xadzz', ' ', '', ''], [' ', u'00\xad', ' ', '', ''], [' ', u'zz\xad', ' ', '', ''], 
+        ], dtype=tf.string)
+
+        result = split_words(source, extended=False)
+        self.assertIsInstance(result, tf.RaggedTensor)
+        result = result.to_tensor(default_value='')
+
+        expected, result = self.evaluate([expected, result])
+        print([[w.decode('utf-8') for w in r] for r in result])
         self.assertAllEqual(expected, result)
 
 

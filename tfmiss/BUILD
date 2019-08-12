@@ -6,6 +6,7 @@ py_library(
         "__init__.py",
     ],
     deps = [
+        "//tfmiss/estimator",
         "//tfmiss/keras",
         "//tfmiss/preprocessing",
         "//tfmiss/text",

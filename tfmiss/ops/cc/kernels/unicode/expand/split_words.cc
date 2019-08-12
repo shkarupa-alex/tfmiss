@@ -8,7 +8,7 @@ public:
   explicit SplitWordsOp(OpKernelConstruction *ctx) : UnicodeExpandOp(ctx)
   {
     // Prepare attrs
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("stop", &_stop));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("extended", &_extended));
 
     // Create word-level BreakIterator instance
     UErrorCode error = U_ZERO_ERROR;
@@ -22,7 +22,7 @@ public:
   }
 
 private:
-  bool _stop;
+  bool _extended;
   const BreakIterator *_wordIterator;
 
   const UChar _full_stop = 46;              // \u002E
@@ -30,12 +30,18 @@ private:
   const UChar _small_full_stop = 65106;     // \uFE52
   const UChar _fullwidth_full_stop = 65294; // \uFF0E
 
+  const UChar _colon = 58; // \u003A
+  const UChar _vertical_colon = 65043; // \uFE13
+  const UChar _small_colon = 65109; // \uFE55
+  const UChar _fullwidth_colon = 65306; // \uFF1A
+
   bool is_stop_char(UChar c)
   {
-    return _full_stop == c || _one_dot_leader == c || _small_full_stop == c || _fullwidth_full_stop == c;
+    return _full_stop == c || _one_dot_leader == c || _small_full_stop == c || _fullwidth_full_stop == c ||
+      _colon == c || _vertical_colon == c || _small_colon == c || _fullwidth_colon == c;
   }
 
-  void expand_unicode_subword(const UnicodeString &unicode_string, std::vector<UnicodeString> &expanded_strings)
+  void expand_unicode_extended(const UnicodeString &unicode_string, std::vector<UnicodeString> &expanded_strings)
   {
     if (unicode_string.length() < 2)
     {
@@ -97,13 +103,13 @@ protected:
         continue;
 
       UnicodeString word = UnicodeString(unicode_string, prev, pos - prev);
-      if (!_stop)
+      if (!_extended)
       {
         expanded_strings.push_back(word);
       }
       else
       {
-        expand_unicode_subword(word, expanded_strings);
+        expand_unicode_extended(word, expanded_strings);
       }
 
       prev = pos;

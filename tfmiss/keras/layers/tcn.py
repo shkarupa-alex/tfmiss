@@ -63,7 +63,6 @@ class TemporalBlock(tf.keras.layers.Layer):
         super(TemporalBlock, self).__init__(
             activity_regularizer=tf.keras.regularizers.get(activity_regularizer), *args, **kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
-        # self.supports_masking = True # TODO
 
     def build(self, input_shape):
         if len(input_shape) != 3:
@@ -217,7 +216,6 @@ class TemporalConvNet(tf.keras.layers.Layer):
         super(TemporalConvNet, self).__init__(
             activity_regularizer=tf.keras.regularizers.get(activity_regularizer), *args, **kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
-        # self.supports_masking = True # TODO
 
     def build(self, input_shape):
         if len(input_shape) != 3:

@@ -2,9 +2,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
 import threading
 from tensorflow.python.framework import load_library, ops
-from tensorflow.python.platform import resource_loader
 
 _tfmiss_so = None
 _ops_lock = threading.Lock()
@@ -37,7 +37,7 @@ def load_so():
         global _tfmiss_so
         if not _tfmiss_so:
             _tfmiss_so = load_library.load_op_library(
-                resource_loader.get_path_to_datafile('_ops.so'))
+                os.path.join(os.path.dirname(os.path.abspath(__file__)), '_ops.so'))
             assert _tfmiss_so, 'Could not load _ops.so'
 
     return _tfmiss_so
