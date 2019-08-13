@@ -8,21 +8,15 @@ from tensorflow.python.keras.metrics import Metric
 from tensorflow.python.keras.utils import metrics_utils
 from tensorflow.python.keras.utils.generic_utils import to_list
 from tensorflow.python.keras.backend import batch_set_value
+from tensorflow.python.ops.metrics_impl import _remove_squeezable_dimensions
 
 
 class F1Base(Metric):
-    def __init__(self, num_classes, thresholds=None, top_k=None, name=None, dtype=None):
+    def __init__(self, num_classes, name=None, dtype=None):
         """Creates a `F1Base` instance.
 
         Args:
             num_classes: Total number of classes. I.e. the last dimension of predictions.
-            thresholds: (Optional) A float value or a python list/tuple of float threshold values in [0, 1].
-                A threshold is compared with prediction values to determine the truth value of predictions
-                (i.e., above the threshold is `true`, below is `false`). One metric value is generated
-                for each threshold value. If neither thresholds nor top_k are set, the default is to calculate
-                score with `thresholds=0.5`.
-            top_k: (Optional) Unset by default. An int value specifying the top-k predictions to consider
-                when calculating score.
             name: (Optional) string name of the metric instance.
             dtype: (Optional) data type of the metric result.
         """
@@ -32,13 +26,9 @@ class F1Base(Metric):
             raise ValueError('Wrong number of classes: {}'.format(num_classes))
 
         self.num_classes = num_classes
-        self.init_thresholds = thresholds
-        self.top_k = top_k
-
-        default_threshold = 0.5 if top_k is None else metrics_utils.NEG_INF
-        self.thresholds = metrics_utils.parse_init_thresholds(thresholds, default_threshold=default_threshold)
-
+        self.thresholds = metrics_utils.parse_init_thresholds(None)
         self.num_slices = num_classes if num_classes > 2 else 1
+
         for i in range(self.num_slices):
             true_positives = self.add_weight(
                 'true_positives_{}'.format(i),
@@ -65,33 +55,42 @@ class F1Base(Metric):
             y_pred: The predicted values. Each element must be in the range `[0, 1]`.
             sample_weight: Optional weighting of each example. Defaults to 1. Can be a `Tensor` whose rank
                 is either 0, or the same rank as `y_true`, and must be broadcastable to `y_true`.
-
-        Returns:
-          Update op.
         """
 
-        update_ops = []
+        if self.num_classes > 2:
+            y_pred = tf.argmax(y_pred, axis=-1, output_type=tf.int32)
+        y_true = tf.cast(y_true, tf.int32)
+        y_pred, y_true, sample_weight = _remove_squeezable_dimensions(y_pred, y_true, sample_weight)
+
         for i in range(self.num_slices):
             true_positives = getattr(self, 'true_positives_{}'.format(i))
             false_positives = getattr(self, 'false_positives_{}'.format(i))
             false_negatives = getattr(self, 'false_negatives_{}'.format(i))
-            class_id = None if self.num_classes == 2 else i
+            if self.num_classes > 2:
+                class_labels, class_predictions = _select_class(
+                    labels=y_true,
+                    predictions=y_pred,
+                    class_id=i
+                )
+            else:
+                class_labels, class_predictions = y_true, y_pred
 
-            update_ops.append(metrics_utils.update_confusion_matrix_variables(
+            metrics_utils.update_confusion_matrix_variables(
                 {
                     metrics_utils.ConfusionMatrix.TRUE_POSITIVES: true_positives,
                     metrics_utils.ConfusionMatrix.FALSE_POSITIVES: false_positives,
                     metrics_utils.ConfusionMatrix.FALSE_NEGATIVES: false_negatives
                 },
-                y_true,
-                y_pred,
+                class_labels,
+                class_predictions,
                 thresholds=self.thresholds,
-                top_k=self.top_k,
-                class_id=class_id,
+                top_k=None,
+                class_id=None,
                 sample_weight=sample_weight
-            ))
+            )
 
-        return tf.group(update_ops) if len(update_ops) > 1 else update_ops[0]
+        # TODO https://github.com/tensorflow/tensorflow/issues/30711
+        # return tf.group(update_ops) if len(update_ops) > 1 else update_ops[0]
 
     def reset_states(self):
         num_thresholds = len(to_list(self.thresholds))
@@ -100,8 +99,6 @@ class F1Base(Metric):
     def get_config(self):
         config = {
             'num_classes': self.num_classes,
-            'thresholds': self.init_thresholds,
-            'top_k': self.top_k,
         }
         base_config = super(F1Base, self).get_config()
 
@@ -109,9 +106,9 @@ class F1Base(Metric):
 
 
 class F1Binary(F1Base):
-    def __init__(self, thresholds=None, top_k=None, name=None, dtype=None):
+    def __init__(self, name=None, dtype=None):
         """Creates a `F1Binary` instance."""
-        super(F1Binary, self).__init__(num_classes=2, thresholds=thresholds, top_k=top_k, name=name, dtype=dtype)
+        super(F1Binary, self).__init__(num_classes=2, name=name, dtype=dtype)
 
     def result(self):
         precision = tf.math.divide_no_nan(self.true_positives_0, self.true_positives_0 + self.false_positives_0)
@@ -122,7 +119,7 @@ class F1Binary(F1Base):
             precision + recall
         )
 
-        return result[0] if len(self.thresholds) == 1 else result
+        return result[0]
 
     @classmethod
     def from_config(cls, config):
@@ -153,11 +150,11 @@ class F1Macro(F1Base):
             precisions.append(_precision)
             recalls.append(_recall)
 
-        precision = tf.div(
+        precision = tf.math.divide(
             tf.add_n(precisions),
             self.num_classes
         )
-        recall = tf.div(
+        recall = tf.math.divide(
             tf.add_n(recalls),
             self.num_classes
         )
@@ -167,7 +164,7 @@ class F1Macro(F1Base):
             precision + recall
         )
 
-        return result[0] if len(self.thresholds) == 1 else result
+        return result[0]
 
 
 class F1Micro(F1Base):
@@ -200,4 +197,16 @@ class F1Micro(F1Base):
             precision + recall
         )
 
-        return result[0] if len(self.thresholds) == 1 else result
+        return result[0]
+
+
+def _select_class(labels, predictions, class_id):
+    class_id = tf.convert_to_tensor(class_id, dtype=labels.dtype)
+    class_fill = tf.fill(tf.shape(labels), class_id)
+    zeros_fill = tf.zeros_like(labels, dtype=tf.bool)
+    ones_fill = tf.ones_like(labels, dtype=tf.bool)
+
+    class_labels = tf.where(tf.equal(labels, class_fill), ones_fill, zeros_fill)
+    class_predictions = tf.where(tf.equal(predictions, class_fill), ones_fill, zeros_fill)
+
+    return class_labels, class_predictions
