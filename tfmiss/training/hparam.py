@@ -34,7 +34,7 @@ from tensorflow.python.util import deprecation
 # where <rhs> is either a single token or [] enclosed list of tokens.
 # For example:  "var[1] = a" or "x = [1,2,3]"
 PARAM_RE = re.compile(r"""
-  (?P<name>[a-zA-Z][\w\.]*)      # variable name: "var" or "x"
+  (?P<name>[a-zA-Z][\w.]*)      # variable name: "var" or "x"
   (\[\s*(?P<index>\d+)\s*\])?  # (optional) index: "1" or None
   \s*=\s*
   ((?P<val>[^,\[]*)            # single value: "a" or None

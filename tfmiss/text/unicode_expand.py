@@ -79,13 +79,13 @@ def split_chars(source, name=None):
         return tf.RaggedTensor.from_row_splits(result_values, result_splits)
 
 
-def split_words(source, stop=False, name=None):
+def split_words(source, extended=False, name=None):
     """Split unicode strings into words.
     Result tokens could be simply joined with empty separator to obtain original strings.
 
     Args:
         source: `Tensor` or `RaggedTensor` of any shape, strings to split
-        stop: Boolean flag, partly ignore rules WB6 and WB7 and break on "stop" marks
+        extended: Ignore rules WB6, WB7, WB11 and WB12 to break on "stop", "colon" & etc.
         name: A name for the operation (optional).
     Returns:
         `Tensor` if rank(source) is 0, `RaggedTensor` with an additional dimension otherwise.
@@ -100,12 +100,12 @@ def split_words(source, stop=False, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                split_words(source.flat_values, stop)
+                split_words(source.flat_values, extended)
             )
 
         result_values, result_splits = load_so().split_words(
             source=source,
-            stop=stop
+            extended=extended
         )
 
         if source.shape.rank == 0:

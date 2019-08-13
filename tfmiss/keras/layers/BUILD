@@ -2,11 +2,11 @@ package(default_visibility = ["//visibility:public"])
 
 py_library(
     name = "layers",
-    srcs = ([
+    srcs = [
         "__init__.py",
         "tcn.py",
         "wrappers.py",
-    ]),
+    ],
     srcs_version = "PY2AND3",
 )
 

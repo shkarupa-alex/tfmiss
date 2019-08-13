@@ -33,7 +33,7 @@ if __name__ == "__main__":
     train_dataset = data_generator(argv.blank_len, argv.seq_len, 10000, argv.batch_size)
     test_dataset = data_generator(argv.blank_len, argv.seq_len, 1000, argv.batch_size)
 
-    kernels = {
+    filters = {
         CopyModel.CORE_GRU: [argv.gru_units],
         CopyModel.CORE_LSTM: [argv.lstm_units],
         CopyModel.CORE_TCN: [argv.nhid] * argv.levels,
@@ -44,7 +44,7 @@ if __name__ == "__main__":
     for core in [CopyModel.CORE_LSTM, CopyModel.CORE_GRU, CopyModel.CORE_TCN]:
         model = CopyModel(
             core=core,
-            kernels=kernels[core],
+            filters=filters[core],
             kernel_size=argv.ksize,
             dropout=argv.dropout,
         )

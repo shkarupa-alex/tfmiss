@@ -2,9 +2,9 @@ package(default_visibility = ["//visibility:public"])
 
 py_library(
     name = "ops",
-    srcs = ([
+    srcs = [
         "__init__.py",
-    ]),
+    ],
     data = [
         ":_ops.so",
     ],

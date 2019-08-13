@@ -1,5 +1,6 @@
 #include <unicode/brkiter.h>
 #include <unicode/locid.h>
+#include <unicode/regex.h>
 #include "unicode_expand.h"
 
 class SplitWordsOp : public UnicodeExpandOp
@@ -8,12 +9,41 @@ public:
   explicit SplitWordsOp(OpKernelConstruction *ctx) : UnicodeExpandOp(ctx)
   {
     // Prepare attrs
-    OP_REQUIRES_OK(ctx, ctx->GetAttr("stop", &_stop));
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("extended", &_extended));
 
     // Create word-level BreakIterator instance
-    UErrorCode error = U_ZERO_ERROR;
-    _wordIterator = BreakIterator::createWordInstance(Locale::getRoot(), error);
-    OP_REQUIRES(ctx, U_SUCCESS(error), errors::InvalidArgument("BreakIterator instantiation failed"));
+    UErrorCode iteratorError = U_ZERO_ERROR;
+    _wordIterator = BreakIterator::createWordInstance(Locale::getRoot(), iteratorError);
+    OP_REQUIRES(ctx, U_SUCCESS(iteratorError), errors::InvalidArgument("BreakIterator instantiation failed"));
+
+    if (_extended)
+    {
+      // Regex for rule 6 and 7
+      // ($ALetterEx | $Hebrew_LetterEx) ($MidLetterEx | $MidNumLetEx | $Single_QuoteEx) ($ALetterEx | $Hebrew_LetterEx)
+      UErrorCode regex67Error = U_ZERO_ERROR;
+      _wb67 = RegexPattern::compile(
+          "([[\\p{Word_Break = ALetter}] [\\p{Word_Break = Hebrew_Letter}]])"
+          "([[\\p{Word_Break = Extend}] [\\p{Word_Break = Format}] [\\p{Word_Break = ZWJ}]])*"
+          "([[\\p{Word_Break = MidLetter}] [\\p{Word_Break = MidNumLet}] [\\p{Word_Break = Single_Quote}]])"
+          "([[\\p{Word_Break = Extend}] [\\p{Word_Break = Format}] [\\p{Word_Break = ZWJ}]])*"
+          "([[\\p{Word_Break = ALetter}] [\\p{Word_Break = Hebrew_Letter}]])",
+          0,
+          regex67Error);
+      OP_REQUIRES(ctx, U_SUCCESS(regex67Error), errors::InvalidArgument("RegexPattern compilation failed"));
+
+      // Regex for rule 11 and 12
+      // $NumericEx ($MidNumEx | $MidNumLetEx | $Single_QuoteEx) $NumericEx
+      UErrorCode regex1112Error = U_ZERO_ERROR;
+      _wb1112 = RegexPattern::compile(
+          "([[\\p{Word_Break = Numeric}] [\uFF10-\uff19]])"
+          "([[\\p{Word_Break = Extend}] [\\p{Word_Break = Format}] [\\p{Word_Break = ZWJ}]])*"
+          "([[\\p{Word_Break = MidNum}] [\\p{Word_Break = MidNumLet}] [\\p{Word_Break = Single_Quote}]])"
+          "([[\\p{Word_Break = Extend}] [\\p{Word_Break = Format}] [\\p{Word_Break = ZWJ}]])*"
+          "([[\\p{Word_Break = Numeric}] [\uFF10-\uff19]])",
+          0,
+          regex1112Error);
+      OP_REQUIRES(ctx, U_SUCCESS(regex1112Error), errors::InvalidArgument("RegexPattern compilation failed"));
+    }
   }
 
   ~SplitWordsOp()
@@ -22,55 +52,10 @@ public:
   }
 
 private:
-  bool _stop;
+  bool _extended;
   const BreakIterator *_wordIterator;
-
-  const UChar _full_stop = 46;              // \u002E
-  const UChar _one_dot_leader = 8228;       // \u2024
-  const UChar _small_full_stop = 65106;     // \uFE52
-  const UChar _fullwidth_full_stop = 65294; // \uFF0E
-
-  bool is_stop_char(UChar c)
-  {
-    return _full_stop == c || _one_dot_leader == c || _small_full_stop == c || _fullwidth_full_stop == c;
-  }
-
-  void expand_unicode_subword(const UnicodeString &unicode_string, std::vector<UnicodeString> &expanded_strings)
-  {
-    if (unicode_string.length() < 2)
-    {
-      expanded_strings.push_back(unicode_string);
-      return;
-    }
-
-    // Split words by stop characters
-    int32_t prev = 0;
-    for (int32_t pos = 0; pos < unicode_string.length(); pos++)
-    {
-      if (!is_stop_char(unicode_string[pos]))
-        continue;
-
-      if (pos < prev)
-        continue;
-
-      if (pos > prev)
-      {
-        UnicodeString word_before = UnicodeString(unicode_string, prev, pos - prev);
-        expanded_strings.push_back(word_before);
-      }
-
-      UnicodeString stop_mark = UnicodeString(unicode_string, pos, 1);
-      expanded_strings.push_back(stop_mark);
-
-      prev = pos + 1;
-    }
-
-    if (unicode_string.length() - prev > 0)
-    {
-      UnicodeString word_after = UnicodeString(unicode_string, prev, unicode_string.length() - prev);
-      expanded_strings.push_back(word_after);
-    }
-  }
+  const RegexPattern *_wb67;
+  const RegexPattern *_wb1112;
 
 protected:
   uint64 expand_rate() override
@@ -86,30 +71,88 @@ protected:
       return true;
     }
 
+    std::vector<int32_t> split_positions;
+
     // Split words by Unicode rules
     BreakIterator *wordIterator = _wordIterator->clone();
     wordIterator->setText(unicode_string);
-
-    int32_t prev = wordIterator->first();
     for (int32_t pos = wordIterator->first(); pos != BreakIterator::DONE; pos = wordIterator->next())
     {
-      if (prev == pos)
-        continue;
+      split_positions.push_back(pos);
+    }
+    delete wordIterator;
 
-      UnicodeString word = UnicodeString(unicode_string, prev, pos - prev);
-      if (!_stop)
+    // Split words ignoring WB 6, 7, 11 and 12
+    if (_extended)
+    {
+      UErrorCode extendedError = U_ZERO_ERROR;
+
+      RegexMatcher *matcher67 = _wb67->matcher(unicode_string, extendedError);
+      if (!U_SUCCESS(extendedError))
       {
-        expanded_strings.push_back(word);
-      }
-      else
-      {
-        expand_unicode_subword(word, expanded_strings);
+        delete matcher67;
+
+        return false;
       }
 
-      prev = pos;
+      while (matcher67->find(extendedError) && U_SUCCESS(extendedError))
+      {
+        for (int i = 1; i < 5; i++)
+        {
+          int32_t end67 = matcher67->end(i, extendedError);
+          if (end67 >= 0)
+            split_positions.push_back(end67);
+          if (!U_SUCCESS(extendedError))
+          {
+            delete matcher67;
+
+            return false;
+          }
+        }
+      }
+
+      delete matcher67;
+
+      RegexMatcher *matcher1112 = _wb1112->matcher(unicode_string, extendedError);
+      if (!U_SUCCESS(extendedError))
+      {
+        delete matcher1112;
+
+        return false;
+      }
+
+      while (matcher1112->find(extendedError) && U_SUCCESS(extendedError))
+      {
+        for (int i = 1; i < 5; i++)
+        {
+          int32_t end1112 = matcher1112->end(i, extendedError);
+          if (end1112 >= 0)
+            split_positions.push_back(end1112);
+          if (!U_SUCCESS(extendedError))
+          {
+            delete matcher1112;
+
+            return false;
+          }
+        }
+      }
+
+      delete matcher1112;
     }
 
-    delete wordIterator;
+    // Remove duplicates and split
+    sort(split_positions.begin(), split_positions.end());
+    split_positions.erase(unique(split_positions.begin(), split_positions.end()), split_positions.end());
+
+    for (uint64 i = 0; i < split_positions.size() - 1; i++)
+    {
+      int32_t prev = split_positions[i];
+      int32_t pos = split_positions[i + 1];
+
+      UnicodeString word = UnicodeString(unicode_string, prev, pos - prev);
+
+      expanded_strings.push_back(word);
+    }
 
     return true;
   }

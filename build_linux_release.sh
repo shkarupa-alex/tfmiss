@@ -9,7 +9,6 @@ apt-get update
 
 # Python
 apt-get install -y python-dev python-pip python3-dev python3-pip python3.6-dev
-python3.6 -m pip install -U wheel==0.31.1 auditwheel==1.5.0
 
 # Build tools
 apt-get install -y unzip wget g++ gcc g++-4.8 gcc-4.8 patchelf rsync
@@ -33,6 +32,7 @@ cd ~/tfmiss
 
 export PYTHON_BIN_PATH=`which python`
 $PYTHON_BIN_PATH -m pip install -U tensorflow==2.0.0-beta0
+python3.6 -m pip install -U wheel==0.31.1 auditwheel==1.5.0  # Required due to TensorFlow installation will update wheel
 ./configure.sh
 bazel clean --expunge
 bazel test --test_output=errors //tfmiss/...
@@ -41,6 +41,7 @@ bazel-bin/build_pip_pkg /tfmiss/wheels
 
 export PYTHON_BIN_PATH=`which python3`
 $PYTHON_BIN_PATH -m pip install -U tensorflow==2.0.0-beta0
+python3.6 -m pip install -U wheel==0.31.1 auditwheel==1.5.0  # Required due to TensorFlow installation will update wheel
 ./configure.sh
 bazel clean --expunge
 bazel test --test_output=errors //tfmiss/...

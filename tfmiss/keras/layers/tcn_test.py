@@ -14,18 +14,31 @@ from tfmiss.keras.layers.tcn import TemporalBlock, TemporalConvNet
 @keras_parameterized.run_all_keras_modes
 class TemporalBlockTest(keras_parameterized.TestCase):
     def testLayer(self):
-        with self.cached_session(use_gpu=True):
-            with tf.keras.utils.custom_object_scope({'TemporalBlock': TemporalBlock}):
-                testing_utils.layer_test(
-                    TemporalBlock,
-                    kwargs={
-                        'filters': 3,
-                        'kernel_size': 2,
-                        'dilation': 1,
-                        'dropout': 0.2,
-                    },
-                    input_shape=(2, 3, 7)
-                )
+        with tf.keras.utils.custom_object_scope({'TemporalBlock': TemporalBlock}):
+            testing_utils.layer_test(
+                TemporalBlock,
+                kwargs={
+                    'filters': 3,
+                    'kernel_size': 2,
+                    'dilation': 1,
+                    'dropout': 0.2,
+                },
+                input_shape=(2, 3, 7)
+            )
+
+    def testLayerSamePadding(self):
+        with tf.keras.utils.custom_object_scope({'TemporalBlock': TemporalBlock}):
+            testing_utils.layer_test(
+                TemporalBlock,
+                kwargs={
+                    'filters': 3,
+                    'kernel_size': 2,
+                    'dilation': 1,
+                    'dropout': 0.2,
+                    'padding': 'same',
+                },
+                input_shape=(2, 3, 7)
+            )
 
     def testShape(self):
         layer = TemporalBlock(
@@ -66,21 +79,33 @@ class TemporalBlockTest(keras_parameterized.TestCase):
 @keras_parameterized.run_all_keras_modes
 class TemporalConvNetTest(keras_parameterized.TestCase):
     def testLayer(self):
-        with self.cached_session(use_gpu=True):
-            with tf.keras.utils.custom_object_scope({'TemporalConvNet': TemporalConvNet}):
-                testing_utils.layer_test(
-                    TemporalConvNet,
-                    kwargs={
-                        'kernels': [5, 4, 3],
-                        'kernel_size': 3,
-                        'dropout': 0.2,
-                    },
-                    input_shape=(2, 3, 7)
-                )
+        with tf.keras.utils.custom_object_scope({'TemporalConvNet': TemporalConvNet}):
+            testing_utils.layer_test(
+                TemporalConvNet,
+                kwargs={
+                    'filters': [5, 4, 3],
+                    'kernel_size': 3,
+                    'dropout': 0.2,
+                },
+                input_shape=(2, 3, 7)
+            )
+
+    def testLayerSamePadding(self):
+        with tf.keras.utils.custom_object_scope({'TemporalConvNet': TemporalConvNet}):
+            testing_utils.layer_test(
+                TemporalConvNet,
+                kwargs={
+                    'filters': [5, 4, 3],
+                    'kernel_size': 3,
+                    'dropout': 0.2,
+                    'padding': 'same',
+                },
+                input_shape=(2, 3, 7)
+            )
 
     def testShape(self):
         layer = TemporalConvNet(
-            kernels=[5, 4, 3],
+            filters=[5, 4, 3],
             kernel_size=3,
             dropout=0.2
         )
@@ -95,7 +120,7 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
     def testModel(self):
         model = tf.keras.models.Sequential()
         model.add(TemporalConvNet(
-            kernels=[5, 4, 3],
+            filters=[5, 4, 3],
             kernel_size=3,
             dropout=0.2
         ))
@@ -109,6 +134,7 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
         checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
         for v in model.variables:
             self.assertIn(v, checkpointed_objects)
+
 
 if __name__ == "__main__":
     tf.test.main()

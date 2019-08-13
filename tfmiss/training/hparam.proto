@@ -15,7 +15,7 @@
 
 syntax = "proto3";
 
-package tensorflow;
+package tfmiss;
 option cc_enable_arenas = true;
 
 // Protocol buffer holding hyper parameters.

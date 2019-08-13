@@ -2,11 +2,11 @@ package(default_visibility = ["//visibility:public"])
 
 py_library(
     name = "preprocessing",
-    srcs = ([
+    srcs = [
         "__init__.py",
         "preprocessing.py",
         "sampling.py",
-    ]),
+    ],
     deps = [
         "//tfmiss/ops",
     ],

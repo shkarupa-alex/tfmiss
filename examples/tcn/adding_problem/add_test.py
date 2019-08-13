@@ -32,7 +32,7 @@ if __name__ == "__main__":
     train_dataset = data_generator(200000, argv.seq_len, argv.batch_size)
     test_dataset = data_generator(40000, argv.seq_len, argv.batch_size)
 
-    kernels = {
+    filters = {
         AddingModel.CORE_GRU: [argv.gru_units],
         AddingModel.CORE_LSTM: [argv.lstm_units],
         AddingModel.CORE_TCN: [argv.nhid] * argv.levels,
@@ -43,7 +43,7 @@ if __name__ == "__main__":
     for core in [AddingModel.CORE_GRU, AddingModel.CORE_LSTM, AddingModel.CORE_TCN]:
         model = AddingModel(
             core=core,
-            kernels=kernels[core],
+            filters=filters[core],
             kernel_size=argv.ksize,
             dropout=argv.dropout,
         )

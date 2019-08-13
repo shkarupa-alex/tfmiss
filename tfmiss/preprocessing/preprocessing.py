@@ -21,6 +21,7 @@ def cont_bow(source, window, seed=None, name=None):
     Returns:
         `1-D` string `Tensor`: target tokens.
         `2-D` string `RaggedTensor`: context tokens.
+        `2-D` int32 `RaggedTensor`: context positions.
     """
     with tf.name_scope(name or 'cont_bow'):
         source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source')
@@ -36,16 +37,18 @@ def cont_bow(source, window, seed=None, name=None):
 
         seed1, seed2 = random_seed.get_seed(seed)
 
-        target, context_values, context_splits = load_so().cont_bow(
+        target, context_values, context_splits, context_positions = load_so().cont_bow(
             source_values=source.values,
             source_splits=source.row_splits,
             window=window,
             seed=seed1,
             seed2=seed2
         )
-        context = tf.RaggedTensor.from_row_splits(context_values, context_splits)
 
-        return target, context
+        context = tf.RaggedTensor.from_row_splits(context_values, context_splits)
+        position = tf.RaggedTensor.from_row_splits(context_positions, context_splits)
+
+        return target, context, position
 
 
 

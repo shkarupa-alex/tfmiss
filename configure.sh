@@ -25,7 +25,7 @@ function write_action_env_to_bazelrc() {
 
 
 # Remove .bazelrc if it already exist
-[ -e .bazelrc ] && rm .bazelrc
+[[ -e .bazelrc ]] && rm .bazelrc
 
 
 # Determine Python path
@@ -33,7 +33,7 @@ PY_BIN=${PYTHON_BIN_PATH:-`which python`}
 
 
 # Check if TensorFlow installed
-if ! $PY_BIN -c "import tensorflow" &> /dev/null; then
+if ! ${PY_BIN} -c "import tensorflow" &> /dev/null; then
     echo 'Install TensorFlow before continuing'
     exit 1
 fi
@@ -46,12 +46,16 @@ TF_LFLAGS=( $($PY_BIN -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.g
 write_action_env_to_bazelrc "TF_HEADER_DIR" ${TF_CFLAGS:2}
 
 SHARED_LIBRARY_DIR=${TF_LFLAGS:2}
-if [ -f "${SHARED_LIBRARY_DIR}/libtensorflow_framework.dylib" ]; then
+if [[ -f "${SHARED_LIBRARY_DIR}/libtensorflow_framework.dylib" ]]; then
     SHARED_LIBRARY_NAME="libtensorflow_framework.dylib"
+elif [[ -f "${SHARED_LIBRARY_DIR}/libtensorflow_framework.so.2" ]]; then
+    SHARED_LIBRARY_NAME="libtensorflow_framework.so.2"
+elif [[ -f "${SHARED_LIBRARY_DIR}/libtensorflow_framework.so.1" ]]; then
+    SHARED_LIBRARY_NAME="libtensorflow_framework.so.1"
 else
     SHARED_LIBRARY_NAME="libtensorflow_framework.so"
 fi
-if [ ! -f "${SHARED_LIBRARY_DIR}/${SHARED_LIBRARY_NAME}" ]; then
+if [[ ! -f "${SHARED_LIBRARY_DIR}/${SHARED_LIBRARY_NAME}" ]]; then
     echo "TensorFlow shared library not found in ${SHARED_LIBRARY_DIR}"
     exit 1
 fi

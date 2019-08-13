@@ -2,17 +2,15 @@ package(default_visibility = ["//visibility:public"])
 
 py_library(
     name = "tfmiss",
-    srcs = ([
+    srcs = [
         "__init__.py",
-    ]),
-    deps = [
-        "//tfmiss/ops:ops",
     ],
-    data = [
-        ":keras",
-        ":preprocessing",
-        ":text",
-#        ":training",
+    deps = [
+        "//tfmiss/estimator",
+        "//tfmiss/keras",
+        "//tfmiss/preprocessing",
+        "//tfmiss/text",
+        "//tfmiss/training",
     ],
     srcs_version = "PY2AND3",
 )
