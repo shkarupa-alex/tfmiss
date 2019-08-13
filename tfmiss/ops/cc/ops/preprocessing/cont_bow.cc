@@ -13,6 +13,7 @@ REGISTER_OP("ContBow")
     .Output("target: string")
     .Output("context_values: string")
     .Output("context_splits: T")
+    .Output("context_positions: int32")
     .SetShapeFn([](shape_inference::InferenceContext *c) {
       shape_inference::ShapeHandle unused;
       TF_RETURN_IF_ERROR(c->WithRank(c->input(0), 1, &unused)); // source_values
@@ -22,6 +23,7 @@ REGISTER_OP("ContBow")
       c->set_output(0, c->Vector(shape_inference::InferenceContext::kUnknownDim));
       c->set_output(1, c->Vector(shape_inference::InferenceContext::kUnknownDim));
       c->set_output(2, c->Vector(shape_inference::InferenceContext::kUnknownDim));
+      c->set_output(3, c->Vector(shape_inference::InferenceContext::kUnknownDim));
 
       return Status::OK();
     })

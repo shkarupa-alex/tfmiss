@@ -49,6 +49,7 @@ public:
     cbow_target.reserve(source_values.size());
 
     std::vector<string> cbow_context_values;
+    std::vector<int32> cbow_context_positions;
     uint64 reserve_context_values = 0;
     for (int64 row = 0; row < source_splits.size() - 1; row++)
     {
@@ -57,6 +58,7 @@ public:
       reserve_context_values += row_reserve > 0 ? row_reserve : 0;
     }
     cbow_context_values.reserve(reserve_context_values);
+    cbow_context_positions.reserve(reserve_context_values);
 
     std::vector<uint64> cbow_context_splits;
     cbow_context_splits.reserve(source_values.size());
@@ -95,6 +97,7 @@ public:
           //  continue;
 
           cbow_context_values.push_back(source_values(context));
+          cbow_context_positions.push_back(context - target);
           empty_row = false;
         }
 
@@ -111,13 +114,17 @@ public:
     OP_REQUIRES_OK(ctx, ctx->allocate_output("target", TensorShape({(int64)cbow_target.size()}), &target_tensor));
     auto target = target_tensor->vec<string>();
 
-    Tensor *context_source_values_tensor;
-    OP_REQUIRES_OK(ctx, ctx->allocate_output("context_values", TensorShape({(int64)cbow_context_values.size()}), &context_source_values_tensor));
-    auto context_values = context_source_values_tensor->vec<string>();
+    Tensor *context_values_tensor;
+    OP_REQUIRES_OK(ctx, ctx->allocate_output("context_values", TensorShape({(int64)cbow_context_values.size()}), &context_values_tensor));
+    auto context_values = context_values_tensor->vec<string>();
 
-    Tensor *context_source_splits_tensor;
-    OP_REQUIRES_OK(ctx, ctx->allocate_output("context_splits", TensorShape({(int64)cbow_context_splits.size()}), &context_source_splits_tensor));
-    auto context_splits = context_source_splits_tensor->vec<int64>();
+    Tensor *context_splits_tensor;
+    OP_REQUIRES_OK(ctx, ctx->allocate_output("context_splits", TensorShape({(int64)cbow_context_splits.size()}), &context_splits_tensor));
+    auto context_splits = context_splits_tensor->vec<int64>();
+
+    Tensor *context_positions_tensor;
+    OP_REQUIRES_OK(ctx, ctx->allocate_output("context_positions", TensorShape({(int64)cbow_context_positions.size()}), &context_positions_tensor));
+    auto context_positions = context_positions_tensor->vec<int32>();
 
     // Fill outputs
     for (uint64 i = 0; i < cbow_target.size(); i++)
@@ -133,6 +140,11 @@ public:
     for (uint64 i = 0; i < cbow_context_splits.size(); i++)
     {
       context_splits(i) = cbow_context_splits[i];
+    }
+
+    for (uint64 i = 0; i < cbow_context_positions.size(); i++)
+    {
+      context_positions(i) = cbow_context_positions[i];
     }
   }
 

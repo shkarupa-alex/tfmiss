@@ -13,11 +13,12 @@ class ContBowTest(tf.test.TestCase):
     def testEmpty(self):
         source = tf.ragged.constant(np.array([]).reshape(0, 2), dtype=tf.string)
         cbows = cont_bow(source, 1)
-        target, context = self.evaluate(cbows)
+        target, context, position = self.evaluate(cbows)
 
         self.assertAllEqual([], target.tolist())
         self.assertAllEqual([], context.values.tolist())
         self.assertAllEqual([0], context.row_splits.tolist())
+        self.assertAllEqual([], position.values.tolist())
 
     # Disabled due to currently accepting target inclusion into context
     # def testSkipRow(self):
@@ -39,11 +40,12 @@ class ContBowTest(tf.test.TestCase):
             ['the', 'quick', 'brown', 'fox'],
             ['jumped', 'over', 'the', 'dog'],
         ])
-        target, context = cont_bow(source, 2, seed=1)
-        pairs = self.evaluate(tf.concat([
+        target, context, position = cont_bow(source, 2, seed=1)
+        target_context = tf.concat([
             tf.expand_dims(target, axis=-1),
             context.to_tensor(default_value='')
-        ], axis=-1))
+        ], axis=-1)
+        pairs, positions = self.evaluate([target_context, position.to_tensor(0)])
 
         self.assertAllEqual([
             ['the', 'quick', '', ''],
@@ -55,6 +57,16 @@ class ContBowTest(tf.test.TestCase):
             ['the', 'over', 'dog', ''],
             ['dog', 'over', 'the', '']
         ], pairs.tolist())
+        self.assertAllEqual([
+            [1, 0, 0],
+            [-1, 1, 0],
+            [-1, 1, 0],
+            [-2, - 1, 0],
+            [1, 0, 0],
+            [-1, 1, 2],
+            [-1, 1, 0],
+            [-2, - 1, 0],
+        ], positions.tolist())
 
     def testRagged(self):
         source = tf.ragged.constant([
@@ -63,11 +75,12 @@ class ContBowTest(tf.test.TestCase):
             [],
             ['tensorflow'],
         ])
-        target, context = cont_bow(source, 2, seed=1)
-        pairs = self.evaluate(tf.concat([
+        target, context, position = cont_bow(source, 2, seed=1)
+        target_context = tf.concat([
             tf.expand_dims(target, axis=-1),
             context.to_tensor(default_value='')
-        ], axis=-1))
+        ], axis=-1)
+        pairs, positions = self.evaluate([target_context, position.to_tensor(0)])
 
         self.assertAllEqual([
             ['the', 'quick', '', '', ''],
@@ -80,8 +93,17 @@ class ContBowTest(tf.test.TestCase):
             ['lazy', 'over', 'the', 'dog', ''],
             ['dog', 'lazy', '', '', '']
         ], pairs.tolist())
-
-
+        self.assertAllEqual([
+            [1, 0, 0, 0],
+            [-1, 1, 0, 0],
+            [-1, 1, 0, 0],
+            [-2, -1, 1, 2],
+            [-1, 1, 0, 0],
+            [-2, -1, 1, 2],
+            [-1, 1, 0, 0],
+            [-2, -1, 1, 0],
+            [-1, 0, 0, 0]
+        ], positions.tolist())
 
 @test_util.run_all_in_graph_and_eager_modes
 class SkipGramTest(tf.test.TestCase):

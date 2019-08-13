@@ -503,8 +503,8 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def testComplexStop(self):
-        dangerous = u'\',.:;‘’\u00AD'
+    def testComplexExtended(self):
+        dangerous = u'\',.:;‘’'
         source = []
         for c in dangerous:
             source.append(u' {}00 '.format(c))  # before number
@@ -514,37 +514,33 @@ class SplitWordsTest(tf.test.TestCase):
             source.append(u' 00{} '.format(c))  # after number
             source.append(u' zz{} '.format(c))  # after letter
         expected = tf.constant([
-            [' ', u'\'', '00', ' ', ''], [' ', u'\'', 'zz', ' ', ''], [' ', u'00\'00', ' ', '', ''],
-            [' ', u'zz\'zz', ' ', '', ''], [' ', '00', u'\'', ' ', ''], [' ', 'zz', u'\'', ' ', ''],
-            
-            [' ', u',', '00', ' ', ''], [' ', u',', 'zz', ' ', ''], [' ', u'00,00', ' ', '', ''],
+            [' ', u'\'', '00', ' ', ''], [' ', u'\'', 'zz', ' ', ''], [' ', '00', u'\'', '00', ' '],
+            [' ', 'zz', u'\'', 'zz', ' '], [' ', '00', u'\'', ' ', ''], [' ', 'zz', u'\'', ' ', ''],
+
+            [' ', u',', '00', ' ', ''], [' ', u',', 'zz', ' ', ''], [' ', '00', u',', '00', ' '],
             [' ', 'zz', u',', 'zz', ' '], [' ', '00', u',', ' ', ''], [' ', 'zz', u',', ' ', ''],
-            
-            [' ', u'.', '00', ' ', ''], [' ', u'.', 'zz', ' ', ''], [' ', u'00.00', ' ', '', ''],
-            [' ', u'zz.zz', ' ', '', ''], [' ', '00', u'.', ' ', ''], [' ', 'zz', u'.', ' ', ''],
-            
+
+            [' ', u'.', '00', ' ', ''], [' ', u'.', 'zz', ' ', ''], [' ', '00', u'.', '00', ' '],
+            [' ', 'zz', u'.', 'zz', ' '], [' ', '00', u'.', ' ', ''], [' ', 'zz', u'.', ' ', ''],
+
             [' ', u':', '00', ' ', ''], [' ', u':', 'zz', ' ', ''], [' ', '00', u':', '00', ' '],
-            [' ', u'zz:zz', ' ', '', ''], [' ', '00', u':', ' ', ''], [' ', 'zz', u':', ' ', ''],
-            
-            [' ', u';', '00', ' ', ''], [' ', u';', 'zz', ' ', ''], [' ', u'00;00', ' ', '', ''],
+            [' ', 'zz', u':', 'zz', ' '], [' ', '00', u':', ' ', ''], [' ', 'zz', u':', ' ', ''],
+
+            [' ', u';', '00', ' ', ''], [' ', u';', 'zz', ' ', ''], [' ', '00', u';', '00', ' '],
             [' ', 'zz', u';', 'zz', ' '], [' ', '00', u';', ' ', ''], [' ', 'zz', u';', ' ', ''],
-            
-            [' ', u'‘', '00', ' ', ''], [' ', u'‘', 'zz', ' ', ''], [' ', u'00‘00', ' ', '', ''],
-            [' ', u'zz‘zz', ' ', '', ''], [' ', '00', u'‘', ' ', ''], [' ', 'zz', u'‘', ' ', ''],
-            
-            [' ', u'’', '00', ' ', ''], [' ', u'’', 'zz', ' ', ''], [' ', u'00’00', ' ', '', ''], 
-            [' ', u'zz’zz', ' ', '', ''], [' ', '00', u'’', ' ', ''], [' ', 'zz', u'’', ' ', ''],
-            
-            [u' \xad', '00', ' ', '', ''], [u' \xad', 'zz', ' ', '', ''], [' ', u'00\xad00', ' ', '', ''], 
-            [' ', u'zz\xadzz', ' ', '', ''], [' ', u'00\xad', ' ', '', ''], [' ', u'zz\xad', ' ', '', ''], 
+
+            [' ', u'‘', '00', ' ', ''], [' ', u'‘', 'zz', ' ', ''], [' ', '00', u'‘', '00', ' '],
+            [' ', 'zz', u'‘', 'zz', ' '], [' ', '00', u'‘', ' ', ''], [' ', 'zz', u'‘', ' ', ''],
+
+            [' ', u'’', '00', ' ', ''], [' ', u'’', 'zz', ' ', ''], [' ', '00', u'’', '00', ' '],
+            [' ', 'zz', u'’', 'zz', ' '], [' ', '00', u'’', ' ', ''], [' ', 'zz', u'’', ' ', ''],
         ], dtype=tf.string)
 
-        result = split_words(source, extended=False)
+        result = split_words(source, extended=True)
         self.assertIsInstance(result, tf.RaggedTensor)
         result = result.to_tensor(default_value='')
 
         expected, result = self.evaluate([expected, result])
-        print([[w.decode('utf-8') for w in r] for r in result])
         self.assertAllEqual(expected, result)
 
 

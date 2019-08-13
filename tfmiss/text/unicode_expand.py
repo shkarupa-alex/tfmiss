@@ -85,7 +85,7 @@ def split_words(source, extended=False, name=None):
 
     Args:
         source: `Tensor` or `RaggedTensor` of any shape, strings to split
-        extended: Boolean flag, partly ignore rules WB6, WB7, WB11 and WB12 and break on "stop", "colon" & etc.
+        extended: Ignore rules WB6, WB7, WB11 and WB12 to break on "stop", "colon" & etc.
         name: A name for the operation (optional).
     Returns:
         `Tensor` if rank(source) is 0, `RaggedTensor` with an additional dimension otherwise.
