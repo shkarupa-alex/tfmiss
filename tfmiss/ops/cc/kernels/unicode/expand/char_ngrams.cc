@@ -1,5 +1,8 @@
 #include "unicode_expand.h"
 
+namespace tensorflow {
+namespace miss {
+
 class CharNgramsOp : public UnicodeExpandOp
 {
 public:
@@ -93,4 +96,7 @@ protected:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("CharNgrams").Device(DEVICE_CPU), CharNgramsOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>CharNgrams").Device(DEVICE_CPU), CharNgramsOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

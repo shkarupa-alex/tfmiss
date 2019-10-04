@@ -32,7 +32,7 @@ class DownSampleTest(tf.test.TestCase):
         downsampled = self.evaluate(down_sample(source, freq_keys, freq_vals, '', 1e-2, min_freq=2, seed=1))
 
         self.assertListEqual(
-            ['', '', 'quick', 'brown', 'fox', '', 'over', 'the', '', 'dog', ''],
+            [b'', b'', b'quick', b'brown', b'fox', b'', b'over', b'the', b'', b'dog', b''],
             downsampled.tolist()
         )
 
@@ -61,10 +61,10 @@ class DownSampleTest(tf.test.TestCase):
         )
 
         self.assertListEqual([
-            ['', '', '', '', ''],
-            ['', 'quick', 'brown', 'fox', ''],
-            ['over', 'the', '', 'dog', ''],
-            ['', '', '', '', '']
+            [b'', b'', b'', b'', b''],
+            [b'', b'quick', b'brown', b'fox', b''],
+            [b'over', b'the', b'', b'dog', b''],
+            [b'', b'', b'', b'', b'']
         ], downsampled.tolist())
 
     def testRagged3D(self):
@@ -93,14 +93,14 @@ class DownSampleTest(tf.test.TestCase):
         )
 
         self.assertListEqual([
-            [['', '', '', ''],
-             ['', '', '', '']],
-            [['', 'quick', '', ''],
-             ['brown', 'fox', '', '']],
-            [['over', 'the', '', 'dog'],
-             ['', '', '', '']],
-            [['', '', '', ''],
-             ['', '', '', '']]
+            [[b'', b'', b'', b''],
+             [b'', b'', b'', b'']],
+            [[b'', b'quick', b'', b''],
+             [b'brown', b'fox', b'', b'']],
+            [[b'over', b'the', b'', b'dog'],
+             [b'', b'', b'', b'']],
+            [[b'', b'', b'', b''],
+             [b'', b'', b'', b'']]
         ], downsampled.tolist())
 
 

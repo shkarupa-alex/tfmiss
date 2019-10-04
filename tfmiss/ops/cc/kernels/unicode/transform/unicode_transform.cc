@@ -1,5 +1,8 @@
 #include "unicode_transform.h"
 
+namespace tensorflow {
+namespace miss {
+
 void UnicodeTransformOp::Compute(OpKernelContext *ctx)
 {
   // Prepare source
@@ -38,3 +41,6 @@ bool UnicodeTransformOp::transform_raw(string &binary_string)
 
   return transform_ok;
 }
+
+}  // end namespace miss
+}  // namespace tensorflow

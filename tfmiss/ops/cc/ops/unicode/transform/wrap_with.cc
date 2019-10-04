@@ -2,11 +2,17 @@
 #include "tensorflow/core/framework/shape_inference.h"
 #include "tensorflow/core/framework/common_shape_fns.h"
 
-using namespace tensorflow;
+namespace tensorflow
+{
+namespace miss
+{
 
-REGISTER_OP("WrapWith")
+REGISTER_OP("Miss>WrapWith")
     .Input("source: string")
     .Attr("left: string")
     .Attr("right: string")
     .Output("result: string")
     .SetShapeFn(shape_inference::UnchangedShape);
+
+} // end namespace miss
+} // namespace tensorflow

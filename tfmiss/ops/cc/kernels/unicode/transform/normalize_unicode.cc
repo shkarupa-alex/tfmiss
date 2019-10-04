@@ -1,6 +1,9 @@
 #include <unicode/normalizer2.h>
 #include "unicode_transform.h"
 
+namespace tensorflow {
+namespace miss {
+
 class NormalizeUnicodeOp : public UnicodeTransformOp
 {
 public:
@@ -53,4 +56,7 @@ protected:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("NormalizeUnicode").Device(DEVICE_CPU), NormalizeUnicodeOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>NormalizeUnicode").Device(DEVICE_CPU), NormalizeUnicodeOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

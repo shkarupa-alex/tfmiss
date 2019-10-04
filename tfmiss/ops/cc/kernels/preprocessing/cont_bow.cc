@@ -3,7 +3,8 @@
 #include "tensorflow/core/util/guarded_philox_random.h"
 #include "tensorflow/core/lib/random/simple_philox.h"
 
-using namespace tensorflow;
+namespace tensorflow {
+namespace miss {
 
 class ContBowOp : public OpKernel
 {
@@ -152,4 +153,7 @@ private:
   GuardedPhiloxRandom _random_generator;
 };
 
-REGISTER_KERNEL_BUILDER(Name("ContBow").Device(DEVICE_CPU), ContBowOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>ContBow").Device(DEVICE_CPU), ContBowOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

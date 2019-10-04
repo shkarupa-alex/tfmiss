@@ -1,6 +1,9 @@
 #include <unicode/unistr.h>
 #include "unicode_transform.h"
 
+namespace tensorflow {
+namespace miss {
+
 class LowerCaseOp : public UnicodeTransformOp
 {
 public:
@@ -15,4 +18,7 @@ protected:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("LowerCase").Device(DEVICE_CPU), LowerCaseOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>LowerCase").Device(DEVICE_CPU), LowerCaseOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

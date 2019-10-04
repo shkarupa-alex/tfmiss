@@ -35,7 +35,7 @@ class LayerMultiIOTestTest(keras_parameterized.TestCase):
             kwargs={
                 'units': 10,
             },
-            input_datas=[np.random.random((2, 4))]
+            input_datas=[np.random.random((2, 4)).astype(np.float32)]
         )
         layer_multi_io_test(
             tf.keras.layers.Dense,
@@ -50,6 +50,7 @@ class LayerMultiIOTestTest(keras_parameterized.TestCase):
             tf.keras.layers.Dense,
             kwargs={
                 'units': 10,
+                'dtype': 'float16',
             },
             input_shapes=[(2, 4)],
             input_dtypes=['float16']
@@ -58,6 +59,7 @@ class LayerMultiIOTestTest(keras_parameterized.TestCase):
             tf.keras.layers.Dense,
             kwargs={
                 'units': 10,
+                'dtype': 'float16',
             },
             input_datas=[np.random.random((2, 4))],
             input_dtypes=['float16']
@@ -66,6 +68,7 @@ class LayerMultiIOTestTest(keras_parameterized.TestCase):
             tf.keras.layers.Dense,
             kwargs={
                 'units': 10,
+                'dtype': 'float16',
             },
             input_shapes=[(2, 4)],
             input_dtypes=['float16'],

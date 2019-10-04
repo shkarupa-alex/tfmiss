@@ -2,6 +2,9 @@
 #include "tensorflow/core/util/ptr_util.h"
 #include "unicode_transform.h"
 
+namespace tensorflow {
+namespace miss {
+
 class ReplaceRegexOp : public UnicodeTransformOp
 {
 public:
@@ -44,4 +47,7 @@ protected:
   bool transform_unicode(UnicodeString &unicode_string) override { return true; }
 };
 
-REGISTER_KERNEL_BUILDER(Name("ReplaceRegex").Device(DEVICE_CPU), ReplaceRegexOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>ReplaceRegex").Device(DEVICE_CPU), ReplaceRegexOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

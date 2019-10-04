@@ -3,10 +3,21 @@ from __future__ import division
 from __future__ import print_function
 
 from setuptools import setup, find_packages
+from setuptools.command.install import install
 from setuptools.dist import Distribution
 
-__VERSION__ = '0.4.0'
+__VERSION__ = '0.5.0'
 
+
+class InstallPlatlib(install):
+    """This class is needed due to a bug in
+    distutils.command.install.finalize_options().
+    See https://github.com/google/or-tools/issues/616#issuecomment-371480314"""
+
+    def finalize_options(self):
+        install.finalize_options(self)
+        if self.distribution.has_ext_modules():
+            self.install_lib = self.install_platlib
 
 class BinaryDistribution(Distribution):
     """This class is needed in order to create OS specific wheels."""
@@ -30,14 +41,15 @@ setup(
     packages=find_packages(),
     install_requires=[
         # https://github.com/tensorflow/tensorflow/issues/7166
-        # 'tensorflow>=2.0.0-beta0',
+        # 'tensorflow>=2.0.0',
     ],
     extras_require={
-        'tf_cpu': ['tensorflow>=2.0.0-beta0'],
-        'tf_gpu': ['tensorflow-gpu>=2.0.0-beta0'],
+        'tf_cpu': ['tensorflow>=2.0.0'],
+        'tf_gpu': ['tensorflow-gpu>=2.0.0'],
     },
     include_package_data=True,
     zip_safe=False,
+    cmdclass={'install': InstallPlatlib},
     distclass=BinaryDistribution,
     classifiers=[
         'Development Status :: 5 - Production/Stable',

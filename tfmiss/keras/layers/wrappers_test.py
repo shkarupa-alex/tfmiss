@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized
 from tensorflow.python.keras import testing_utils
-from tensorflow.python.training.tracking import object_identity
+from tensorflow.python.util import object_identity
 from tensorflow.python.training.tracking import util as trackable_util
 from tfmiss.keras.layers.wrappers import WeightNorm
 

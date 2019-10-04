@@ -2,9 +2,12 @@
 #include "tensorflow/core/framework/shape_inference.h"
 #include "tensorflow/core/framework/common_shape_fns.h"
 
-using namespace tensorflow;
+namespace tensorflow
+{
+namespace miss
+{
 
-REGISTER_OP("SampleMask")
+REGISTER_OP("Miss>SampleMask")
     .Input("source: string")
     .Attr("keys: list(string) >= 1")
     .Attr("freqs: list(int) >= 1")
@@ -15,3 +18,6 @@ REGISTER_OP("SampleMask")
     .Output("mask: bool")
     .SetShapeFn(shape_inference::UnchangedShape)
     .SetIsStateful();
+
+} // end namespace miss
+} // namespace tensorflow

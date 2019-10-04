@@ -1,5 +1,8 @@
 #include "unicode_transform.h"
 
+namespace tensorflow {
+namespace miss {
+
 class ReplaceStringOp : public UnicodeTransformOp
 {
 public:
@@ -44,4 +47,7 @@ protected:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("ReplaceString").Device(DEVICE_CPU), ReplaceStringOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>ReplaceString").Device(DEVICE_CPU), ReplaceStringOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

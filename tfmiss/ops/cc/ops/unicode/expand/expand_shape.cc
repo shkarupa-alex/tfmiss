@@ -1,6 +1,9 @@
 #include "expand_shape.h"
 
-using namespace tensorflow;
+namespace tensorflow
+{
+namespace miss
+{
 
 Status ExpandShape(shape_inference::InferenceContext *c)
 {
@@ -9,3 +12,6 @@ Status ExpandShape(shape_inference::InferenceContext *c)
 
     return Status::OK();
 }
+
+} // end namespace miss
+} // namespace tensorflow

@@ -1,18 +1,20 @@
 package(default_visibility = ["//visibility:public"])
 
+load("@local_config_tf//:build_defs.bzl", "D_GLIBCXX_USE_CXX11_ABI")
+
 py_library(
     name = "ops",
     srcs = [
         "__init__.py",
     ],
     data = [
-        ":_ops.so",
+        ":_tfmiss_ops.so",
     ],
     srcs_version = "PY2AND3",
 )
 
 cc_binary(
-    name = "_ops.so",
+    name = "_tfmiss_ops.so",
     srcs = [
         # TODO: https://github.com/JonathanRaiman/tensorflow_qrnn/blob/master/qrnn.py
 
@@ -79,5 +81,9 @@ cc_binary(
         "@icu//:common",
         "@re2//:re2",
     ],
-    copts = ["-pthread", "-std=c++11"],
+    copts = [
+        "-pthread",
+        "-std=c++11",
+        D_GLIBCXX_USE_CXX11_ABI,
+    ],
 )

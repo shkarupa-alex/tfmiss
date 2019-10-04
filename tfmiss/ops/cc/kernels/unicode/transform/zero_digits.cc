@@ -1,6 +1,9 @@
 #include <unicode/uchar.h>
 #include "unicode_transform.h"
 
+namespace tensorflow {
+namespace miss {
+
 class ZeroDigitsOp : public UnicodeTransformOp
 {
 public:
@@ -24,4 +27,7 @@ protected:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("ZeroDigits").Device(DEVICE_CPU), ZeroDigitsOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>ZeroDigits").Device(DEVICE_CPU), ZeroDigitsOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

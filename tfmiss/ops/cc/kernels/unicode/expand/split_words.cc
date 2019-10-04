@@ -3,6 +3,9 @@
 #include <unicode/regex.h>
 #include "unicode_expand.h"
 
+namespace tensorflow {
+namespace miss {
+
 class SplitWordsOp : public UnicodeExpandOp
 {
 public:
@@ -22,11 +25,11 @@ public:
       // ($ALetterEx | $Hebrew_LetterEx) ($MidLetterEx | $MidNumLetEx | $Single_QuoteEx) ($ALetterEx | $Hebrew_LetterEx)
       UErrorCode regex67Error = U_ZERO_ERROR;
       _wb67 = RegexPattern::compile(
-          "([[\\p{Word_Break = ALetter}] [\\p{Word_Break = Hebrew_Letter}]])"
-          "([[\\p{Word_Break = Extend}] [\\p{Word_Break = Format}] [\\p{Word_Break = ZWJ}]])*"
-          "([[\\p{Word_Break = MidLetter}] [\\p{Word_Break = MidNumLet}] [\\p{Word_Break = Single_Quote}]])"
-          "([[\\p{Word_Break = Extend}] [\\p{Word_Break = Format}] [\\p{Word_Break = ZWJ}]])*"
-          "([[\\p{Word_Break = ALetter}] [\\p{Word_Break = Hebrew_Letter}]])",
+          "([[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]]"
+          "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)"
+          "([[\\p{Word_Break = MidLetter}][\\p{Word_Break = MidNumLet}][\\p{Word_Break = Single_Quote}]]"
+          "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)"
+          "([[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]])",
           0,
           regex67Error);
       OP_REQUIRES(ctx, U_SUCCESS(regex67Error), errors::InvalidArgument("RegexPattern compilation failed"));
@@ -35,11 +38,11 @@ public:
       // $NumericEx ($MidNumEx | $MidNumLetEx | $Single_QuoteEx) $NumericEx
       UErrorCode regex1112Error = U_ZERO_ERROR;
       _wb1112 = RegexPattern::compile(
-          "([[\\p{Word_Break = Numeric}] [\uFF10-\uff19]])"
-          "([[\\p{Word_Break = Extend}] [\\p{Word_Break = Format}] [\\p{Word_Break = ZWJ}]])*"
-          "([[\\p{Word_Break = MidNum}] [\\p{Word_Break = MidNumLet}] [\\p{Word_Break = Single_Quote}]])"
-          "([[\\p{Word_Break = Extend}] [\\p{Word_Break = Format}] [\\p{Word_Break = ZWJ}]])*"
-          "([[\\p{Word_Break = Numeric}] [\uFF10-\uff19]])",
+          "([[\\p{Word_Break = Numeric}][\uFF10-\uff19]]"
+          "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)"
+          "([[\\p{Word_Break = MidNum}][\\p{Word_Break = MidNumLet}][\\p{Word_Break = Single_Quote}]]"
+          "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)"
+          "([[\\p{Word_Break = Numeric}][\uFF10-\uff19]])",
           0,
           regex1112Error);
       OP_REQUIRES(ctx, U_SUCCESS(regex1112Error), errors::InvalidArgument("RegexPattern compilation failed"));
@@ -97,11 +100,11 @@ protected:
 
       while (matcher67->find(extendedError) && U_SUCCESS(extendedError))
       {
-        for (int i = 1; i < 5; i++)
+        for (int i = 1; i < 3; i++)
         {
           int32_t end67 = matcher67->end(i, extendedError);
-          if (end67 >= 0)
-            split_positions.push_back(end67);
+          split_positions.push_back(end67);
+
           if (!U_SUCCESS(extendedError))
           {
             delete matcher67;
@@ -123,11 +126,10 @@ protected:
 
       while (matcher1112->find(extendedError) && U_SUCCESS(extendedError))
       {
-        for (int i = 1; i < 5; i++)
+        for (int i = 1; i < 3; i++)
         {
           int32_t end1112 = matcher1112->end(i, extendedError);
-          if (end1112 >= 0)
-            split_positions.push_back(end1112);
+          split_positions.push_back(end1112);
           if (!U_SUCCESS(extendedError))
           {
             delete matcher1112;
@@ -149,6 +151,8 @@ protected:
       int32_t prev = split_positions[i];
       int32_t pos = split_positions[i + 1];
 
+      if (prev < 0) continue;
+
       UnicodeString word = UnicodeString(unicode_string, prev, pos - prev);
 
       expanded_strings.push_back(word);
@@ -158,4 +162,7 @@ protected:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("SplitWords").Device(DEVICE_CPU), SplitWordsOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>SplitWords").Device(DEVICE_CPU), SplitWordsOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

@@ -24,7 +24,7 @@ def lower_case(source, name=None):
                 lower_case(source.flat_values)
             )
 
-        return load_so().lower_case(
+        return load_so().miss_lower_case(
             source=source
         )
 
@@ -49,7 +49,7 @@ def normalize_unicode(source, form, name=None):
                 normalize_unicode(source.flat_values, form)
             )
 
-        return load_so().normalize_unicode(
+        return load_so().miss_normalize_unicode(
             source=source,
             form=form
         )
@@ -75,7 +75,7 @@ def replace_regex(source, pattern, rewrite, name=None):
                 replace_regex(source.flat_values, pattern, rewrite)
             )
 
-        return load_so().replace_regex(
+        return load_so().miss_replace_regex(
             source=source,
             pattern=pattern,
             rewrite=rewrite
@@ -102,7 +102,7 @@ def replace_string(source, needle, haystack, name=None):
                 replace_string(source.flat_values, needle, haystack)
             )
 
-        return load_so().replace_string(
+        return load_so().miss_replace_string(
             source=source,
             needle=needle,
             haystack=haystack
@@ -127,7 +127,7 @@ def title_case(source, name=None):
                 title_case(source.flat_values)
             )
 
-        return load_so().title_case(
+        return load_so().miss_title_case(
             source=source
         )
 
@@ -150,7 +150,7 @@ def upper_case(source, name=None):
                 upper_case(source.flat_values)
             )
 
-        return load_so().upper_case(
+        return load_so().miss_upper_case(
             source=source
         )
 
@@ -175,7 +175,7 @@ def wrap_with(source, left, right, name=None):
                 wrap_with(source.flat_values, left, right)
             )
 
-        return load_so().wrap_with(
+        return load_so().miss_wrap_with(
             source=source,
             left=left,
             right=right
@@ -200,6 +200,6 @@ def zero_digits(source, name=None):
                 zero_digits(source.flat_values)
             )
 
-        return load_so().zero_digits(
+        return load_so().miss_zero_digits(
             source=source
         )

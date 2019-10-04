@@ -1,9 +1,12 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/shape_inference.h"
 
-using namespace tensorflow;
+namespace tensorflow
+{
+namespace miss
+{
 
-REGISTER_OP("SkipGram")
+REGISTER_OP("Miss>SkipGram")
     .Input("source_values: string")
     .Input("source_splits: T")
     .Input("window: int64")
@@ -24,3 +27,6 @@ REGISTER_OP("SkipGram")
       return Status::OK();
     })
     .SetIsStateful();
+
+} // end namespace miss
+} // namespace tensorflow

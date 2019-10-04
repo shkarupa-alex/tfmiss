@@ -1,5 +1,8 @@
 #include "unicode_expand.h"
 
+namespace tensorflow {
+namespace miss {
+
 void UnicodeExpandOp::Compute(OpKernelContext *ctx)
 {
   // Prepare source
@@ -62,3 +65,6 @@ void UnicodeExpandOp::Compute(OpKernelContext *ctx)
 }
 
 uint64 UnicodeExpandOp::expand_rate() { return (uint64)1; }
+
+}  // end namespace miss
+}  // namespace tensorflow

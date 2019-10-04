@@ -3,7 +3,8 @@
 #include "tensorflow/core/util/guarded_philox_random.h"
 #include "tensorflow/core/lib/random/simple_philox.h"
 
-using namespace tensorflow;
+namespace tensorflow {
+namespace miss {
 
 class SampleMaskOp : public OpKernel
 {
@@ -179,4 +180,7 @@ private:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("SampleMask").Device(DEVICE_CPU), SampleMaskOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>SampleMask").Device(DEVICE_CPU), SampleMaskOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

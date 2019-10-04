@@ -33,7 +33,7 @@ def char_ngrams(source, minn, maxn, itself, name=None):
                 char_ngrams(source.flat_values, minn, maxn, itself)
             )
 
-        result_values, result_splits = load_so().char_ngrams(
+        result_values, result_splits = load_so().miss_char_ngrams(
             source=source,
             minn=minn,
             maxn=maxn,
@@ -69,7 +69,7 @@ def split_chars(source, name=None):
                 split_chars(source.flat_values)
             )
 
-        result_values, result_splits = load_so().split_chars(
+        result_values, result_splits = load_so().miss_split_chars(
             source=source
         )
 
@@ -103,7 +103,7 @@ def split_words(source, extended=False, name=None):
                 split_words(source.flat_values, extended)
             )
 
-        result_values, result_splits = load_so().split_words(
+        result_values, result_splits = load_so().miss_split_words(
             source=source,
             extended=extended
         )

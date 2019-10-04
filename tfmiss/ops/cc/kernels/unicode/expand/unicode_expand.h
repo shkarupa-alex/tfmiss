@@ -4,7 +4,9 @@
 #include "tensorflow/core/framework/op_kernel.h"
 
 using namespace icu;
-using namespace tensorflow;
+
+namespace tensorflow {
+namespace miss {
 
 class UnicodeExpandOp : public OpKernel
 {
@@ -17,3 +19,6 @@ protected:
   virtual uint64 expand_rate();
   virtual bool expand_unicode(const UnicodeString &unicode_string, std::vector<UnicodeString> &expanded_strings) = 0;
 };
+
+}  // end namespace miss
+}  // namespace tensorflow

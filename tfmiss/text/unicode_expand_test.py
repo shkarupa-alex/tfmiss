@@ -503,6 +503,19 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
+    def testSplitExtendedSpace(self):
+        expected = tf.constant([
+            ['word', '   ', 'word'],
+        ], dtype=tf.string)
+        result = split_words([
+            'word   word',
+        ], extended=True)
+        self.assertIsInstance(result, tf.RaggedTensor)
+        result = result.to_tensor(default_value='')
+
+        expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
+
     def testComplexExtended(self):
         dangerous = u'\',.:;‘’'
         source = []
