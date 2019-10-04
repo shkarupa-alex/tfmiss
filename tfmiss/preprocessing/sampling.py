@@ -81,7 +81,7 @@ def sample_mask(source, keys, freqs, threshold=1e-3, min_freq=0, seed=None, name
         source = tf.convert_to_tensor(source, dtype=tf.string, name='source')
         seed1, seed2 = random_seed.get_seed(seed)
 
-        return load_so().sample_mask(
+        return load_so().miss_sample_mask(
             source=source,
             keys=keys,
             freqs=freqs,

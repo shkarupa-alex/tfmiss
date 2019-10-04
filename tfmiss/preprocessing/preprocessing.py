@@ -37,7 +37,7 @@ def cont_bow(source, window, seed=None, name=None):
 
         seed1, seed2 = random_seed.get_seed(seed)
 
-        target, context_values, context_splits, context_positions = load_so().cont_bow(
+        target, context_values, context_splits, context_positions = load_so().miss_cont_bow(
             source_values=source.values,
             source_splits=source.row_splits,
             window=window,
@@ -80,7 +80,7 @@ def skip_gram(source, window, seed=None, name=None):
 
         seed1, seed2 = random_seed.get_seed(seed)
 
-        target, context = load_so().skip_gram(
+        target, context = load_so().miss_skip_gram(
             source_values=source.values,
             source_splits=source.row_splits,
             window=window,

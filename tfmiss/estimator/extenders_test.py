@@ -55,14 +55,14 @@ class AddWriteMetricsTest(tf.test.TestCase):
             logits = predictions['logits']
             class_ids = tf.argmax(logits, axis=-1)
 
-            keras_auc = tf.keras.metrics.AUC()
-            keras_auc.update_state(y_true=labels, y_pred=class_ids)
+            keras_acc = tf.keras.metrics.Accuracy()
+            keras_acc.update_state(y_true=labels, y_pred=class_ids)
 
-            result = {'my_auc1': keras_auc}
+            result = {'my_acc1': keras_acc}
 
             if not tf.executing_eagerly() and tf.__version__.startswith('1.'):
-                tf_auc = tf.metrics.auc(labels=labels, predictions=class_ids)
-                result['my_auc2'] = tf_auc
+                tf_acc = tf.metrics.accuracy(labels=labels, predictions=class_ids)
+                result['my_acc2'] = tf_acc
 
             return result
 
@@ -73,12 +73,13 @@ class AddWriteMetricsTest(tf.test.TestCase):
         eval_result = classifier.evaluate(
             input_fn=lambda: eval_input_fn(test_x, test_y, BATCH_SIZE))
 
-        self.assertIn('my_auc1', eval_result)
-        self.assertAlmostEqual(0.5, eval_result['my_auc1'])
+        print(eval_result)
+        self.assertIn('my_acc1', eval_result)
+        self.assertAlmostEqual(eval_result['accuracy'], eval_result['my_acc1'])
 
         if not tf.executing_eagerly() and tf.__version__.startswith('1.'):
-            self.assertIn('my_auc2', eval_result)
-            self.assertAlmostEqual(0.5, eval_result['my_auc2'])
+            self.assertIn('my_acc2', eval_result)
+            self.assertAlmostEqual(eval_result['accuracy'], eval_result['my_acc2'])
 
         predict_x = {
             'SepalLength': [5.1, 5.9, 6.9],

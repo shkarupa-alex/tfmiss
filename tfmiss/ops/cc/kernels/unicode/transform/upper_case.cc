@@ -1,5 +1,8 @@
 #include "unicode_transform.h"
 
+namespace tensorflow {
+namespace miss {
+
 class UpperCaseOp : public UnicodeTransformOp
 {
 public:
@@ -14,4 +17,7 @@ protected:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("UpperCase").Device(DEVICE_CPU), UpperCaseOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>UpperCase").Device(DEVICE_CPU), UpperCaseOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

@@ -7,7 +7,7 @@ py_library(
     ],
     data = [
         "//tfmiss/keras/layers",
-        "//tfmiss/keras/metrics",
+        # "//tfmiss/keras/metrics",
     ],
     srcs_version = "PY2AND3",
 )

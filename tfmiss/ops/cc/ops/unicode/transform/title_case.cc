@@ -2,9 +2,15 @@
 #include "tensorflow/core/framework/shape_inference.h"
 #include "tensorflow/core/framework/common_shape_fns.h"
 
-using namespace tensorflow;
+namespace tensorflow
+{
+namespace miss
+{
 
-REGISTER_OP("TitleCase")
+REGISTER_OP("Miss>TitleCase")
     .Input("source: string")
     .Output("result: string")
     .SetShapeFn(shape_inference::UnchangedShape);
+
+} // end namespace miss
+} // namespace tensorflow

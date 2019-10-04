@@ -1,7 +1,12 @@
 #include "tensorflow/core/framework/op.h"
 #include "expand_shape.h"
 
-REGISTER_OP("CharNgrams")
+namespace tensorflow
+{
+namespace miss
+{
+
+REGISTER_OP("Miss>CharNgrams")
     .Input("source: string")
     .Attr("minn: int")
     .Attr("maxn: int")
@@ -10,3 +15,6 @@ REGISTER_OP("CharNgrams")
     .Output("result_values: string")
     .Output("result_splits: T")
     .SetShapeFn(ExpandShape);
+
+} // end namespace miss
+} // namespace tensorflow

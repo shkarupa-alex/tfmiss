@@ -1,5 +1,8 @@
 #include "unicode_transform.h"
 
+namespace tensorflow {
+namespace miss {
+
 class WrapWithOp : public UnicodeTransformOp
 {
 public:
@@ -28,4 +31,7 @@ protected:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("WrapWith").Device(DEVICE_CPU), WrapWithOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>WrapWith").Device(DEVICE_CPU), WrapWithOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

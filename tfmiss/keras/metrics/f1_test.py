@@ -139,7 +139,7 @@ class F1MacroTest(tf.test.TestCase):
         # Then verify idempotency.
         initial_f1macro = self.evaluate(r_obj.result())
         for _ in range(10):
-            self.assertAlmostEqual(initial_f1macro, self.evaluate(r_obj.result()))
+            self.assertAlmostEqual(initial_f1macro, self.evaluate(r_obj.result()), places=6)
 
     def testKnownResult(self):
         r_obj = F1Macro(num_classes=3)

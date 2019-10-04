@@ -2,6 +2,9 @@
 #include <unicode/locid.h>
 #include "unicode_transform.h"
 
+namespace tensorflow {
+namespace miss {
+
 class TitleCaseOp : public UnicodeTransformOp
 {
 public:
@@ -33,4 +36,7 @@ protected:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("TitleCase").Device(DEVICE_CPU), TitleCaseOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>TitleCase").Device(DEVICE_CPU), TitleCaseOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

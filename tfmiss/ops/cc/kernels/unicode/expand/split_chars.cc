@@ -1,5 +1,8 @@
 #include "unicode_expand.h"
 
+namespace tensorflow {
+namespace miss {
+
 class SplitCharsOp : public UnicodeExpandOp
 {
 public:
@@ -23,4 +26,7 @@ protected:
   }
 };
 
-REGISTER_KERNEL_BUILDER(Name("SplitChars").Device(DEVICE_CPU), SplitCharsOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>SplitChars").Device(DEVICE_CPU), SplitCharsOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

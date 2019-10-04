@@ -48,14 +48,14 @@ class ContBowTest(tf.test.TestCase):
         pairs, positions = self.evaluate([target_context, position.to_tensor(0)])
 
         self.assertAllEqual([
-            ['the', 'quick', '', ''],
-            ['quick', 'the', 'brown', ''],
-            ['brown', 'quick', 'fox', ''],
-            ['fox', 'quick', 'brown', ''],
-            ['jumped', 'over', '', ''],
-            ['over', 'jumped', 'the', 'dog'],
-            ['the', 'over', 'dog', ''],
-            ['dog', 'over', 'the', '']
+            [b'the', b'quick', b'', b''],
+            [b'quick', b'the', b'brown', b''],
+            [b'brown', b'quick', b'fox', b''],
+            [b'fox', b'quick', b'brown', b''],
+            [b'jumped', b'over', b'', b''],
+            [b'over', b'jumped', b'the', b'dog'],
+            [b'the', b'over', b'dog', b''],
+            [b'dog', b'over', b'the', b'']
         ], pairs.tolist())
         self.assertAllEqual([
             [1, 0, 0],
@@ -83,15 +83,15 @@ class ContBowTest(tf.test.TestCase):
         pairs, positions = self.evaluate([target_context, position.to_tensor(0)])
 
         self.assertAllEqual([
-            ['the', 'quick', '', '', ''],
-            ['quick', 'the', 'brown', '', ''],
-            ['brown', 'quick', 'fox', '', ''],
-            ['fox', 'quick', 'brown', 'jumped', 'over'],
-            ['jumped', 'fox', 'over', '', ''],
-            ['over', 'fox', 'jumped', 'the', 'lazy'],
-            ['the', 'over', 'lazy', '', ''],
-            ['lazy', 'over', 'the', 'dog', ''],
-            ['dog', 'lazy', '', '', '']
+            [b'the', b'quick', b'', b'', b''],
+            [b'quick', b'the', b'brown', b'', b''],
+            [b'brown', b'quick', b'fox', b'', b''],
+            [b'fox', b'quick', b'brown', b'jumped', b'over'],
+            [b'jumped', b'fox', b'over', b'', b''],
+            [b'over', b'fox', b'jumped', b'the', b'lazy'],
+            [b'the', b'over', b'lazy', b'', b''],
+            [b'lazy', b'over', b'the', b'dog', b''],
+            [b'dog', b'lazy', b'', b'', b'']
         ], pairs.tolist())
         self.assertAllEqual([
             [1, 0, 0, 0],
@@ -124,21 +124,21 @@ class SkipGramTest(tf.test.TestCase):
         pairs = self.evaluate(tf.stack([target, context], axis=-1))
 
         self.assertAllEqual([
-            ['the', 'quick'],
-            ['quick', 'the'],
-            ['quick', 'brown'],
-            ['brown', 'quick'],
-            ['brown', 'fox'],
-            ['fox', 'quick'],
-            ['fox', 'brown'],
-            ['jumped', 'over'],
-            ['over', 'jumped'],
-            ['over', 'the'],
-            ['over', 'dog'],
-            ['the', 'over'],
-            ['the', 'dog'],
-            ['dog', 'over'],
-            ['dog', 'the']
+            [b'the', b'quick'],
+            [b'quick', b'the'],
+            [b'quick', b'brown'],
+            [b'brown', b'quick'],
+            [b'brown', b'fox'],
+            [b'fox', b'quick'],
+            [b'fox', b'brown'],
+            [b'jumped', b'over'],
+            [b'over', b'jumped'],
+            [b'over', b'the'],
+            [b'over', b'dog'],
+            [b'the', b'over'],
+            [b'the', b'dog'],
+            [b'dog', b'over'],
+            [b'dog', b'the']
         ], pairs.tolist())
 
     def testRagged(self):
@@ -152,27 +152,27 @@ class SkipGramTest(tf.test.TestCase):
         pairs = self.evaluate(tf.stack([target, context], axis=-1))
 
         self.assertAllEqual([
-            ['the', 'quick'],
-            ['quick', 'the'],
-            ['quick', 'brown'],
-            ['brown', 'quick'],
-            ['brown', 'fox'],
-            ['fox', 'quick'],
-            ['fox', 'brown'],
-            ['fox', 'jumped'],
-            ['fox', 'over'],
-            ['jumped', 'fox'],
-            ['jumped', 'over'],
-            ['over', 'fox'],
-            ['over', 'jumped'],
-            ['over', 'the'],
-            ['over', 'lazy'],
-            ['the', 'over'],
-            ['the', 'lazy'],
-            ['lazy', 'over'],
-            ['lazy', 'the'],
-            ['lazy', 'dog'],
-            ['dog', 'lazy']
+            [b'the', b'quick'],
+            [b'quick', b'the'],
+            [b'quick', b'brown'],
+            [b'brown', b'quick'],
+            [b'brown', b'fox'],
+            [b'fox', b'quick'],
+            [b'fox', b'brown'],
+            [b'fox', b'jumped'],
+            [b'fox', b'over'],
+            [b'jumped', b'fox'],
+            [b'jumped', b'over'],
+            [b'over', b'fox'],
+            [b'over', b'jumped'],
+            [b'over', b'the'],
+            [b'over', b'lazy'],
+            [b'the', b'over'],
+            [b'the', b'lazy'],
+            [b'lazy', b'over'],
+            [b'lazy', b'the'],
+            [b'lazy', b'dog'],
+            [b'dog', b'lazy']
         ], pairs.tolist())
 
 

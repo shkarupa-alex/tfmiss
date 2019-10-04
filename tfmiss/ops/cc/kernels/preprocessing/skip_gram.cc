@@ -3,7 +3,8 @@
 #include "tensorflow/core/util/guarded_philox_random.h"
 #include "tensorflow/core/lib/random/simple_philox.h"
 
-using namespace tensorflow;
+namespace tensorflow {
+namespace miss {
 
 class SkipGramOp : public OpKernel
 {
@@ -113,4 +114,7 @@ private:
   GuardedPhiloxRandom _random_generator;
 };
 
-REGISTER_KERNEL_BUILDER(Name("SkipGram").Device(DEVICE_CPU), SkipGramOp);
+REGISTER_KERNEL_BUILDER(Name("Miss>SkipGram").Device(DEVICE_CPU), SkipGramOp);
+
+}  // end namespace miss
+}  // namespace tensorflow

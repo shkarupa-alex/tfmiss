@@ -2,7 +2,12 @@
 
 #include "tensorflow/core/framework/shape_inference.h"
 
-using namespace tensorflow;
+namespace tensorflow
+{
+namespace miss
+{
 
+Status ExpandShape(shape_inference::InferenceContext *c);
 
-Status ExpandShape(shape_inference::InferenceContext* c);
+} // end namespace miss
+} // namespace tensorflow

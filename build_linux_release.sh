@@ -1,58 +1,41 @@
 #!/usr/bin/env bash
+set -e -x
 
-# Update system
-apt-get update
-apt-get install -y software-properties-common
+PYTHON_VERSIONS="python2.7 python3.6 python3.7"
+ln -sf /usr/bin/python3.5 /usr/bin/python3 # Py36 has issues with add-apt
 add-apt-repository -y ppa:deadsnakes/ppa
-apt-get update
+apt-get -y -q update
 
+cp -R /tfmiss ~/tfmiss && cd ~/tfmiss
+mkdir -p /tfmiss/wheels
+curl -sSOL https://bootstrap.pypa.io/get-pip.py
 
-# Python
-apt-get install -y python-dev python-pip python3-dev python3-pip python3.6-dev
+for VERSION in ${PYTHON_VERSIONS}; do
+    export PYTHON_VERSION=${VERSION}
+    apt-get -y -q install ${PYTHON_VERSION}
 
-# Build tools
-apt-get install -y unzip wget g++ gcc g++-4.8 gcc-4.8 patchelf rsync
-update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-5 60
-update-alternatives --install /usr/bin/g++ g++ /usr/bin/g++-4.8 40
-update-alternatives --set g++ /usr/bin/g++-4.8
-update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-5 60
-update-alternatives --install /usr/bin/gcc gcc /usr/bin/gcc-4.8 40
-update-alternatives --set gcc /usr/bin/gcc-4.8
+    # Required env var for building package
+    export PYTHON_BIN_PATH=`which ${PYTHON_VERSION}`
 
+    # Update pip
+    ${PYTHON_BIN_PATH} get-pip.py -q
 
-# Bazel
-wget https://github.com/bazelbuild/bazel/releases/download/0.25.3/bazel-0.25.3-installer-linux-x86_64.sh
-chmod u+x bazel-0.25.3-installer-linux-x86_64.sh
-./bazel-0.25.3-installer-linux-x86_64.sh
+    # Install TF & dependences
+    ${PYTHON_BIN_PATH} -m pip install -U setuptools pandas numpy tensorflow==2.0.0
 
+    # Link TF dependency
+    ./configure.sh
 
-# Build wheels
-cp -R /tfmiss ~/tfmiss
-cd ~/tfmiss
+    # Test & build package
+    bazel clean  # --expunge
+    bazel test \
+      --crosstool_top=//third_party/gcc7_manylinux2010-nvcc-cuda10.0:toolchain \
+      --test_output=errors \
+      //tfmiss/...
+    bazel build \
+      --crosstool_top=//third_party/gcc7_manylinux2010-nvcc-cuda10.0:toolchain \
+      build_pip_pkg
 
-export PYTHON_BIN_PATH=`which python`
-$PYTHON_BIN_PATH -m pip install -U tensorflow==2.0.0-beta0
-python3.6 -m pip install -U wheel==0.31.1 auditwheel==1.5.0  # Required due to TensorFlow installation will update wheel
-./configure.sh
-bazel clean --expunge
-bazel test --test_output=errors //tfmiss/...
-bazel build build_pip_pkg
-bazel-bin/build_pip_pkg /tfmiss/wheels
-
-export PYTHON_BIN_PATH=`which python3`
-$PYTHON_BIN_PATH -m pip install -U tensorflow==2.0.0-beta0
-python3.6 -m pip install -U wheel==0.31.1 auditwheel==1.5.0  # Required due to TensorFlow installation will update wheel
-./configure.sh
-bazel clean --expunge
-bazel test --test_output=errors //tfmiss/...
-bazel build build_pip_pkg
-bazel-bin/build_pip_pkg /tfmiss/wheels
-
-export PYTHON_BIN_PATH=`which python3.6`
-$PYTHON_BIN_PATH -m pip install -U tensorflow==2.0.0-beta0
-python3.6 -m pip install -U wheel==0.31.1 auditwheel==1.5.0  # Required due to TensorFlow installation will update wheel
-./configure.sh
-bazel clean --expunge
-bazel test --test_output=errors //tfmiss/...
-bazel build build_pip_pkg
-bazel-bin/build_pip_pkg /tfmiss/wheels
+    # Build wheel
+    bazel-bin/build_pip_pkg /tfmiss/wheels
+done
