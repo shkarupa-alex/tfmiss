@@ -73,7 +73,6 @@ class AddWriteMetricsTest(tf.test.TestCase):
         eval_result = classifier.evaluate(
             input_fn=lambda: eval_input_fn(test_x, test_y, BATCH_SIZE))
 
-        print(eval_result)
         self.assertIn('my_acc1', eval_result)
         self.assertAlmostEqual(eval_result['accuracy'], eval_result['my_acc1'])
 
@@ -88,8 +87,7 @@ class AddWriteMetricsTest(tf.test.TestCase):
             'PetalWidth': [0.5, 1.5, 2.1],
         }
 
-        classifier.predict(
-            input_fn=lambda: eval_input_fn(predict_x, labels=None, batch_size=BATCH_SIZE))
+        classifier.predict(input_fn=lambda: eval_input_fn(predict_x, labels=None, batch_size=BATCH_SIZE))
 
 
 if __name__ == "__main__":
