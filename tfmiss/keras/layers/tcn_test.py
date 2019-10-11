@@ -64,7 +64,8 @@ class TemporalBlockTest(keras_parameterized.TestCase):
             dropout=0.2,
             input_shape=(3, 4)
         ))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly(),
+                      experimental_run_tf_function=testing_utils.should_run_tf_function())
         model.fit(np.random.random((10, 3, 4)), np.random.random((10, 3, 3)), epochs=1, batch_size=10)
 
         # test config
@@ -124,7 +125,8 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
             kernel_size=3,
             dropout=0.2
         ))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly(),
+                      experimental_run_tf_function=testing_utils.should_run_tf_function())
         model.fit(np.random.random((10, 3, 4)), np.random.random((10, 3, 3)), epochs=1, batch_size=10)
 
         # test config

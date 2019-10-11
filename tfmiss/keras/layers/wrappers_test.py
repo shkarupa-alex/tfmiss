@@ -64,7 +64,8 @@ class WeightNormTest(keras_parameterized.TestCase):
     def testWeightNormDense(self):
         model = tf.keras.models.Sequential()
         model.add(WeightNorm(tf.keras.layers.Dense(2), input_shape=(3, 4)))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly(),
+                      experimental_run_tf_function=testing_utils.should_run_tf_function())
         model.fit(np.random.random((10, 3, 4)), np.random.random((10, 3, 2)), epochs=1, batch_size=10)
 
         # test config
@@ -80,14 +81,16 @@ class WeightNormTest(keras_parameterized.TestCase):
         model.add(WeightNorm(tf.keras.layers.Dense(2), input_shape=(3, 4)))
         model.add(WeightNorm(tf.keras.layers.Dense(3)))
         model.add(tf.keras.layers.Activation('relu'))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly(),
+                      experimental_run_tf_function=testing_utils.should_run_tf_function())
         model.fit(np.random.random((10, 3, 4)), np.random.random((10, 3, 3)), epochs=1, batch_size=10)
 
     def testRegularizers(self):
         model = tf.keras.models.Sequential()
         model.add(WeightNorm(tf.keras.layers.Dense(2, kernel_regularizer='l1'), input_shape=(3, 4)))
         model.add(tf.keras.layers.Activation('relu'))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly(),
+                      experimental_run_tf_function=testing_utils.should_run_tf_function())
         self.assertEqual(len(model.losses), 1)
 
 

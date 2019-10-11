@@ -290,7 +290,8 @@ def _get_model(compile_metrics, out_dim):
         loss='mae',
         metrics=compile_metrics,
         optimizer='rmsprop',
-        run_eagerly=testing_utils.should_run_eagerly()
+        run_eagerly=testing_utils.should_run_eagerly(),
+        experimental_run_tf_function=testing_utils.should_run_tf_function()
     )
 
     return model

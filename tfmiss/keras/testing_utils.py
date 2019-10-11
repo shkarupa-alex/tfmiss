@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import numpy as np
 from tensorflow.python import keras
-from tensorflow.python.keras.testing_utils import _thread_local_data, should_run_eagerly
+from tensorflow.python.keras.testing_utils import _thread_local_data, should_run_eagerly, should_run_tf_function
 from tensorflow.python.framework import tensor_shape
 from tensorflow.python.framework import test_util
 from tensorflow.python.util import tf_inspect
@@ -180,7 +180,9 @@ def layer_multi_io_test(layer_cls, kwargs=None, input_shapes=None, input_dtypes=
             'rmsprop',
             'mse',
             weighted_metrics=['acc'],
-            run_eagerly=should_run_eagerly())
+            run_eagerly=should_run_eagerly(),
+            experimental_run_tf_function=should_run_tf_function(),
+        )
     else:
         model.compile('rmsprop', 'mse', weighted_metrics=['acc'])
     model.train_on_batch(
