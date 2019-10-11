@@ -93,6 +93,26 @@ class WeightNormTest(keras_parameterized.TestCase):
                       experimental_run_tf_function=testing_utils.should_run_tf_function())
         self.assertEqual(len(model.losses), 1)
 
+    def testEstimator(self):
+        def _input_fn():
+            X = np.random.rand(100, 3)
+            y = np.random.rand(100) > 0.5
+            dataset = tf.data.Dataset.from_tensor_slices((X, y))
+
+            return dataset.batch(4)
+
+        model = tf.keras.models.Sequential()
+        model.add(WeightNorm(tf.keras.layers.Dense(2, kernel_regularizer='l1'), input_shape=(3,)))
+        model.add(tf.keras.layers.Dense(1))
+        model.add(tf.keras.layers.Activation('relu'))
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly(),
+                      experimental_run_tf_function=testing_utils.should_run_tf_function())
+        model.fit(_input_fn(), steps_per_epoch=5)
+        estimator = tf.keras.estimator.model_to_estimator(
+            keras_model=model
+        )
+        estimator.train(input_fn=_input_fn, steps=5)
+
 
 if __name__ == "__main__":
     tf.test.main()
