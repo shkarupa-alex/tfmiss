@@ -60,7 +60,7 @@ class LRFinder(tf.keras.callbacks.Callback):
         self.values = []
         self.lrs = []
 
-        tf.keras.backend.set_value(self.model.optimizer.lr, self.min_lr)
+        self.set_lr(self.min_lr)
 
     def on_train_batch_end(self, batch, logs=None):
         logs = logs or {}
@@ -93,8 +93,7 @@ class LRFinder(tf.keras.callbacks.Callback):
 
         self.values.append(current_value)
 
-        curr_lr = tf.keras.backend.get_value(self.model.optimizer.lr)
-        self.lrs.append(curr_lr)
+        self.lrs.append(self.get_lr())
 
         if self.curr_step > self.max_steps:
             self.model.stop_training = True
@@ -103,9 +102,21 @@ class LRFinder(tf.keras.callbacks.Callback):
 
         # Set next lr
         next_lr = self.min_lr + (self.max_lr - self.min_lr) * self.curr_step / self.max_steps
-        tf.keras.backend.set_value(self.model.optimizer.lr, next_lr)
+        self.set_lr(next_lr)
 
         self.curr_step += 1
+
+    def set_lr(self, lr):
+        if hasattr(self.model.optimizer, '_optimizer'):  # LookAhead
+            tf.keras.backend.set_value(self.model.optimizer._optimizer.lr, lr)
+        else:
+            tf.keras.backend.set_value(self.model.optimizer.lr, lr)
+
+    def get_lr(self):
+        if hasattr(self.model.optimizer, '_optimizer'):  # LookAhead
+            return tf.keras.backend.get_value(self.model.optimizer._optimizer.lr)
+        else:
+            return tf.keras.backend.get_value(self.model.optimizer.lr)
 
     def plot(self, average=0):
         if not len(self.values):
