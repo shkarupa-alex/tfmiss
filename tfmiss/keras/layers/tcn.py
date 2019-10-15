@@ -134,6 +134,9 @@ class TemporalBlock(tf.keras.layers.Layer):
         super(TemporalBlock, self).build(input_shape)
 
     def call(self, inputs, training=None):
+        if training is None:
+            training = tf.keras.backend.learning_phase()
+
         out = self.conv1d1(inputs)
         out = self.dropout1(out, training=training)
 
@@ -255,11 +258,14 @@ class TemporalConvNet(tf.keras.layers.Layer):
 
         super(TemporalConvNet, self).build(input_shape)
 
-    def call(self, inputs, **kwargs):
+    def call(self, inputs, training=None):
+        if training is None:
+            training = tf.keras.backend.learning_phase()
+
         outputs = inputs
 
         for layer in self.layers:
-            outputs = layer(outputs, **kwargs)
+            outputs = layer(outputs, training=training)
 
         return outputs
 

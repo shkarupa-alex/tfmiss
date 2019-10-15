@@ -8,6 +8,7 @@ py_library(
     deps = [
         "//tfmiss/estimator",
         "//tfmiss/keras",
+        "//tfmiss/nn",
         "//tfmiss/preprocessing",
         "//tfmiss/text",
         "//tfmiss/training",
