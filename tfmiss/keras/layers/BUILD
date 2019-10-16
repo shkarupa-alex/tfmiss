@@ -4,11 +4,22 @@ py_library(
     name = "layers",
     srcs = [
         "__init__.py",
+        "adembed.py",
 #        "nce.py",
         "tcn.py",
         "wrappers.py",
     ],
     srcs_version = "PY2AND3",
+)
+
+py_test(
+    name = "adembed_test",
+    srcs = ["adembed_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//tfmiss/nn",
+        ":layers"
+    ],
 )
 
 #py_test(
