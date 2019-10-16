@@ -9,6 +9,9 @@ py_library(
         "tcn.py",
         "wrappers.py",
     ],
+    deps = [
+        "//tfmiss/nn",
+    ],
     srcs_version = "PY2AND3",
 )
 
@@ -17,7 +20,6 @@ py_test(
     srcs = ["adembed_test.py"],
     srcs_version = "PY2AND3",
     deps = [
-        "//tfmiss/nn",
         ":layers"
     ],
 )

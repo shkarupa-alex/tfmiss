@@ -7,7 +7,7 @@ from tensorflow.python.keras.layers.embeddings import Embedding
 from tensorflow.python.keras.layers.core import Dense
 from tensorflow.python.eager import context
 from tensorflow.python.keras.utils import tf_utils
-from tfmiss.nn.embedding import embedding_lookup_adaptive
+from tfmiss.nn.embedding import adaptive_embedding_lookup
 
 
 class AdaptiveEmbedding(Embedding):
@@ -111,7 +111,7 @@ class AdaptiveEmbedding(Embedding):
         if dtype != 'int32' and dtype != 'int64':
             inputs = tf.cast(inputs, 'int32')
 
-        out = embedding_lookup_adaptive(self.embeddings, inputs, self.projections)
+        out = adaptive_embedding_lookup(self.embeddings, inputs, self.projections)
 
         return out
 
