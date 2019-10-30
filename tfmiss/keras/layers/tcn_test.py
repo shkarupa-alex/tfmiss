@@ -13,7 +13,7 @@ from tfmiss.keras.layers.tcn import TemporalBlock, TemporalConvNet
 
 @keras_parameterized.run_all_keras_modes
 class TemporalBlockTest(keras_parameterized.TestCase):
-    def testLayer(self):
+    def test_layer(self):
         with tf.keras.utils.custom_object_scope({'TemporalBlock': TemporalBlock}):
             testing_utils.layer_test(
                 TemporalBlock,
@@ -26,7 +26,7 @@ class TemporalBlockTest(keras_parameterized.TestCase):
                 input_shape=(2, 3, 7)
             )
 
-    def testLayerSamePadding(self):
+    def test_layer_same_padding(self):
         with tf.keras.utils.custom_object_scope({'TemporalBlock': TemporalBlock}):
             testing_utils.layer_test(
                 TemporalBlock,
@@ -40,7 +40,7 @@ class TemporalBlockTest(keras_parameterized.TestCase):
                 input_shape=(2, 3, 7)
             )
 
-    def testShape(self):
+    def test_shape(self):
         layer = TemporalBlock(
             filters=3,
             kernel_size=2,
@@ -55,7 +55,7 @@ class TemporalBlockTest(keras_parameterized.TestCase):
         dynamic_shape = self.evaluate(out).shape
         self.assertAllEqual((1, 5, 3), dynamic_shape)
 
-    def testModel(self):
+    def test_model(self):
         model = tf.keras.models.Sequential()
         model.add(TemporalBlock(
             filters=3,
@@ -79,7 +79,7 @@ class TemporalBlockTest(keras_parameterized.TestCase):
 
 @keras_parameterized.run_all_keras_modes
 class TemporalConvNetTest(keras_parameterized.TestCase):
-    def testLayer(self):
+    def test_layer(self):
         with tf.keras.utils.custom_object_scope({'TemporalConvNet': TemporalConvNet}):
             testing_utils.layer_test(
                 TemporalConvNet,
@@ -91,7 +91,7 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
                 input_shape=(2, 3, 7)
             )
 
-    def testLayerSamePadding(self):
+    def test_layer_same_padding(self):
         with tf.keras.utils.custom_object_scope({'TemporalConvNet': TemporalConvNet}):
             testing_utils.layer_test(
                 TemporalConvNet,
@@ -104,7 +104,7 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
                 input_shape=(2, 3, 7)
             )
 
-    def testShape(self):
+    def test_shape(self):
         layer = TemporalConvNet(
             filters=[5, 4, 3],
             kernel_size=3,
@@ -118,7 +118,7 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
         dynamic_shape = self.evaluate(out).shape
         self.assertAllEqual((1, 5, 3), dynamic_shape)
 
-    def testModel(self):
+    def test_model(self):
         model = tf.keras.models.Sequential()
         model.add(TemporalConvNet(
             filters=[5, 4, 3],

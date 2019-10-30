@@ -11,7 +11,7 @@ from tfmiss.keras.callbacks.lrfind import LRFinder
 @keras_parameterized.run_with_all_model_types
 @keras_parameterized.run_all_keras_modes
 class LRFInderTest(keras_parameterized.TestCase):
-    def testNoExceptions(self):
+    def test_no_exceptions(self):
         lrf_cb = LRFinder(200, min_lr=1e-2, max_lr=10.)
         model = _get_model(['accuracy'], out_dim=1)
         x = np.random.rand(1000, 10)

@@ -12,7 +12,7 @@ from tfmiss.keras.metrics.f1 import F1Binary, F1Macro, F1Micro
 
 @test_util.run_all_in_graph_and_eager_modes
 class F1BinaryTest(tf.test.TestCase):
-    def testConfig(self):
+    def test_config(self):
         r_obj = F1Binary(name='my_f1binary')
         self.assertEqual(r_obj.name, 'my_f1binary')
         self.assertEqual(len(r_obj.variables), 3)
@@ -24,7 +24,7 @@ class F1BinaryTest(tf.test.TestCase):
         self.assertEqual(r_obj2.name, 'my_f1binary')
         self.assertEqual(len(r_obj2.variables), 3)
 
-    def testValueIsIdempotent(self):
+    def test_value_is_idempotent(self):
         r_obj = F1Binary()
         y_pred = tf.random.uniform(shape=(10, 1), dtype=tf.int32, maxval=2)
         y_true = tf.random.uniform(shape=(10, 1), dtype=tf.int32, maxval=2)
@@ -40,7 +40,7 @@ class F1BinaryTest(tf.test.TestCase):
         for _ in range(10):
             self.assertAlmostEqual(initial_f1binary, self.evaluate(r_obj.result()))
 
-    def testUnweighted(self):
+    def test_unweighted(self):
         r_obj = F1Binary()
         y_pred = tf.constant([1, 0, 1, 0], shape=(1, 4))
         y_true = tf.constant([0, 1, 1, 0], shape=(1, 4))
@@ -49,7 +49,7 @@ class F1BinaryTest(tf.test.TestCase):
         result = r_obj(y_true, y_pred)
         self.assertAlmostEqual(0.5, self.evaluate(result))
 
-    def testUnweightedAllIncorrect(self):
+    def test_unweighted_all_incorrect(self):
         r_obj = F1Binary()
         inputs = np.random.randint(0, 2, size=(100, 1))
         y_pred = tf.constant(inputs)
@@ -59,7 +59,7 @@ class F1BinaryTest(tf.test.TestCase):
         result = r_obj(y_true, y_pred)
         self.assertAlmostEqual(0, self.evaluate(result))
 
-    def testWeighted(self):
+    def test_weighted(self):
         r_obj = F1Binary()
         y_pred = tf.constant([[1, 0, 1, 0], [0, 1, 0, 1]])
         y_true = tf.constant([[0, 1, 1, 0], [1, 0, 0, 1]])
@@ -68,7 +68,7 @@ class F1BinaryTest(tf.test.TestCase):
         result = r_obj(y_true, y_pred, sample_weight=tf.constant([[1, 2, 3, 4], [4, 3, 2, 1]]))
         self.assertAlmostEqual(0.44444448, self.evaluate(result))
 
-    def testDivByZero(self):
+    def test_div_by_zero(self):
         r_obj = F1Binary()
         y_pred = tf.constant([0, 0, 0, 0])
         y_true = tf.constant([0, 0, 0, 0])
@@ -77,7 +77,7 @@ class F1BinaryTest(tf.test.TestCase):
         result = r_obj(y_true, y_pred)
         self.assertEqual(0, self.evaluate(result))
 
-    def testMultipleUpdates(self):
+    def test_multiple_updates(self):
         r_obj = F1Binary()
         y_true = tf.constant([[0, 1], [1, 0]], shape=(2, 2))
         y_pred = tf.constant([[1, 0], [0.6, 0]], shape=(2, 2), dtype=tf.float32)
@@ -90,7 +90,7 @@ class F1BinaryTest(tf.test.TestCase):
 
         self.assertAlmostEqual(0.5454545, self.evaluate(r_obj.result()))
 
-    def testAllTrue(self):
+    def test_all_true(self):
         r_obj = F1Binary()
         self.evaluate(variables.variables_initializer(r_obj.variables))
 
@@ -99,7 +99,7 @@ class F1BinaryTest(tf.test.TestCase):
         result = r_obj(y_true, y_pred)
         self.assertEqual(1.0, self.evaluate(result))
 
-    def testKnownResult(self):
+    def test_known_result(self):
         r_obj = F1Binary()
         self.evaluate(variables.variables_initializer(r_obj.variables))
 
@@ -111,7 +111,7 @@ class F1BinaryTest(tf.test.TestCase):
 
 @test_util.run_all_in_graph_and_eager_modes
 class F1MacroTest(tf.test.TestCase):
-    def testConfig(self):
+    def test_config(self):
         r_obj = F1Macro(num_classes=3, name='my_f1macro')
         self.assertEqual(r_obj.name, 'my_f1macro')
         self.assertEqual(len(r_obj.variables), 9)
@@ -125,7 +125,7 @@ class F1MacroTest(tf.test.TestCase):
         self.assertEqual(r_obj2.name, 'my_f1macro')
         self.assertEqual(len(r_obj2.variables), 9)
 
-    def testValueIsIdempotent(self):
+    def test_value_is_idempotent(self):
         r_obj = F1Macro(num_classes=3)
         y_pred = tf.random.uniform(shape=(10, 3), dtype=tf.int32, maxval=3)
         y_true = tf.random.uniform(shape=(10, 1), dtype=tf.int32, maxval=3)
@@ -141,7 +141,7 @@ class F1MacroTest(tf.test.TestCase):
         for _ in range(10):
             self.assertAlmostEqual(initial_f1macro, self.evaluate(r_obj.result()), places=6)
 
-    def testKnownResult(self):
+    def test_known_result(self):
         r_obj = F1Macro(num_classes=3)
         self.evaluate(variables.variables_initializer(r_obj.variables))
 
@@ -160,7 +160,7 @@ class F1MacroTest(tf.test.TestCase):
 
 @test_util.run_all_in_graph_and_eager_modes
 class F1MicroTest(tf.test.TestCase):
-    def testConfig(self):
+    def test_config(self):
         r_obj = F1Micro(num_classes=3, name='my_f1micro')
         self.assertEqual(r_obj.name, 'my_f1micro')
         self.assertEqual(len(r_obj.variables), 9)
@@ -174,7 +174,7 @@ class F1MicroTest(tf.test.TestCase):
         self.assertEqual(r_obj2.name, 'my_f1micro')
         self.assertEqual(len(r_obj2.variables), 9)
 
-    def testValueIsIdempotent(self):
+    def test_value_is_idempotent(self):
         r_obj = F1Micro(num_classes=3)
         y_pred = tf.random.uniform(shape=(10, 3), dtype=tf.int32, maxval=3)
         y_true = tf.random.uniform(shape=(10, 1), dtype=tf.int32, maxval=3)
@@ -190,7 +190,7 @@ class F1MicroTest(tf.test.TestCase):
         for _ in range(10):
             self.assertAlmostEqual(initial_f1micro, self.evaluate(r_obj.result()))
 
-    def testKnownResult(self):
+    def test_known_result(self):
         r_obj = F1Micro(num_classes=3)
         self.evaluate(variables.variables_initializer(r_obj.variables))
 
@@ -210,7 +210,7 @@ class F1MicroTest(tf.test.TestCase):
 @keras_parameterized.run_with_all_model_types
 @keras_parameterized.run_all_keras_modes
 class ResetStatesTest(keras_parameterized.TestCase):
-    def testF1Binary(self):
+    def test_f1_binary(self):
         f1_obj = F1Binary()
         model = _get_model([f1_obj], out_dim=1)
         x = np.ones((100, 4))
@@ -225,7 +225,7 @@ class ResetStatesTest(keras_parameterized.TestCase):
         self.assertEqual(self.evaluate(f1_obj.false_positives_0), 100.)
         self.assertEqual(self.evaluate(f1_obj.false_negatives_0), 0.)
 
-    def testF1Macro(self):
+    def test_f1_macro(self):
         f1_obj = F1Macro(num_classes=3)
         model = _get_model([f1_obj], out_dim=3)
         x = np.ones((100, 4))
@@ -252,7 +252,7 @@ class ResetStatesTest(keras_parameterized.TestCase):
         self.assertEqual(self.evaluate(f1_obj.false_positives_2), 0.)
         self.assertEqual(self.evaluate(f1_obj.false_negatives_2), 0.)
 
-    def testF1Micro(self):
+    def test_f1_micro(self):
         f1_obj = F1Micro(num_classes=3)
         model = _get_model([f1_obj], out_dim=3)
         x = np.ones((100, 4))

@@ -10,7 +10,7 @@ from tfmiss.text.unicode_expand import char_ngrams, split_chars, split_words
 
 @test_util.run_all_in_graph_and_eager_modes
 class CharNgramsTest(tf.test.TestCase):
-    def testInferenceShape(self):
+    def test_inference_shape(self):
         source = [
             ['1', '2', '3'],
             ['4', '5', '6'],
@@ -19,7 +19,7 @@ class CharNgramsTest(tf.test.TestCase):
 
         self.assertEqual([2, None, None], result.shape.as_list())
 
-    def testActualShape(self):
+    def test_actual_shape(self):
         source = [
             ['1', '2', '3'],
             ['4', '5', '6'],
@@ -31,7 +31,7 @@ class CharNgramsTest(tf.test.TestCase):
         result = self.evaluate(result)
         self.assertAllEqual((2, 3, 1), result.shape)
 
-    def testEmpty(self):
+    def test_empty(self):
         expected = tf.constant([], dtype=tf.string)
         result = char_ngrams('', 1, 1, itself='NEVER')
         self.assertIsInstance(result, tf.Tensor)
@@ -39,7 +39,7 @@ class CharNgramsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def test0D(self):
+    def test_0d(self):
         expected = tf.constant(['x', 'y'], dtype=tf.string)
         result = char_ngrams('xy', 1, 1, itself='NEVER')
         self.assertIsInstance(result, tf.Tensor)
@@ -47,7 +47,7 @@ class CharNgramsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def test1D(self):
+    def test_1d(self):
         expected = tf.constant([['x', 'y']], dtype=tf.string)
         result = char_ngrams(['xy'], 1, 1, itself='ASIS')
         self.assertIsInstance(result, tf.RaggedTensor)
@@ -56,7 +56,7 @@ class CharNgramsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def testDefault2D(self):
+    def test_default_2d(self):
         expected = tf.constant([[['x', 'y'], ['x', '']]], dtype=tf.string)
         result = char_ngrams([['xy', 'x']], 1, 1, itself='ASIS')
         self.assertIsInstance(result, tf.RaggedTensor)
@@ -65,7 +65,7 @@ class CharNgramsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def testRagged(self):
+    def test_ragged(self):
         expected = tf.constant([
             [
                 ['a', 'b', 'ab', '', ''],
@@ -83,91 +83,91 @@ class CharNgramsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def testNone(self):
+    def test_none(self):
         result = char_ngrams('123', 4, 5, itself='ASIS')
         self.assertIsInstance(result, tf.Tensor)
 
         result = self.evaluate(result)
         self.assertAllEqual([], result.tolist())
 
-    def testAsIsBelow(self):
+    def test_as_is_below(self):
         result = char_ngrams('1234', 2, 3, itself='ASIS')
         self.assertIsInstance(result, tf.Tensor)
 
         result = self.evaluate(result)
         self.assertAllEqual([b'12', b'23', b'34', b'123', b'234'], result.tolist())
 
-    def testAsIsInside(self):
+    def test_as_is_inside(self):
         result = char_ngrams('123', 2, 3, itself='ASIS')
         self.assertIsInstance(result, tf.Tensor)
 
         result = self.evaluate(result)
         self.assertAllEqual([b'12', b'23', b'123'], result.tolist())
 
-    def testAsIsAbove(self):
+    def test_as_is_above(self):
         result = char_ngrams('123', 4, 5, itself='ASIS')
         self.assertIsInstance(result, tf.Tensor)
 
         result = self.evaluate(result)
         self.assertAllEqual([], result.tolist())
 
-    def testNeverBelow(self):
+    def test_never_below(self):
         result = char_ngrams('1234', 2, 3, itself='NEVER')
         self.assertIsInstance(result, tf.Tensor)
 
         result = self.evaluate(result)
         self.assertAllEqual([b'12', b'23', b'34', b'123', b'234'], result.tolist())
 
-    def testNeverInside(self):
+    def test_never_inside(self):
         result = char_ngrams('123', 2, 3, itself='NEVER')
         self.assertIsInstance(result, tf.Tensor)
 
         result = self.evaluate(result)
         self.assertAllEqual([b'12', b'23'], result.tolist())
 
-    def testNeverAbove(self):
+    def test_never_above(self):
         result = char_ngrams('123', 4, 5, itself='NEVER')
         self.assertIsInstance(result, tf.Tensor)
 
         result = self.evaluate(result)
         self.assertAllEqual([], result.tolist())
 
-    def testAlwaysBelow(self):
+    def test_always_below(self):
         result = char_ngrams('1234', 2, 3, itself='ALWAYS')
         self.assertIsInstance(result, tf.Tensor)
 
         result = self.evaluate(result)
         self.assertAllEqual([b'12', b'23', b'34', b'123', b'234', b'1234'], result.tolist())
 
-    def testAlwaysInside(self):
+    def test_always_inside(self):
         result = char_ngrams('123', 2, 3, itself='ALWAYS')
         self.assertIsInstance(result, tf.Tensor)
 
         result = self.evaluate(result)
         self.assertAllEqual([b'12', b'23', b'123'], result.tolist())
 
-    def testAlwaysAbove(self):
+    def test_always_above(self):
         result = char_ngrams('123', 4, 5, itself='ALWAYS')
         self.assertIsInstance(result, tf.Tensor)
 
         result = self.evaluate(result)
         self.assertAllEqual([b'123'], result.tolist())
 
-    def testAloneBelow(self):
+    def test_alone_below(self):
         result = char_ngrams('1234', 2, 3, itself='ALONE')
         self.assertIsInstance(result, tf.Tensor)
 
         result = self.evaluate(result)
         self.assertAllEqual([b'12', b'23', b'34', b'123', b'234'], result.tolist())
 
-    def testAloneInside(self):
+    def test_alone_inside(self):
         result = char_ngrams('123', 2, 3, itself='ALONE')
         self.assertIsInstance(result, tf.Tensor)
 
         result = self.evaluate(result)
         self.assertAllEqual([b'12', b'23'], result.tolist())
 
-    def testAloneAbove(self):
+    def test_alone_above(self):
         result = char_ngrams('123', 4, 5, itself='ALONE')
         self.assertIsInstance(result, tf.Tensor)
 
@@ -177,7 +177,7 @@ class CharNgramsTest(tf.test.TestCase):
 
 @test_util.run_all_in_graph_and_eager_modes
 class LowerCaseTest(tf.test.TestCase):
-    def testInferenceShape(self):
+    def test_inference_shape(self):
         source = [
             ['1', '2', '3'],
             ['4', '5', '6'],
@@ -186,7 +186,7 @@ class LowerCaseTest(tf.test.TestCase):
 
         self.assertEqual([2, None, None], result.shape.as_list())
 
-    def testActualShape(self):
+    def test_actual_shape(self):
         source = [
             ['1', '2', '3'],
             ['4', '5', '6'],
@@ -198,7 +198,7 @@ class LowerCaseTest(tf.test.TestCase):
         result = self.evaluate(result)
         self.assertEqual((2, 3, 1), result.shape)
 
-    def testEmpty(self):
+    def test_empty(self):
         expected = tf.constant([], dtype=tf.string)
         result = split_chars('')
         self.assertIsInstance(result, tf.Tensor)
@@ -206,7 +206,7 @@ class LowerCaseTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def test0D(self):
+    def test_0d(self):
         expected = tf.constant(['x', 'y'], dtype=tf.string)
 
         result = split_chars('xy')
@@ -215,7 +215,7 @@ class LowerCaseTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def test1D(self):
+    def test_1d(self):
         expected = tf.constant([['x', 'y']], dtype=tf.string)
 
         result = split_chars(['xy'])
@@ -225,7 +225,7 @@ class LowerCaseTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def test2D(self):
+    def test_2d(self):
         expected = tf.constant([[['x', 'y']]], dtype=tf.string)
 
         result = split_chars([['xy']])
@@ -235,7 +235,7 @@ class LowerCaseTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def testRagged(self):
+    def test_ragged(self):
         expected = tf.constant([[['a', 'b', ''], ['c', ' ', 'd']], [['e', '', ''], ['', '', '']]])
 
         result = split_chars(tf.ragged.constant([['ab', 'c d'], ['e']]))
@@ -245,7 +245,7 @@ class LowerCaseTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def testUnicode(self):
+    def test_unicode(self):
         expected = tf.constant([u'ё', u' ', u'е', u'̈', u'2', u'⁵'], dtype=tf.string)
 
         result = split_chars(u'ё ё2⁵')
@@ -254,7 +254,7 @@ class LowerCaseTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def testRestore(self):
+    def test_restore(self):
         source = tf.constant('Hey\n\tthere\t«word», !!!')
 
         splitted = split_chars(source)
@@ -267,7 +267,7 @@ class LowerCaseTest(tf.test.TestCase):
 
 @test_util.run_all_in_graph_and_eager_modes
 class SplitWordsTest(tf.test.TestCase):
-    def testInferenceShape(self):
+    def test_inference_shape(self):
         source = [
             ['1', '2', '3'],
             ['4', '5', '6'],
@@ -276,7 +276,7 @@ class SplitWordsTest(tf.test.TestCase):
 
         self.assertEqual([2, None, None], result.shape.as_list())
 
-    def testActualShape(self):
+    def test_actual_shape(self):
         source = [
             ['1', '2', '3'],
             ['4', '5', '6'],
@@ -288,7 +288,7 @@ class SplitWordsTest(tf.test.TestCase):
         result = self.evaluate(result)
         self.assertEqual((2, 3, 1), result.shape)
 
-    def testEmpty(self):
+    def test_empty(self):
         expected = tf.constant([''], dtype=tf.string)
         result = split_words('')
         self.assertIsInstance(result, tf.Tensor)
@@ -296,7 +296,7 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def test0D(self):
+    def test_0d(self):
         expected = tf.constant(['x', '!'], dtype=tf.string)
         result = split_words('x!')
         self.assertIsInstance(result, tf.Tensor)
@@ -304,7 +304,7 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def test1D(self):
+    def test_1d(self):
         expected = tf.constant([['x', '!']], dtype=tf.string)
         result = split_words(['x!'])
         self.assertIsInstance(result, tf.RaggedTensor)
@@ -313,7 +313,7 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def test2D(self):
+    def test_2d(self):
         expected = tf.constant([[['x', '!']]], dtype=tf.string)
         result = split_words([['x!']])
         self.assertIsInstance(result, tf.RaggedTensor)
@@ -322,7 +322,7 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def testRagged(self):
+    def test_ragged(self):
         expected = tf.constant([[['ab', '', ''], ['c', ' ', 'd']], [['e', '', ''], ['', '', '']]])
 
         result = split_words(tf.ragged.constant([['ab', 'c d'], ['e']]))
@@ -332,7 +332,7 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def testRestore(self):
+    def test_restore(self):
         source = tf.constant('Hey\n\tthere\t«word», !!!')
 
         splitted = split_words(source)
@@ -342,7 +342,7 @@ class SplitWordsTest(tf.test.TestCase):
         source, restored = self.evaluate(source), self.evaluate(restored)
         self.assertAllEqual(source, restored)
 
-    def testWrapped(self):
+    def test_wrapped(self):
         expected = tf.constant([
             [' ', '"', 'word', '"', ' '],
             [' ', u'«', 'word', u'»', ' '],
@@ -367,7 +367,7 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def testWordPunkt(self):
+    def test_word_punkt(self):
         expected = tf.constant([
             [' ', 'word', '.', ' ', '', ''],
             [' ', 'word', '.', '.', ' ', ''],
@@ -402,7 +402,7 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def testComplexWord(self):
+    def test_complex_word(self):
         expected = tf.constant([
             [' ', 'test', '@', 'test.com', ' ', '', '', '', ''],
             [' ', 'www.test.com', ' ', '', '', '', '', '', ''],
@@ -423,7 +423,7 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    # def testIcuWordBreak(self):
+    # def test_icu_word_break(self):
     #     # WORD_BREAK_TEST_URL = 'https://www.unicode.org/Public/UCD/latest/ucd/auxiliary/WordBreakTest.txt'
     #     # test_data = urlopen(WORD_BREAK_TEST_URL).read().decode('utf-8').strip().split('\n')
     #
@@ -461,7 +461,7 @@ class SplitWordsTest(tf.test.TestCase):
     #     for exp, res, desc in zip(expected_value, result_value, description):
     #         self.assertAllEqual(exp, res, desc)
 
-    def testSplitStop(self):
+    def test_split_stop(self):
         expected = tf.constant([
             ['.', 'word', ' ', '', ''],
             [' ', 'word', '.', '', ''],
@@ -503,7 +503,7 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def testSplitExtendedSpace(self):
+    def test_split_extended_space(self):
         expected = tf.constant([
             ['word', '   ', 'word'],
         ], dtype=tf.string)
@@ -516,7 +516,7 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
-    def testComplexExtended(self):
+    def test_complex_extended(self):
         dangerous = u'\',.:;‘’'
         source = []
         for c in dangerous:

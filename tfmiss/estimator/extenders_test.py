@@ -9,7 +9,7 @@ from tfmiss.estimator.extenders import add_write_metrics
 
 @test_util.run_all_in_graph_and_eager_modes
 class AddWriteMetricsTest(tf.test.TestCase):
-    def testNoError(self):
+    def test_no_error(self):
         TRAIN_URL = 'http://download.tensorflow.org/data/iris_training.csv'
         TEST_URL = 'http://download.tensorflow.org/data/iris_test.csv'
         CSV_COLUMN_NAMES = ['SepalLength', 'SepalWidth', 'PetalLength', 'PetalWidth']

@@ -12,14 +12,14 @@ from tfmiss.nn.embedding import safe_adaptive_embedding_lookup_sparse
 
 @test_util.run_all_in_graph_and_eager_modes
 class AdaptiveEmbeddingLookupTest(tf.test.TestCase):
-    def testMaxNormConstant(self):
+    def test_max_norm_constant(self):
         params = [tf.constant([[2.0]]), tf.constant([[2.0]])]
         ids = tf.constant([0], dtype=tf.int32)
         transforms = [lambda embed: _transform_embedding(1, embed)] * len(params)
         embeddings = adaptive_embedding_lookup(params, ids, transforms, max_norm=1.0)
         self.assertAllEqual(self.evaluate(embeddings), [[1.0]])
 
-    def testMaxNormNontrivial(self):
+    def test_max_norm_nontrivial(self):
         params = [tf.constant([[2.0, 4.0], [3.0, 1.0]]), tf.constant([[2.0, 4.0], [3.0, 1.0]])]
         ids = tf.constant([0, 1], dtype=tf.int32)
         transforms = [lambda embed: _transform_embedding(2, embed)] * len(params)
@@ -29,7 +29,7 @@ class AdaptiveEmbeddingLookupTest(tf.test.TestCase):
         normalized = embeddings / tf.stack([norms, norms], axis=1)
         self.assertAllClose(self.evaluate(embeddings), 2 * self.evaluate(normalized))
 
-    def testIdsDtype(self):
+    def test_ids_dtype(self):
         params = [[[1.0, 1.0, 1.0, 1.0]], [[2.0, 2.0, 2.0]]]
         ids32 = tf.constant([[0], [1]], dtype=tf.int32)
         ids64 = tf.constant([[0], [1]], dtype=tf.int64)
@@ -38,7 +38,7 @@ class AdaptiveEmbeddingLookupTest(tf.test.TestCase):
         embeddings64 = adaptive_embedding_lookup(params, ids64, transforms)
         self.assertAllEqual(self.evaluate(embeddings32), self.evaluate(embeddings64))
 
-    def testVariables(self):
+    def test_variables(self):
         p = [
             tf.Variable(tf.zeros(shape=[100, 100], dtype=tf.float32)),
             tf.Variable(tf.zeros(shape=[100, 100], dtype=tf.float32)),
@@ -48,7 +48,7 @@ class AdaptiveEmbeddingLookupTest(tf.test.TestCase):
         self.evaluate(tf.compat.v1.global_variables_initializer())
         self.evaluate(adaptive_embedding_lookup(p, ids, transforms))
 
-    def testAdaptiveNoError(self):
+    def test_adaptive_no_error(self):
         params = [
             [[1.0, 1.0, 1.0, 1.0],
              [1.1, 1.1, 1.1, 1.1],
@@ -73,7 +73,7 @@ class AdaptiveEmbeddingLookupTest(tf.test.TestCase):
         ]
         self.assertAllClose(self.evaluate(embeddings), expected)
 
-    def testAdaptiveShape(self):
+    def test_adaptive_shape(self):
         params = [[[1.0, 1.0, 1.0, 1.0]], [[2.0, 2.0, 2.0]]]
         ids = [[0], [1]]
         transforms = [lambda embed: _transform_embedding(4, embed)] * len(params)
@@ -83,7 +83,7 @@ class AdaptiveEmbeddingLookupTest(tf.test.TestCase):
         actual_shape = tf.shape(embeddings)
         self.assertAllEqual(self.evaluate(actual_shape), [2, 1, 4])
 
-    def testUnknownShape(self):
+    def test_unknown_shape(self):
         params = [tf.constant([[1.0, 1.0, 1.0, 1.0]]), tf.constant([[2.0, 2.0, 2.0]])]
         params[0]._shape_val = tf.TensorShape([None, 4])
 
@@ -95,7 +95,7 @@ class AdaptiveEmbeddingLookupTest(tf.test.TestCase):
         actual_shape = tf.shape(embeddings)
         self.assertAllEqual(self.evaluate(actual_shape), [2, 1, 4])
 
-    def testAdaptiveError(self):
+    def test_adaptive_error(self):
         with self.assertRaisesRegexp(ValueError, '2 variable'):
             self.evaluate(adaptive_embedding_lookup(
                 [[0.]],
@@ -148,7 +148,7 @@ class AdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
 
         return sp_ids, sp_weights, ids, weights, vals_per_batch_entry
 
-    def testEmbeddingLookupSparse(self):
+    def test_embedding_lookup_sparse(self):
         vocab_size = 13
         batch_size = 10
         param_shape = [9, 10]
@@ -187,7 +187,7 @@ class AdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
             tf_embedding_sum = self.evaluate(embedding_sum)
             self.assertEqual(list(tf_embedding_sum.shape), expected_lookup_result_shape)
 
-    def testIncompatibleShapes(self):
+    def test_incompatible_shapes(self):
         params = [np.random.rand(5, 10), np.random.rand(5, 5)]
         transforms = [lambda embed: _transform_embedding(10, embed)] * len(params)
         sp_ids = tf.SparseTensor(
@@ -286,7 +286,7 @@ class SafeAdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
 
         return sparse_ids, sparse_weights
 
-    def testSafeEmbeddingLookupSparseReturnZeroVector(self):
+    def test_safe_embedding_lookup_sparse_return_zero_vector(self):
         embedding_weights, embedding_transforms = self._random_weights()
         sparse_ids, sparse_weights = self._ids_and_weights_2d()
 
@@ -299,7 +299,7 @@ class SafeAdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
             [(1.0 * embedding_weights[0][0] + 2.0 * embedding_weights[0][1]) /
              3.0, [0] * 4, [0] * 4, embedding_weights[1][0], [0] * 4])
 
-    def testSafeEmbeddingLookupSparseReturnSpecialVector(self):
+    def test_safe_embedding_lookup_sparse_return_special_vector(self):
         embedding_weights, embedding_transforms = self._random_weights()
         sparse_ids, sparse_weights = self._ids_and_weights_2d()
 
@@ -312,7 +312,7 @@ class SafeAdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
              3.0, embedding_weights[1][1], embedding_weights[1][1],
              embedding_weights[1][0], embedding_weights[1][1]])
 
-    def testSafeEmbeddingLookupSparseNoWeights(self):
+    def test_safe_embedding_lookup_sparse_no_weights(self):
         embedding_weights, embedding_transforms = self._random_weights()
         sparse_ids, _ = self._ids_and_weights_2d()
 
@@ -324,7 +324,7 @@ class SafeAdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
             [(embedding_weights[0][0] + embedding_weights[0][1]) / 2.0, [0] * 4,
              [0] * 4, embedding_weights[1][0], (embedding_weights[0][0] + embedding_weights[0][1]) / 2.0])
 
-    def testSafeEmbeddingLookupSparsePartitioned(self):
+    def test_safe_embedding_lookup_sparse_partitioned(self):
         embedding_weights, embedding_transforms = self._random_weights(num_shards=3)
         sparse_ids, _ = self._ids_and_weights_2d()
 
@@ -337,7 +337,7 @@ class SafeAdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
                              [0] * 4, [0] * 4, embedding_weights[2],
                              (embedding_weights[0] + embedding_weights[1]) / 2.0])
 
-    def testSafeEmbeddingLookupSparsePartitionedInconsistentWeights(self):
+    def test_safe_embedding_lookup_sparse_partitioned_inconsistent_weights(self):
         embedding_weights, embedding_transforms = self._random_weights(num_shards=3)
         sparse_ids, sparse_weights = self._ids_and_weights_2d()
 
@@ -351,7 +351,7 @@ class SafeAdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
         self.assertRaises(ValueError, safe_adaptive_embedding_lookup_sparse,
                           embedding_weights, sparse_ids, sparse_weights, embedding_transforms)
 
-    def testSafeEmbeddingLookupSparse3dReturnZeroVector(self):
+    def test_safe_embedding_lookup_sparse_3d_return_zero_vector(self):
         embedding_weights, embedding_transforms = self._random_weights()
         sparse_ids, sparse_weights = self._ids_and_weights_3d()
 
@@ -363,7 +363,7 @@ class SafeAdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
             [0] * 4, [0] * 4
         ], [embedding_weights[1][0], [0] * 4, [0] * 4]])
 
-    def testSafeEmbeddingLookupSparse3dReturnSpecialVector(self):
+    def test_safe_embedding_lookup_sparse_3d_return_special_vector(self):
         embedding_weights, embedding_transforms = self._random_weights()
         sparse_ids, sparse_weights = self._ids_and_weights_3d()
 
@@ -380,7 +380,7 @@ class SafeAdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
                  embedding_weights[1][1]
              ]])
 
-    def testSafeEmbeddingLookupSparse3dNoWeights(self):
+    def test_safe_embedding_lookup_sparse_3d_no_weights(self):
         embedding_weights, embedding_transforms = self._random_weights()
         sparse_ids, _ = self._ids_and_weights_3d()
 
@@ -392,7 +392,7 @@ class SafeAdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
             [[(embedding_weights[0][0] + embedding_weights[0][1]) / 2.0, [0] * 4, [0] * 4],
              [embedding_weights[1][0], (embedding_weights[0][0] + embedding_weights[0][1]) / 2.0, [0] * 4]])
 
-    def testSafeEmbeddingLookupSparse3dPartitioned(self):
+    def test_safe_embedding_lookup_sparse_3d_partitioned(self):
         embedding_weights, embedding_transforms = self._random_weights(num_shards=3)
         sparse_ids, _ = self._ids_and_weights_3d()
 
@@ -407,7 +407,7 @@ class SafeAdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
             (embedding_weights[0] + embedding_weights[1]) / 2.0, [0] * 4
         ]])
 
-    def testSafeEmbeddingLookupSparse3dPartitionedInconsistentWeights(self):
+    def test_safe_embedding_lookup_sparse_3d_partitioned_inconsistent_weights(self):
         embedding_weights, embedding_transforms = self._random_weights(num_shards=3)
         sparse_ids, sparse_weights = self._ids_and_weights_3d()
 

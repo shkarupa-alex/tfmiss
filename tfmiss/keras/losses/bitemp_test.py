@@ -9,7 +9,7 @@ from tfmiss.keras.losses import bitemp
 
 @test_util.run_all_in_graph_and_eager_modes
 class BiTempLossTest(tf.test.TestCase):
-    def testNormalization(self):
+    def test_normalization(self):
         """Test the normalization constant."""
         activations = tf.random.normal(shape=[100, 50000])
 
@@ -25,7 +25,7 @@ class BiTempLossTest(tf.test.TestCase):
             probabilities = tf.reduce_sum(bitemp.exp_t(activations - normalization_constants, t), -1)
             self.assertAllClose(self.evaluate(probabilities), [1.0] * 100, atol=1e-5)
 
-    def testLimitCaseLogisticLoss(self):
+    def test_limit_case_logistic_loss(self):
         """Test for checking if t1 = t2 = 1.0 yields the logistic bitemp."""
         labels = tf.constant([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
         activations = tf.random.normal(shape=[3, 3])
@@ -34,7 +34,7 @@ class BiTempLossTest(tf.test.TestCase):
         actual_loss_out, logistic_loss_out = self.evaluate([actual_loss, logistic_loss])
         self.assertAllClose(actual_loss_out, logistic_loss_out)
 
-    def testLossValue(self):
+    def test_loss_value(self):
         """Test the loss based on precomputed values."""
         labels = tf.constant([[0.2, 0.3, 0.5], [0.6, 0.3, 0.1], [0.2, 0.8, 0.0]])
         activations = [[-0.5, 0.1, 2.0], [0.1, 1.5, -5.0], [4.0, -3.0, -6.0]]
@@ -45,7 +45,7 @@ class BiTempLossTest(tf.test.TestCase):
         actual_loss = bitemp.bi_tempered_logistic_loss(labels, activations, 0.5, 0.8, num_iters=20)
         self.assertAllClose(self.evaluate(actual_loss), [0.21646356, 0.41836615, 1.33997854])
 
-    def testConstantShift(self):
+    def test_constant_shift(self):
         """Test if adding a constant to all activations is vacuous."""
         labels = tf.constant([[0.2, 0.3, 0.5], [0.4, 0.4, 0.2], [0.7, 0.2, 0.1]])
         activations = tf.random.normal(shape=[3, 3])
@@ -59,7 +59,7 @@ class BiTempLossTest(tf.test.TestCase):
             actual_loss_out, shifted_loss_out = self.evaluate([actual_loss, shifted_loss])
             self.assertAllClose(actual_loss_out, shifted_loss_out)
 
-    def testGradientError(self):
+    def test_gradient_error(self):
         """Compare custom gradient with tf.gradient."""
         labels = tf.constant([[0.4, 0.3, 0.3], [0.8, 0.1, 0.1], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]])
         activations = tf.Variable(tf.random.normal(shape=[4, 3]))
@@ -79,7 +79,7 @@ class BiTempLossTest(tf.test.TestCase):
         self.assertAllClose(actual_loss_out, internal_loss_out)
         self.assertAllClose(actual_gradient_out, numerical_gradient_out, atol=1e-5)
 
-    def testGradientErrorIssue2(self):
+    def test_gradient_error_issue_2(self):
         """Compare custom gradient with tf.gradient for case https://github.com/google/bi-tempered-loss/issues/2"""
         labels = tf.constant([[0.4, 0.3, 0.3], [0.8, 0.1, 0.1], [0.0, 0.0, 1.0], [0.0, 1.0, 0.0]])
         activations = tf.Variable(tf.random.normal(shape=[4, 3]))
@@ -99,7 +99,7 @@ class BiTempLossTest(tf.test.TestCase):
         self.assertAllClose(actual_loss_out, internal_loss_out)
         self.assertAllClose(actual_gradient_out, numerical_gradient_out, atol=1e-5)
 
-    def testLabelSmoothing(self):
+    def test_label_smoothing(self):
         """Test label smoothing."""
         labels = tf.constant([[1.0, 0.0, 0.0], [0.0, 1.0, 0.0], [0.0, 0.0, 1.0]])
         activations = [[-0.5, 0.1, 2.0], [0.1, 1.5, -5.0], [4.0, -3.0, -6.0]]
@@ -108,7 +108,7 @@ class BiTempLossTest(tf.test.TestCase):
         actual_loss_out = self.evaluate(actual_loss)
         self.assertAllClose(actual_loss_out, [0.76652711, 0.08627685, 1.35443510], atol=1e-5)
 
-    def testBinaryLogisticLoss(self):
+    def test_binary_logistic_loss(self):
         """Test binary logistic bitemp."""
         labels = tf.constant([1.0, 0.0])
         activations = [0.0, 0.0]
@@ -117,7 +117,7 @@ class BiTempLossTest(tf.test.TestCase):
         actual_loss_out = self.evaluate(actual_loss)
         self.assertAllClose(actual_loss_out, [0.69314718, 0.69314718], atol=1e-5)
 
-    def testDynamicTemperatures(self):
+    def test_dynamic_temperatures(self):
         """Test changing temperatures dynamically."""
         labels = tf.constant([[0.2, 0.5, 0.3]])
         activations = [[-0.5, 0.1, 2.0]]
@@ -131,7 +131,7 @@ class BiTempLossTest(tf.test.TestCase):
             loss_out.append(self.evaluate(actual_loss))
         self.assertAllClose(loss_values, loss_out, atol=1e-5)
 
-    def testSparseLoss(self):
+    def test_sparse_loss(self):
         """Test int labels."""
         labels = tf.constant([0, 2, 1, 0])
         activations = [[-0.5, 0.1, 2.0], [0.1, 1.5, -5.0], [4.0, -3.0, -6.0], [-1.5, 0.7, 5.2]]
@@ -150,7 +150,7 @@ class BiTempLossTest(tf.test.TestCase):
         sparse_loss_out = self.evaluate(sparse_loss)
         self.assertAllClose(actual_loss_out, sparse_loss_out)
 
-    def testTemperedSoftmax(self):
+    def test_tempered_softmax(self):
         # Test softmax function with different temperatures.
         activations = [[-0.5, 0.1, 2.0], [0.1, 1.5, -5.0], [4.0, -3.0, -6.0]]
 
@@ -167,7 +167,7 @@ class BiTempLossTest(tf.test.TestCase):
         ])
         self.assertAllClose(expected_softmax_probabilities_t_4, softmax_probabilities_t_4)
 
-    def testTemperedSigmoid(self):
+    def test_tempered_sigmoid(self):
         # Test sigmoid function with different temperatures.
         activations = [0.0, 3.0, 6.0]
 
@@ -183,12 +183,12 @@ class BiTempLossTest(tf.test.TestCase):
 
 @test_util.run_all_in_graph_and_eager_modes
 class BiTemperedBinaryLogistic(tf.test.TestCase):
-    def testConfig(self):
+    def test_config(self):
         cl_obj = bitemp.BiTemperedBinaryLogistic(reduction=tf.keras.losses.Reduction.SUM, t1=0.5, t2=1.5)
         self.assertEqual(cl_obj.name, 'bi_tempered_binary_logistic')
         self.assertEqual(cl_obj.reduction, tf.keras.losses.Reduction.SUM)
 
-    def testNormal(self):
+    def test_normal(self):
         y_true = tf.constant([1, 0], dtype=tf.int64)
         y_pred = tf.constant([0.0, 0.0], dtype=tf.float32)
         btl_obj = bitemp.BiTemperedBinaryLogistic(reduction=tf.keras.losses.Reduction.SUM, t1=1.0, t2=1.0)
@@ -198,12 +198,12 @@ class BiTemperedBinaryLogistic(tf.test.TestCase):
 
 @test_util.run_all_in_graph_and_eager_modes
 class BiTemperedLogistic(tf.test.TestCase):
-    def testConfig(self):
+    def test_config(self):
         cl_obj = bitemp.BiTemperedLogistic(reduction=tf.keras.losses.Reduction.SUM, t1=0.5, t2=1.5)
         self.assertEqual(cl_obj.name, 'bi_tempered_logistic')
         self.assertEqual(cl_obj.reduction, tf.keras.losses.Reduction.SUM)
 
-    def testNormal(self):
+    def test_normal(self):
         y_true = tf.constant([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=tf.int64)
         y_pred = tf.constant([[-0.5, 0.1, 2.0], [0.1, 1.5, -5.0], [4.0, -3.0, -6.0]], dtype=tf.float32)
         btl_obj = bitemp.BiTemperedLogistic(
@@ -214,12 +214,12 @@ class BiTemperedLogistic(tf.test.TestCase):
 
 @test_util.run_all_in_graph_and_eager_modes
 class SparseBiTemperedLogistic(tf.test.TestCase):
-    def testConfig(self):
+    def test_config(self):
         cl_obj = bitemp.SparseBiTemperedLogistic(reduction=tf.keras.losses.Reduction.SUM, t1=0.5, t2=1.5)
         self.assertEqual(cl_obj.name, 'sparse_bi_tempered_logistic')
         self.assertEqual(cl_obj.reduction, tf.keras.losses.Reduction.SUM)
 
-    def testNormal(self):
+    def test_normal(self):
         y_true = tf.constant([0, 2, 1, 0], dtype=tf.int64)
         y_pred = tf.constant(
             [[-0.5, 0.1, 2.0], [0.1, 1.5, -5.0], [4.0, -3.0, -6.0], [-1.5, 0.7, 5.2]], dtype=tf.float32)

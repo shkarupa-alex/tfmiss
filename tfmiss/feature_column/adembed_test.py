@@ -101,7 +101,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
         self.assertEqual({'aaa': parsing_ops.VarLenFeature(tf.int64)}, embedding_column.parse_example_spec)
         self.assertTrue(embedding_column._is_v2_column)
 
-    def test_is_v2_column(self):
+    def test_is_v_2_column(self):
         categorical_column = fc_old._categorical_column_with_identity(key='aaa', num_buckets=3)
         embedding_dimension = 2
         embedding_column = adaptive_embedding_column(categorical_column, dimension=embedding_dimension, cutoff=[1])
@@ -357,7 +357,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
         self.evaluate(lookup_ops.tables_initializer())
         self.assertAllEqual(expected_lookups, self.evaluate(embedding_lookup))
 
-    def test_get_dense_tensor_3d(self):
+    def test_get_dense_tensor__3d(self):
         # Inputs.
         vocabulary_size = 4
         sparse_input = sparse_tensor.SparseTensorValue(

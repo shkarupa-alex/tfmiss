@@ -22,7 +22,7 @@ class OneToManyLayer(tf.keras.layers.Dense):
 
 @keras_parameterized.run_all_keras_modes
 class LayerMultiIOTestTest(keras_parameterized.TestCase):
-    def testOneToOne(self):
+    def test_one_to_one(self):
         layer_multi_io_test(
             tf.keras.layers.Dense,
             kwargs={
@@ -75,13 +75,13 @@ class LayerMultiIOTestTest(keras_parameterized.TestCase):
             expected_output_dtypes=['float16']
         ).dtype.name, 'float16')
 
-    def testManyToOne(self):
+    def test_many_to_one(self):
         layer_multi_io_test(
             tf.keras.layers.Add,
             input_shapes=[(2, 4), (2, 4)],
         )
 
-    def testOneToMany(self):
+    def test_one_to_many(self):
         with tf.keras.utils.custom_object_scope({'OneToManyLayer': OneToManyLayer}):
             layer_multi_io_test(
                 OneToManyLayer,

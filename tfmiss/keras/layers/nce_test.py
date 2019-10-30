@@ -10,7 +10,7 @@ from tfmiss.keras.layers.nce import NoiseContrastiveEstimation
 
 @keras_parameterized.run_all_keras_modes
 class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
-    def testModel(self):
+    def test_model(self):
         NUM_SAMPLES = 10000
         NUM_CLASSES = 1000000
         EMBED_SIZE = 10

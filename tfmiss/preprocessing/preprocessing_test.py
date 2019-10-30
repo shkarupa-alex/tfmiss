@@ -10,7 +10,7 @@ from tfmiss.preprocessing.preprocessing import cont_bow, skip_gram
 
 @test_util.run_all_in_graph_and_eager_modes
 class ContBowTest(tf.test.TestCase):
-    def testEmpty(self):
+    def test_empty(self):
         source = tf.ragged.constant(np.array([]).reshape(0, 2), dtype=tf.string)
         cbows = cont_bow(source, 1)
         target, context, position = self.evaluate(cbows)
@@ -21,7 +21,7 @@ class ContBowTest(tf.test.TestCase):
         self.assertAllEqual([], position.values.tolist())
 
     # Disabled due to currently accepting target inclusion into context
-    # def testSkipRow(self):
+    # def test_skip_row(self):
     #     source = tf.ragged.constant([
     #         [],
     #         ['good', 'row'],
@@ -35,7 +35,7 @@ class ContBowTest(tf.test.TestCase):
     #     self.assertAllEqual(['row', 'good'], context_values.tolist())
     #     self.assertAllEqual([0, 1, 2], context_splits.tolist())
 
-    def testDense(self):
+    def test_dense(self):
         source = tf.constant([
             ['the', 'quick', 'brown', 'fox'],
             ['jumped', 'over', 'the', 'dog'],
@@ -68,7 +68,7 @@ class ContBowTest(tf.test.TestCase):
             [-2, - 1, 0],
         ], positions.tolist())
 
-    def testRagged(self):
+    def test_ragged(self):
         source = tf.ragged.constant([
             ['', '', ''],
             ['the', 'quick', 'brown', 'fox', 'jumped', 'over', 'the', 'lazy', 'dog'],
@@ -107,7 +107,7 @@ class ContBowTest(tf.test.TestCase):
 
 @test_util.run_all_in_graph_and_eager_modes
 class SkipGramTest(tf.test.TestCase):
-    def testEmpty(self):
+    def test_empty(self):
         source = tf.ragged.constant(np.array([]).reshape(0, 2), dtype=tf.string)
         skipgrams = skip_gram(source, 1)
         target, context = self.evaluate(skipgrams)
@@ -115,7 +115,7 @@ class SkipGramTest(tf.test.TestCase):
         self.assertAllEqual([], target.tolist())
         self.assertAllEqual([], context.tolist())
 
-    def testDense(self):
+    def test_dense(self):
         source = tf.constant([
             ['the', 'quick', 'brown', 'fox'],
             ['jumped', 'over', 'the', 'dog'],
@@ -141,7 +141,7 @@ class SkipGramTest(tf.test.TestCase):
             [b'dog', b'the']
         ], pairs.tolist())
 
-    def testRagged(self):
+    def test_ragged(self):
         source = tf.ragged.constant([
             ['', '', ''],
             ['the', 'quick', 'brown', 'fox', 'jumped', 'over', 'the', 'lazy', 'dog'],

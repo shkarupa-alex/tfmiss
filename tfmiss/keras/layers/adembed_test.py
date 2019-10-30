@@ -11,7 +11,7 @@ from tfmiss.keras.layers.adembed import AdaptiveEmbedding
 
 @keras_parameterized.run_all_keras_modes
 class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
-    def testLayer(self):
+    def test_layer(self):
         with tf.keras.utils.custom_object_scope({'AdaptiveEmbedding': AdaptiveEmbedding}):
             testing_utils.layer_test(
                 AdaptiveEmbedding,
@@ -77,7 +77,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
                 expected_output_shape=(None, 3, 7, 128)
             )
 
-    def testEmbeddingCorrectness(self):
+    def test_embedding_correctness(self):
         layer = AdaptiveEmbedding(cutoff=[1], output_dim=2, input_dim=2, mod8=False)
         model = tf.keras.models.Sequential([layer])
         layer.set_weights([
@@ -91,7 +91,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
         outputs = model.predict(np.array([[0, 1, 0]], dtype='int32'))
         self.assertAllClose(outputs, [[[2, 2], [6, 6], [2, 2]]])
 
-    def testEagerGpuCpu(self):
+    def test_eager_gpu_cpu(self):
         l = AdaptiveEmbedding(cutoff=[100], output_dim=2, input_dim=200, mod8=False)
         l.build((None, 2))
         inputs = tf.keras.backend.constant([[0, 1, 0]], dtype='int32')
