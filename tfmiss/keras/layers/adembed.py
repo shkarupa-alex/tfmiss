@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras.layers.embeddings import Embedding
 from tensorflow.python.keras.layers.core import Dense
@@ -20,6 +21,7 @@ class AdaptiveEmbedding(Embedding):
     def __init__(self,
                  cutoff, input_dim, output_dim,
                  factor=4,
+                 mod8=True,
                  embeddings_initializer='uniform',
                  embeddings_regularizer=None,
                  activity_regularizer=None,
@@ -46,6 +48,7 @@ class AdaptiveEmbedding(Embedding):
 
         self.cutoff = cutoff
         self.factor = factor
+        self.mod8 = mod8
         self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
         self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
         self.kernel_constraint = tf.keras.constraints.get(kernel_constraint)
@@ -63,7 +66,10 @@ class AdaptiveEmbedding(Embedding):
         for i in range(len(cutoff)):
             prev = cutoff[i - 1] if i > 0 else 0
             size = cutoff[i] - prev
-            dim = max(1, int(self.output_dim // (self.factor ** i)))
+            denom = 8 if self.mod8 else 1
+            out = int(self.output_dim // (self.factor ** i))
+            out = int(np.ceil(out / denom)) * denom
+            dim = max(denom, out)
 
             # Note: most sparse optimizers do not have GPU kernels defined. When
             # building graphs, the placement algorithm is able to place variables on CPU
@@ -119,6 +125,7 @@ class AdaptiveEmbedding(Embedding):
         config = {
             'cutoff': self.cutoff,
             'factor': self.factor,
+            'mod8': self.mod8,
             'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
             'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),

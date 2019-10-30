@@ -78,7 +78,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             )
 
     def testEmbeddingCorrectness(self):
-        layer = AdaptiveEmbedding(cutoff=[1], output_dim=2, input_dim=2)
+        layer = AdaptiveEmbedding(cutoff=[1], output_dim=2, input_dim=2, mod8=False)
         model = tf.keras.models.Sequential([layer])
         layer.set_weights([
             np.array([[1, 1]]),
@@ -92,7 +92,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
         self.assertAllClose(outputs, [[[2, 2], [6, 6], [2, 2]]])
 
     def testEagerGpuCpu(self):
-        l = AdaptiveEmbedding(cutoff=[100], output_dim=2, input_dim=200)
+        l = AdaptiveEmbedding(cutoff=[100], output_dim=2, input_dim=200, mod8=False)
         l.build((None, 2))
         inputs = tf.keras.backend.constant([[0, 1, 0]], dtype='int32')
         with tf.GradientTape() as tape:
