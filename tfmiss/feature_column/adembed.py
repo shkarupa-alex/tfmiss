@@ -5,11 +5,13 @@ from __future__ import print_function
 import collections
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.feature_column.feature_column_v2 import EmbeddingColumn, SequenceCategoricalColumn
+from tensorflow.python.feature_column import feature_column as fc_old
+from tensorflow.python.feature_column import feature_column_v2 as fc
+# from tensorflow.python.feature_column.feature_column_v2 import EmbeddingColumn, SequenceCategoricalColumn
+# from tensorflow.python.feature_column.feature_column_v2 import VocabularyListCategoricalColumn
+# from tensorflow.python.feature_column.feature_column_v2 import VocabularyFileCategoricalColumn
 from tensorflow.python.framework import ops
 from tensorflow.python.keras import initializers
-from tensorflow.python.ops import variables
-from tensorflow.python.training import checkpoint_utils
 from tfmiss.nn.embedding import safe_adaptive_embedding_lookup_sparse, adaptive_embedding_lookup
 
 
@@ -40,6 +42,16 @@ def adaptive_embedding_column(
     Returns:
         `DenseColumn` that converts from sparse input.
     """
+    if not isinstance(categorical_column, (
+            fc.VocabularyListCategoricalColumn, fc.VocabularyFileCategoricalColumn,
+            fc_old._VocabularyListCategoricalColumn, fc_old._VocabularyFileCategoricalColumn,
+    )):
+        raise ValueError('Adaptive embedding column supports only categorical columns with vocabulary')
+    if 0 != categorical_column.num_oov_buckets:
+        raise ValueError('Adaptive embedding column does not support OOV buckets')
+    if 0 != categorical_column.default_value:
+        raise ValueError('Adaptive embedding column supports only 0 as default value for OOV labels')
+
     if (dimension is None) or (dimension < 1):
         raise ValueError('Invalid dimension {}.'.format(dimension))
     if (initializer is not None) and (not callable(initializer)):
@@ -71,7 +83,7 @@ class AdaptiveEmbeddingColumn(
     collections.namedtuple('AdaptiveEmbeddingColumn', (
             'categorical_column', 'cutoff', 'dimension', 'factor', 'mod8',
             'combiner', 'initializer', 'projection_initializer', 'max_norm', 'trainable')),
-    EmbeddingColumn):
+    fc.EmbeddingColumn):
     """See `adaptive_embedding_column`."""
 
     @property

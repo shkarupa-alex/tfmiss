@@ -2,9 +2,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import collections
 import copy
 import numpy as np
-import os
 import tensorflow as tf
 from tensorflow.core.example import example_pb2
 from tensorflow.core.example import feature_pb2
@@ -47,6 +47,7 @@ class _TestStateManager(fc.StateManager):
     def __init__(self, trainable=True):
         # Dict of feature_column to a dict of variables.
         self._all_variables = {}
+        self._cols_to_resources_map = collections.defaultdict(lambda: {})
         self._trainable = trainable
 
     def create_variable(self, feature_column, name, shape,
@@ -79,11 +80,20 @@ class _TestStateManager(fc.StateManager):
 
         raise ValueError('Could not find variable.')
 
+    def add_resource(self, feature_column, name, resource):
+        self._cols_to_resources_map[feature_column][name] = resource
+
+    def get_resource(self, feature_column, name):
+        if name in self._cols_to_resources_map[feature_column]:
+            return self._cols_to_resources_map[feature_column][name]
+        raise ValueError('Resource does not exist.')
+
 
 @test_util.run_all_in_graph_and_eager_modes
 class EmbeddingColumnTest(tf.test.TestCase):
     def test_defaults(self):
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=3)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_dimension = 2
         embedding_column = adaptive_embedding_column(categorical_column, dimension=embedding_dimension, cutoff=[1])
         self.assertIs(categorical_column, embedding_column.categorical_column)
@@ -98,17 +108,19 @@ class EmbeddingColumnTest(tf.test.TestCase):
         self.assertTrue(embedding_column.trainable)
         self.assertEqual('aaa_adaptive_embedding', embedding_column.name)
         self.assertEqual((embedding_dimension,), embedding_column.variable_shape)
-        self.assertEqual({'aaa': parsing_ops.VarLenFeature(tf.int64)}, embedding_column.parse_example_spec)
+        self.assertEqual({'aaa': parsing_ops.VarLenFeature(tf.string)}, embedding_column.parse_example_spec)
         self.assertTrue(embedding_column._is_v2_column)
 
     def test_is_v_2_column(self):
-        categorical_column = fc_old._categorical_column_with_identity(key='aaa', num_buckets=3)
+        categorical_column = fc_old._categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_dimension = 2
         embedding_column = adaptive_embedding_column(categorical_column, dimension=embedding_dimension, cutoff=[1])
         self.assertFalse(embedding_column._is_v2_column)
 
     def test_all_constructor_args(self):
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=3)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_dimension = 2
         embedding_column = adaptive_embedding_column(
             categorical_column,
@@ -133,14 +145,15 @@ class EmbeddingColumnTest(tf.test.TestCase):
         self.assertFalse(embedding_column.trainable)
         self.assertEqual('aaa_adaptive_embedding', embedding_column.name)
         self.assertEqual((embedding_dimension,), embedding_column.variable_shape)
-        self.assertEqual({'aaa': parsing_ops.VarLenFeature(tf.int64)}, embedding_column.parse_example_spec)
+        self.assertEqual({'aaa': parsing_ops.VarLenFeature(tf.string)}, embedding_column.parse_example_spec)
 
     def test_deep_copy(self):
         if not tf.executing_eagerly():
             self.skipTest('Deep copy does not work in graph mode')
             return
 
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=3)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_dimension = 2
         original = adaptive_embedding_column(
             categorical_column,
@@ -158,7 +171,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
         for embedding_column in (original, copy.deepcopy(original)):
             self.assertEqual('aaa', embedding_column.categorical_column.name)
             self.assertEqual(3, embedding_column.categorical_column.num_buckets)
-            self.assertEqual({'aaa': parsing_ops.VarLenFeature(tf.int64)},
+            self.assertEqual({'aaa': parsing_ops.VarLenFeature(tf.string)},
                              embedding_column.categorical_column.parse_example_spec)
             self.assertEqual((1,), embedding_column.cutoff)
             self.assertEqual(embedding_dimension, embedding_column.dimension)
@@ -171,15 +184,17 @@ class EmbeddingColumnTest(tf.test.TestCase):
             self.assertFalse(embedding_column.trainable)
             self.assertEqual('aaa_adaptive_embedding', embedding_column.name)
             self.assertEqual((embedding_dimension,), embedding_column.variable_shape)
-            self.assertEqual({'aaa': parsing_ops.VarLenFeature(tf.int64)}, embedding_column.parse_example_spec)
+            self.assertEqual({'aaa': parsing_ops.VarLenFeature(tf.string)}, embedding_column.parse_example_spec)
 
     def test_invalid_initializer(self):
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=3)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         with self.assertRaisesRegexp(ValueError, 'initializer must be callable'):
             adaptive_embedding_column(categorical_column, cutoff=[1], dimension=2, mod8=False, initializer='not_fn')
 
     def test_parse_example(self):
-        a = fc.categorical_column_with_vocabulary_list(key='aaa', vocabulary_list=('omar', 'stringer', 'marlo'))
+        a = fc.categorical_column_with_vocabulary_list(key='aaa', default_value=0,
+                                                       vocabulary_list=('omar', 'stringer', 'marlo'))
         a_embedded = adaptive_embedding_column(a, cutoff=[1], dimension=2, mod8=False)
         data = example_pb2.Example(features=feature_pb2.Features(feature={
             'aaa': feature_pb2.Feature(bytes_list=feature_pb2.BytesList(value=[b'omar', b'stringer']))}))
@@ -197,11 +212,12 @@ class EmbeddingColumnTest(tf.test.TestCase):
 
     def test_transform_feature(self):
         # from tensorflow_core.python.feature_column import feature_column_v2 as fc
-        a = fc.categorical_column_with_identity(key='aaa', num_buckets=3)
+        a = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         a_embedded = adaptive_embedding_column(a, cutoff=[1], dimension=2, mod8=False)
         features = {'aaa': sparse_tensor.SparseTensor(
             indices=((0, 0), (1, 0), (1, 1)),
-            values=(0, 1, 0),
+            values=('omar', 'stringer', 'omar'),
             dense_shape=(2, 2)
         )}
         outputs = fc._transform_features_v2(features, [a, a_embedded], None)
@@ -222,7 +238,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 2, ids []
             # example 3, ids [1]
             indices=((0, 0), (1, 0), (1, 4), (3, 0)),
-            values=(2, 0, 1, 1),
+            values=('marlo', 'omar', 'stringer', 'stringer'),
             dense_shape=(4, 5)
         )
 
@@ -256,7 +272,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Build columns.
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=vocabulary_size)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_column = adaptive_embedding_column(
             categorical_column,
             cutoff=[1],
@@ -296,7 +313,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 2, ids []
             # example 3, ids [1]
             indices=((0, 0), (1, 0), (1, 4), (3, 0)),
-            values=(2, 0, 1, 1),
+            values=('marlo', 'omar', 'stringer', 'stringer'),
             dense_shape=(4, 5)
         )
 
@@ -330,7 +347,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Build columns.
-        categorical_column = fc_old._categorical_column_with_identity(key='aaa', num_buckets=vocabulary_size)
+        categorical_column = fc_old._categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_column = adaptive_embedding_column(
             categorical_column,
             cutoff=[1],
@@ -366,7 +384,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 2, ids []
             # example 3, ids [1]
             indices=((0, 0, 0), (1, 1, 0), (1, 1, 4), (3, 0, 0), (3, 1, 2)),
-            values=(2, 0, 1, 1, 2),
+            values=('marlo', 'omar', 'stringer', 'stringer', 'marlo'),
             dense_shape=(4, 2, 5)
         )
 
@@ -401,7 +419,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Build columns.
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=vocabulary_size)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_column = adaptive_embedding_column(
             categorical_column,
             cutoff=[1],
@@ -444,7 +463,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 2, ids []
             # example 3, ids [1]
             indices=((0, 0), (1, 0), (1, 4), (3, 0)),
-            values=(2, 0, 1, 1),
+            values=('marlo', 'omar', 'stringer', 'stringer'),
             dense_shape=(4, 5)
         )
 
@@ -477,7 +496,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Build columns.
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=vocabulary_size)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_column = adaptive_embedding_column(
             categorical_column,
             cutoff=[1],
@@ -491,7 +511,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
 
         # Provide sparse input and get dense result.
         input_indices = array_ops.placeholder(dtype=tf.int64)
-        input_values = array_ops.placeholder(dtype=tf.int64)
+        input_values = array_ops.placeholder(dtype=tf.string)
         input_shape = array_ops.placeholder(dtype=tf.int64)
         embedding_lookup = embedding_column.get_dense_tensor(
             fc.FeatureTransformationCache({
@@ -533,7 +553,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
     #         # example 2, ids []
     #         # example 3, ids [1]
     #         indices=((0, 0), (1, 0), (1, 4), (3, 0)),
-    #         values=(2, 0, 1, 1),
+    #         values=('marlo', 'omar', 'stringer', 'stringer'),
     #         dense_shape=(4, 5)
     #     )
     #
@@ -560,7 +580,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
     #     )
     #
     #     # Build columns.
-    #     categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=vocabulary_size)
+    #     categorical_column = fc.categorical_column_with_vocabulary_list(
+    #         key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
     #     embedding_column = adaptive_embedding_column(
     #         categorical_column,
     #         cutoff=[1],
@@ -601,7 +622,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 2, ids []
             # example 3, ids [1]
             indices=((0, 0), (1, 0), (1, 4), (3, 0)),
-            values=(2, 0, 1, 1),
+            values=('marlo', 'omar', 'stringer', 'stringer'),
             dense_shape=(batch_size, 5)
         )
 
@@ -615,7 +636,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
             return tf.compat.v1.initializers.zeros()(shape, dtype, partition_info)
 
         # Build columns.
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=vocabulary_size)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_column = adaptive_embedding_column(
             categorical_column,
             cutoff=[1],
@@ -679,7 +701,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 2, ids []
             # example 3, ids [1]
             indices=((0, 0), (1, 0), (1, 4), (3, 0)),
-            values=(2, 0, 1, 1),
+            values=('marlo', 'omar', 'stringer', 'stringer'),
             dense_shape=(4, 5)
         )
 
@@ -712,7 +734,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Build columns.
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=vocabulary_size)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_column = adaptive_embedding_column(
             categorical_column,
             cutoff=[1],
@@ -757,7 +780,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 2, ids []
             # example 3, ids [1]
             indices=((0, 0), (1, 0), (1, 4), (3, 0)),
-            values=(2, 0, 1, 1),
+            values=('marlo', 'omar', 'stringer', 'stringer'),
             dense_shape=(4, 5)
         )
 
@@ -790,7 +813,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Build columns.
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=vocabulary_size)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_column = adaptive_embedding_column(
             categorical_column,
             cutoff=[1],
@@ -827,7 +851,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 2, ids []
             # example 3, ids [1]
             indices=((0, 0), (1, 0), (1, 4), (3, 0)),
-            values=(2, 0, 1, 1),
+            values=('marlo', 'omar', 'stringer', 'stringer'),
             dense_shape=(4, 5))
 
         # Embedding variable.
@@ -859,7 +883,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Build columns.
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=vocabulary_size)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_column = adaptive_embedding_column(
             categorical_column,
             cutoff=[1],
@@ -901,7 +926,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 2, ids []
             # example 3, ids [1]
             indices=((0, 0), (1, 0), (1, 4), (3, 0)),
-            values=(2, 0, 1, 1),
+            values=('marlo', 'omar', 'stringer', 'stringer'),
             dense_shape=(batch_size, 5)
         )
 
@@ -916,7 +941,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
             return tf.compat.v1.initializers.zeros()(shape, dtype, partition_info)
 
         # Build columns.
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=vocabulary_size)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_column = adaptive_embedding_column(
             categorical_column,
             cutoff=[1],
@@ -979,7 +1005,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 2, ids []
             # example 3, ids [1]
             indices=((0, 0), (1, 0), (1, 4), (3, 0)),
-            values=(2, 0, 1, 1),
+            values=('marlo', 'omar', 'stringer', 'stringer'),
             dense_shape=(batch_size, 5)
         )
 
@@ -994,7 +1020,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
             return tf.compat.v1.initializers.zeros()(shape, dtype, partition_info)
 
         # Build columns.
-        categorical_column = fc_old._categorical_column_with_identity(key='aaa', num_buckets=vocabulary_size)
+        categorical_column = fc_old._categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_column = adaptive_embedding_column(
             categorical_column,
             cutoff=[1],
@@ -1049,7 +1076,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
 
     def test_serialization_with_default_initializer(self):
         # Build columns.
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=3)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_column = adaptive_embedding_column(categorical_column, cutoff=[1], dimension=2, mod8=False)
 
         self.assertEqual([categorical_column], embedding_column.parents)
@@ -1059,11 +1087,13 @@ class EmbeddingColumnTest(tf.test.TestCase):
         # config['projection_initializer']['config']['stddev'] = 0.7071067811865475
         self.assertEqual({
             'categorical_column': {
-                'class_name': 'IdentityCategoricalColumn',
+                'class_name': 'VocabularyListCategoricalColumn',
                 'config': {
-                    'number_buckets': 3,
                     'key': 'aaa',
-                    'default_value': None
+                    'vocabulary_list': ('omar', 'stringer', 'marlo'),
+                    'dtype': 'string',
+                    'default_value': 0,
+                    'num_oov_buckets': 0
                 }
             },
             # 'ckpt_to_load_from': None,
@@ -1110,7 +1140,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
             return ValueError('Not expected to be called')
 
         # Build columns.
-        categorical_column = fc.categorical_column_with_identity(key='aaa', num_buckets=3)
+        categorical_column = fc.categorical_column_with_vocabulary_list(
+            key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_column = adaptive_embedding_column(
             categorical_column, cutoff=[1], dimension=2, initializer=_initializer,
             projection_initializer=_initializer)
@@ -1120,11 +1151,13 @@ class EmbeddingColumnTest(tf.test.TestCase):
         config = embedding_column._get_config()
         self.assertEqual({
             'categorical_column': {
-                'class_name': 'IdentityCategoricalColumn',
+                'class_name': 'VocabularyListCategoricalColumn',
                 'config': {
-                    'number_buckets': 3,
                     'key': 'aaa',
-                    'default_value': None
+                    'vocabulary_list': ('omar', 'stringer', 'marlo'),
+                    'dtype': 'string',
+                    'default_value': 0,
+                    'num_oov_buckets': 0
                 }
             },
             # 'ckpt_to_load_from': None,
