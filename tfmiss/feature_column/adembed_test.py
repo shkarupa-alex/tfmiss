@@ -264,7 +264,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 0, ids [2], embedding = [7, _] * [1, 1]
             (7., 7.),
             # example 1, ids [0, 1], embedding = mean([1, 2] * [1, 1] + [3, _] * [1, 1]) = [3, 3]
-            (3., 3.),
+            (2., 2.5),
             # example 2, ids [], embedding = [0, 0]
             (0., 0.),
             # example 3, ids [1], embedding = [3, _] * [1, 1]
@@ -296,7 +296,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
         if not tf.executing_eagerly():
             # Assert expected embedding variable and lookups.
             global_vars = ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES)
-            self.assertItemsEqual(('embedding_weights_0:0', 'embedding_projections_0:0',
+            self.assertItemsEqual(('embedding_weights_0:0',
                                    'embedding_weights_1:0', 'embedding_projections_1:0'),
                                   tuple([v.name for v in global_vars]))
 
@@ -354,6 +354,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             cutoff=[1],
             dimension=embedding_dimension,
             mod8=False,
+            proj0=True,
             initializer=_initializer,
             projection_initializer=tf.compat.v1.ones_initializer(),
         )
@@ -375,7 +376,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
         self.evaluate(lookup_ops.tables_initializer())
         self.assertAllEqual(expected_lookups, self.evaluate(embedding_lookup))
 
-    def test_get_dense_tensor__3d(self):
+    def test_get_dense_tensor_3d(self):
         # Inputs.
         vocabulary_size = 4
         sparse_input = sparse_tensor.SparseTensorValue(
@@ -411,7 +412,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             ((7., 7., 7.), (0., 0., 0.)),
             # example 1, ids [[], [0, 1]], embedding
             # = mean([[], [1, 2, 4] + [3, 5, 1]]) = [[0, 0, 0], [2, 3.5, 2.5]]
-            ((0., 0., 0.), (5., 5., 5.)),
+            ((0., 0., 0.), (2., 2.5, 3.5)),
             # example 2, ids [[], []], embedding = [[0, 0, 0], [0, 0, 0]]
             ((0., 0., 0.), (0., 0., 0.)),
             # example 3, ids [[1], [2]], embedding = [[3, 5, 1], [7, 11, 2]]
@@ -443,7 +444,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
         if not tf.executing_eagerly():
             # Assert expected embedding variable and lookups.
             global_vars = ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES)
-            self.assertItemsEqual(('embedding_weights_0:0', 'embedding_projections_0:0',
+            self.assertItemsEqual(('embedding_weights_0:0',
                                    'embedding_weights_1:0', 'embedding_projections_1:0'),
                                   tuple([v.name for v in global_vars]))
 
@@ -488,7 +489,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 0, ids [2], embedding = [7, 11]
             (7., 7.),
             # example 1, ids [0, 1], embedding = mean([1, 2] + [3, 5]) = [2, 3.5]
-            (3., 3.),
+            (2., 2.5),
             # example 2, ids [], embedding = [0, 0]
             (0., 0.),
             # example 3, ids [1], embedding = [3, 5]
@@ -527,7 +528,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
         if not tf.executing_eagerly():
             # Assert expected embedding variable and lookups.
             global_vars = ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES)
-            self.assertItemsEqual(('embedding_weights_0:0', 'embedding_projections_0:0',
+            self.assertItemsEqual(('embedding_weights_0:0',
                                    'embedding_weights_1:0', 'embedding_projections_1:0'),
                                   tuple([v.name for v in global_vars]))
 
@@ -657,7 +658,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
                 'linear_model/aaa_adaptive_embedding/weights:0',
                 'linear_model/aaa_adaptive_embedding/embedding_weights_0:0',
                 'linear_model/aaa_adaptive_embedding/embedding_weights_1:0',
-                'linear_model/aaa_adaptive_embedding/embedding_projections_0:0',
                 'linear_model/aaa_adaptive_embedding/embedding_projections_1:0',
             )
             self.assertItemsEqual(
@@ -671,7 +671,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
             bias = trainable_vars['linear_model/bias_weights:0']
             embedding_weights0 = trainable_vars['linear_model/aaa_adaptive_embedding/embedding_weights_0:0']
             embedding_weights1 = trainable_vars['linear_model/aaa_adaptive_embedding/embedding_weights_1:0']
-            embedding_projections_0 = trainable_vars['linear_model/aaa_adaptive_embedding/embedding_projections_0:0']
             embedding_projections_1 = trainable_vars['linear_model/aaa_adaptive_embedding/embedding_projections_1:0']
             linear_weights = trainable_vars['linear_model/aaa_adaptive_embedding/weights:0']
 
@@ -682,8 +681,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
             self.assertAllClose(np.zeros((1,)), self.evaluate(bias))
             self.assertAllClose(np.zeros((1, embedding_dimension)), self.evaluate(embedding_weights0))
             self.assertAllClose(np.zeros((vocabulary_size - 1, 1)), self.evaluate(embedding_weights1))
-            self.assertAllClose(np.zeros((embedding_dimension, embedding_dimension)),
-                                self.evaluate(embedding_projections_0))
             self.assertAllClose(np.zeros((1, embedding_dimension)), self.evaluate(embedding_projections_1))
             self.assertAllClose(np.zeros((embedding_dimension, 1)), self.evaluate(linear_weights))
         else:
@@ -726,7 +723,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 0, ids [2], embedding = [7, 11]
             (7., 7.),
             # example 1, ids [0, 1], embedding = mean([1, 2] + [3, 5]) = [2, 3.5]
-            (3., 3.),
+            (2., 2.5),
             # example 2, ids [], embedding = [0, 0]
             (0., 0.),
             # example 3, ids [1], embedding = [3, 5]
@@ -754,7 +751,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
             global_vars = ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES)
             self.assertItemsEqual(('dense_features/aaa_adaptive_embedding/embedding_weights_0:0',
                                    'dense_features/aaa_adaptive_embedding/embedding_weights_1:0',
-                                   'dense_features/aaa_adaptive_embedding/embedding_projections_0:0',
                                    'dense_features/aaa_adaptive_embedding/embedding_projections_1:0'),
                                   tuple([v.name for v in global_vars]))
             for v in global_vars:
@@ -762,7 +758,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
             trainable_vars = ops.get_collection(ops.GraphKeys.TRAINABLE_VARIABLES)
             self.assertItemsEqual(('dense_features/aaa_adaptive_embedding/embedding_weights_0:0',
                                    'dense_features/aaa_adaptive_embedding/embedding_weights_1:0',
-                                   'dense_features/aaa_adaptive_embedding/embedding_projections_0:0',
                                    'dense_features/aaa_adaptive_embedding/embedding_projections_1:0'),
                                   tuple([v.name for v in trainable_vars]))
 
@@ -805,7 +800,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 0, ids [2], embedding = [7, 11]
             (7., 7.),
             # example 1, ids [0, 1], embedding = mean([1, 2] + [3, 5]) = [2, 3.5]
-            (3., 3.),
+            (2., 2.5),
             # example 2, ids [], embedding = [0, 0]
             (0., 0.),
             # example 3, ids [1], embedding = [3, 5]
@@ -833,7 +828,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
             global_vars = ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES)
             self.assertItemsEqual(('dense_features/aaa_adaptive_embedding/embedding_weights_0:0',
                                    'dense_features/aaa_adaptive_embedding/embedding_weights_1:0',
-                                   'dense_features/aaa_adaptive_embedding/embedding_projections_0:0',
                                    'dense_features/aaa_adaptive_embedding/embedding_projections_1:0'),
                                   tuple([v.name for v in global_vars]))
             self.assertItemsEqual([], ops.get_collection(ops.GraphKeys.TRAINABLE_VARIABLES))
@@ -875,7 +869,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # example 0, ids [2], embedding = [7, 11]
             (7., 7.),
             # example 1, ids [0, 1], embedding = mean([1, 2] + [3, 5]) = [2, 3.5]
-            (3., 3.),
+            (2., 2.5),
             # example 2, ids [], embedding = [0, 0]
             (0., 0.),
             # example 3, ids [1], embedding = [3, 5]
@@ -902,13 +896,11 @@ class EmbeddingColumnTest(tf.test.TestCase):
             global_vars = ops.get_collection(ops.GraphKeys.GLOBAL_VARIABLES)
             self.assertItemsEqual(('input_layer/aaa_adaptive_embedding/embedding_weights_0:0',
                                    'input_layer/aaa_adaptive_embedding/embedding_weights_1:0',
-                                   'input_layer/aaa_adaptive_embedding/embedding_projections_0:0',
                                    'input_layer/aaa_adaptive_embedding/embedding_projections_1:0'),
                                   tuple([v.name for v in global_vars]))
             trainable_vars = ops.get_collection(ops.GraphKeys.TRAINABLE_VARIABLES)
             self.assertItemsEqual(('input_layer/aaa_adaptive_embedding/embedding_weights_0:0',
                                    'input_layer/aaa_adaptive_embedding/embedding_weights_1:0',
-                                   'input_layer/aaa_adaptive_embedding/embedding_projections_0:0',
                                    'input_layer/aaa_adaptive_embedding/embedding_projections_1:0'),
                                   tuple([v.name for v in trainable_vars]))
 
@@ -961,7 +953,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
                 'linear_model/aaa_adaptive_embedding/weights:0',
                 'linear_model/aaa_adaptive_embedding/embedding_weights_0:0',
                 'linear_model/aaa_adaptive_embedding/embedding_weights_1:0',
-                'linear_model/aaa_adaptive_embedding/embedding_projections_0:0',
                 'linear_model/aaa_adaptive_embedding/embedding_projections_1:0',
             )
             self.assertItemsEqual(
@@ -974,7 +965,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
             bias = trainable_vars['linear_model/bias_weights:0']
             embedding_weights0 = trainable_vars['linear_model/aaa_adaptive_embedding/embedding_weights_0:0']
             embedding_weights1 = trainable_vars['linear_model/aaa_adaptive_embedding/embedding_weights_1:0']
-            embedding_projections_0 = trainable_vars['linear_model/aaa_adaptive_embedding/embedding_projections_0:0']
             embedding_projections_1 = trainable_vars['linear_model/aaa_adaptive_embedding/embedding_projections_1:0']
             linear_weights = trainable_vars['linear_model/aaa_adaptive_embedding/weights:0']
 
@@ -985,8 +975,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
             self.assertAllClose(np.zeros((1,)), self.evaluate(bias))
             self.assertAllClose(np.zeros((1, embedding_dimension)), self.evaluate(embedding_weights0))
             self.assertAllClose(np.zeros((vocabulary_size - 1, 1)), self.evaluate(embedding_weights1))
-            self.assertAllClose(np.zeros((embedding_dimension, embedding_dimension)),
-                                self.evaluate(embedding_projections_0))
             self.assertAllClose(np.zeros((1, embedding_dimension)), self.evaluate(embedding_projections_1))
             self.assertAllClose(np.zeros((embedding_dimension, 1)), self.evaluate(linear_weights))
         else:
@@ -1040,7 +1028,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
                 'linear_model/aaa_adaptive_embedding/weights:0',
                 'linear_model/aaa_adaptive_embedding/embedding_weights_0:0',
                 'linear_model/aaa_adaptive_embedding/embedding_weights_1:0',
-                'linear_model/aaa_adaptive_embedding/embedding_projections_0:0',
                 'linear_model/aaa_adaptive_embedding/embedding_projections_1:0',
             )
             self.assertItemsEqual(
@@ -1052,7 +1039,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
             bias = trainable_vars['linear_model/bias_weights:0']
             embedding_weights0 = trainable_vars['linear_model/aaa_adaptive_embedding/embedding_weights_0:0']
             embedding_weights1 = trainable_vars['linear_model/aaa_adaptive_embedding/embedding_weights_1:0']
-            embedding_projections_0 = trainable_vars['linear_model/aaa_adaptive_embedding/embedding_projections_0:0']
             embedding_projections_1 = trainable_vars['linear_model/aaa_adaptive_embedding/embedding_projections_1:0']
             linear_weights = trainable_vars['linear_model/aaa_adaptive_embedding/weights:0']
 
@@ -1063,8 +1049,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
             self.assertAllClose(np.zeros((1,)), self.evaluate(bias))
             self.assertAllClose(np.zeros((1, embedding_dimension)), self.evaluate(embedding_weights0))
             self.assertAllClose(np.zeros((vocabulary_size - 1, 1)), self.evaluate(embedding_weights1))
-            self.assertAllClose(np.zeros((embedding_dimension, embedding_dimension)),
-                                self.evaluate(embedding_projections_0))
             self.assertAllClose(np.zeros((1, embedding_dimension)), self.evaluate(embedding_projections_1))
             self.assertAllClose(np.zeros((embedding_dimension, 1)), self.evaluate(linear_weights))
             self.assertAllClose(np.zeros((batch_size, 1)), self.evaluate(predictions))
@@ -1078,7 +1062,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
         # Build columns.
         categorical_column = fc.categorical_column_with_vocabulary_list(
             key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
-        embedding_column = adaptive_embedding_column(categorical_column, cutoff=[1], dimension=2, mod8=False)
+        embedding_column = adaptive_embedding_column(
+            categorical_column, cutoff=[1], dimension=2, mod8=False, proj0=True)
 
         self.assertEqual([categorical_column], embedding_column.parents)
 
@@ -1119,6 +1104,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             },
             'max_norm': None,
             'mod8': False,
+            'proj0': True,
             # 'tensor_name_in_ckpt': None,
             'trainable': True
         }, config)
@@ -1169,6 +1155,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             'projection_initializer': '_initializer',
             'max_norm': None,
             'mod8': True,
+            'proj0': False,
             # 'tensor_name_in_ckpt': None,
             'trainable': True
         }, config)

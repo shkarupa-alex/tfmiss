@@ -31,6 +31,19 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
                     'cutoff': [50, 100],
                     'input_dim': 200,
                     'output_dim': 128,
+                    'proj0': True,
+                },
+                input_shape=(2, 3),
+                input_dtype='int32',
+                expected_output_dtype='float32',
+                expected_output_shape=(None, 3, 128)
+            )
+            testing_utils.layer_test(
+                AdaptiveEmbedding,
+                kwargs={
+                    'cutoff': [50, 100],
+                    'input_dim': 200,
+                    'output_dim': 128,
                     'input_length': 3,
                 },
                 input_shape=(2, 3),
@@ -80,19 +93,21 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
     def test_embedding_correctness(self):
         layer = AdaptiveEmbedding(cutoff=[1], output_dim=2, input_dim=2, mod8=False)
         model = tf.keras.models.Sequential([layer])
+        print(layer.get_weights())
         layer.set_weights([
             np.array([[1, 1]]),
             np.array([[2]]),
-            np.array([[1, 1], [1, 1]]),
+            # proj0 == False
+            # np.array([[1, 1], [1, 1]]),
             np.array([[3, 3]]),
         ])
         model.run_eagerly = testing_utils.should_run_eagerly()
         model._experimental_run_tf_function = testing_utils.should_run_tf_function()
         outputs = model.predict(np.array([[0, 1, 0]], dtype='int32'))
-        self.assertAllClose(outputs, [[[2, 2], [6, 6], [2, 2]]])
+        self.assertAllClose(outputs, [[[1, 1], [6, 6], [1, 1]]])
 
     def test_eager_gpu_cpu(self):
-        l = AdaptiveEmbedding(cutoff=[100], output_dim=2, input_dim=200, mod8=False)
+        l = AdaptiveEmbedding(cutoff=[100], output_dim=2, input_dim=200, mod8=False, proj0=True)
         l.build((None, 2))
         inputs = tf.keras.backend.constant([[0, 1, 0]], dtype='int32')
         with tf.GradientTape() as tape:

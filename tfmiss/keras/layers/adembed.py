@@ -22,6 +22,7 @@ class AdaptiveEmbedding(Embedding):
                  cutoff, input_dim, output_dim,
                  factor=4,
                  mod8=True,
+                 proj0=False,
                  embeddings_initializer='uniform',
                  embeddings_regularizer=None,
                  activity_regularizer=None,
@@ -49,6 +50,7 @@ class AdaptiveEmbedding(Embedding):
         self.cutoff = cutoff
         self.factor = factor
         self.mod8 = mod8
+        self.proj0 = proj0
         self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
         self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
         self.kernel_constraint = tf.keras.constraints.get(kernel_constraint)
@@ -94,23 +96,29 @@ class AdaptiveEmbedding(Embedding):
                     regularizer=self.embeddings_regularizer,
                     constraint=self.embeddings_constraint
                 )
-
-            self.embeddings.append(embed)
             setattr(self, 'embed_{}'.format(i), embed)
+            self.embeddings.append(embed)
 
-            project = Dense(
-                units=self.output_dim,
-                activation=None,
-                use_bias=False,
-                kernel_initializer=self.kernel_initializer,
-                kernel_regularizer=self.kernel_regularizer,
-                activity_regularizer=self.activity_regularizer,
-                kernel_constraint=self.kernel_constraint
-            )
+            if 0 == i and not self.proj0:
+                project = AdaptiveEmbedding._no_projection
+            else:
+                project = Dense(
+                    units=self.output_dim,
+                    activation=None,
+                    use_bias=False,
+                    kernel_initializer=self.kernel_initializer,
+                    kernel_regularizer=self.kernel_regularizer,
+                    activity_regularizer=self.activity_regularizer,
+                    kernel_constraint=self.kernel_constraint
+                )
+                setattr(self, 'project_{}'.format(i), project)
             self.projections.append(project)
-            setattr(self, 'project_{}'.format(i), project)
 
         self.built = True
+
+    @staticmethod
+    def _no_projection(embedding):
+        return embedding
 
     def call(self, inputs):
         dtype = tf.keras.backend.dtype(inputs)
@@ -126,6 +134,7 @@ class AdaptiveEmbedding(Embedding):
             'cutoff': self.cutoff,
             'factor': self.factor,
             'mod8': self.mod8,
+            'proj0': self.proj0,
             'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
             'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
