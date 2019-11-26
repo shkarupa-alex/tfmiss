@@ -65,6 +65,7 @@ class AdaptiveEmbedding(Embedding):
         else:
             cutoff = self.cutoff
 
+        prev_dim = None
         for i in range(len(cutoff)):
             prev = cutoff[i - 1] if i > 0 else 0
             size = cutoff[i] - prev
@@ -72,6 +73,12 @@ class AdaptiveEmbedding(Embedding):
             out = int(self.output_dim // (self.factor ** i))
             out = int(np.ceil(out / denom)) * denom
             dim = max(denom, out)
+
+            if dim != prev_dim:
+                prev_dim = dim
+            else:
+                raise ValueError('Some cutoffs have same embedding size. '
+                                 'Try to shorten `cutoffs`, decrease `factor` or increase `output_dim`')
 
             # Note: most sparse optimizers do not have GPU kernels defined. When
             # building graphs, the placement algorithm is able to place variables on CPU

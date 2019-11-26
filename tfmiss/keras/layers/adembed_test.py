@@ -93,7 +93,6 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
     def test_embedding_correctness(self):
         layer = AdaptiveEmbedding(cutoff=[1], output_dim=2, input_dim=2, mod8=False)
         model = tf.keras.models.Sequential([layer])
-        print(layer.get_weights())
         layer.set_weights([
             np.array([[1, 1]]),
             np.array([[2]]),
@@ -116,6 +115,30 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
         opt = tf.keras.optimizers.Adagrad(0.1)
         opt.apply_gradients(zip(gs, l.weights))
         self.assertAllEqual(len(gs), 4)
+
+    # TODO TF 2.1
+    # def test_embedding_with_ragged_input(self):
+    #     layer = tf.keras.layers.AdaptiveEmbedding(cutoff=[1], input_dim=3, output_dim=2, mod8=False)
+    #     layer.set_weights([
+    #         np.array([[1, 1]]),
+    #         np.array([[2]]),
+    #         # proj0 == False
+    #         # np.array([[1, 1], [1, 1]]),
+    #         np.array([[3, 3]]),
+    #     ])
+    #
+    #     inputs = tf.keras.layers.Input(shape=(None,), dtype=tf.float32, ragged=True)
+    #     outputs = tf.keras.layers.Lambda(lambda args: tf.keras.backend.identity(args))(inputs)
+    #     outputs = layer(outputs)
+    #
+    #     model = tf.keras.Model(inputs, outputs)
+    #     model._experimental_run_tf_function = testing_utils.should_run_tf_function()
+    #     model.run_eagerly = testing_utils.should_run_eagerly()
+    #     outputs = model.predict(tf.ragged.constant([[1., 2., 2.], [0.], [1., 2.]], ragged_rank=1))
+    #     self.assertAllClose(
+    #         outputs,
+    #         tf.ragged.constant([[[1., 1.], [2., 2.], [2., 2.]], [[0., 0.]], [[1., 1.], [2., 2.]]], ragged_rank=1)
+    #     )
 
 
 if __name__ == "__main__":

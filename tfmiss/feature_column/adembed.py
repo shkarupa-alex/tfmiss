@@ -108,6 +108,7 @@ class AdaptiveEmbeddingColumn(
         """Creates the embedding lookup variable."""
         cutoff = self._get_cutoff()
 
+        prev_dim = None
         for i in range(len(cutoff)):
             prev = cutoff[i - 1] if i > 0 else 0
             size = cutoff[i] - prev
@@ -115,6 +116,12 @@ class AdaptiveEmbeddingColumn(
             out = int(self.dimension // (self.factor ** i))
             out = int(np.ceil(out / denom)) * denom
             dim = max(denom, out)
+
+            if dim != prev_dim:
+                prev_dim = dim
+            else:
+                raise ValueError('Some cutoffs have same embedding size. '
+                                 'Try to shorten `cutoffs`, decrease `factor` or increase `dimension`')
 
             state_manager.create_variable(
                 self,
@@ -177,6 +184,7 @@ class AdaptiveEmbeddingColumn(
 
         cutoff = self._get_cutoff()
 
+        prev_dim = None
         embedding_weights, embedding_projections = [], []
         for i in range(len(cutoff)):
             prev = cutoff[i - 1] if i > 0 else 0
@@ -185,6 +193,12 @@ class AdaptiveEmbeddingColumn(
             out = int(self.dimension // (self.factor ** i))
             out = int(np.ceil(out / denom)) * denom
             dim = max(denom, out)
+
+            if dim != prev_dim:
+                prev_dim = dim
+            else:
+                raise ValueError('Some cutoffs have same embedding size. '
+                                 'Try to shorten `cutoffs`, decrease `factor` or increase `dimension`.')
 
             embedding_weights.append(tf.compat.v1.get_variable(
                 name='embedding_weights_{}'.format(i),
