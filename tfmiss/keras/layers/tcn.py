@@ -33,7 +33,6 @@ class TemporalBlock(tf.keras.layers.Layer):
                  activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
-                 *args,
                  **kwargs):
         if padding not in {'causal', 'same'}:
             raise ValueError('Only "causal" and "same" padding are compatible with this layer.')
@@ -62,7 +61,7 @@ class TemporalBlock(tf.keras.layers.Layer):
         self.act = None
 
         super(TemporalBlock, self).__init__(
-            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), *args, **kwargs)
+            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
 
     @tf_utils.shape_type_conversion
@@ -197,7 +196,7 @@ class TemporalConvNet(tf.keras.layers.Layer):
                  activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
-                 *args, **kwargs):
+                 **kwargs):
 
         if not isinstance(filters, (list, tuple)) or not len(filters):
             raise ValueError('Number of residual layers could not be zero.')
@@ -220,7 +219,7 @@ class TemporalConvNet(tf.keras.layers.Layer):
         self.bias_constraint = tf.keras.constraints.get(bias_constraint)
 
         super(TemporalConvNet, self).__init__(
-            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), *args, **kwargs)
+            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
 
     @tf_utils.shape_type_conversion
