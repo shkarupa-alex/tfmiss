@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized
 from tensorflow.python.keras import testing_utils
-from tfmiss.keras.layers.adembed import AdaptiveEmbedding
+from tfmiss.keras.layers.embedding import AdaptiveEmbedding
 
 
 @keras_parameterized.run_all_keras_modes

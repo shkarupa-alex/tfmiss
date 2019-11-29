@@ -4,8 +4,8 @@ py_library(
     name = "layers",
     srcs = [
         "__init__.py",
-        "adembed.py",
-#        "nce.py",
+        "embedding.py",
+        "softmax.py",
         "tcn.py",
         "wrappers.py",
     ],
@@ -16,23 +16,23 @@ py_library(
 )
 
 py_test(
-    name = "adembed_test",
-    srcs = ["adembed_test.py"],
+    name = "embedding_test",
+    srcs = ["embedding_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":layers"
     ],
 )
 
-#py_test(
-#    name = "nce_test",
-#    srcs = ["nce_test.py"],
-#    srcs_version = "PY2AND3",
-#    deps = [
-#        "//tfmiss/keras:testing_utils",
-#        ":layers"
-#    ],
-#)
+py_test(
+    name = "softmax_test",
+    srcs = ["softmax_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//tfmiss/keras:testing_utils",
+        ":layers"
+    ],
+)
 
 py_test(
     name = "tcn_test",

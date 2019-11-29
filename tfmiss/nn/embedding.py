@@ -114,7 +114,7 @@ def adaptive_embedding_lookup(params, ids, transforms, max_norm=None, name=None)
             partitioned_result.append(result)
 
         # Stitch these back together
-        ret = data_flow_ops.parallel_dynamic_stitch(p_indices, partitioned_result, name=name)
+        ret = data_flow_ops.parallel_dynamic_stitch(p_indices, partitioned_result, name=name) # TODO check speed
 
         # Determine the static element shape.
         element_shape_s = ret.get_shape()[1:]

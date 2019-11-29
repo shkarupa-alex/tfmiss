@@ -140,7 +140,7 @@ def layer_multi_io_test(layer_cls, kwargs=None, input_shapes=None, input_dtypes=
     input_tensor_shapes = input_tensor_shapes if input_size > 1 else input_tensor_shapes[0]
     expected_output_shapes = layer.compute_output_shape(input_tensor_shapes)
     expected_output_shapes = expected_output_shapes if output_size > 1 else [expected_output_shapes]
-    expected_output_shapes = [tuple(shape.as_list()) for shape in expected_output_shapes]
+    expected_output_shapes = [tuple(shape) for shape in expected_output_shapes]
     actual_output_shapes = [output.shape for output in actual_outputs]
 
     for expected_output_shape, actual_output_shape in zip(expected_output_shapes, actual_output_shapes):

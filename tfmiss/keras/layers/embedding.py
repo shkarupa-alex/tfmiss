@@ -60,7 +60,7 @@ class AdaptiveEmbedding(Embedding):
         self.embeddings = []
         self.projections = []
 
-        if self.input_dim > self.cutoff[-1]:
+        if self.input_dim > self.cutoff[-1]: # TODO
             cutoff = self.cutoff + [self.input_dim]
         else:
             cutoff = self.cutoff
