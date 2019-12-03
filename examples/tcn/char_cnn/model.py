@@ -32,6 +32,5 @@ class CharModel(keras.Model):
         outputs = drop(encoder(inputs))
         outputs = sequence(outputs)
         outputs = decoder(outputs)
-        print(outputs)
 
         super(CharModel, self).__init__(inputs=inputs, outputs=outputs)

@@ -113,7 +113,7 @@ class AdaptiveEmbeddingColumn(
             prev = cutoff[i - 1] if i > 0 else 0
             size = cutoff[i] - prev
             denom = 8 if self.mod8 else 1
-            out = int(self.dimension // (self.factor ** i))
+            out = self.dimension // (self.factor ** i)
             out = int(np.ceil(out / denom)) * denom
             dim = max(denom, out)
 
@@ -190,7 +190,7 @@ class AdaptiveEmbeddingColumn(
             prev = cutoff[i - 1] if i > 0 else 0
             size = cutoff[i] - prev
             denom = 8 if self.mod8 else 1
-            out = int(self.dimension // (self.factor ** i))
+            out = self.dimension // (self.factor ** i)
             out = int(np.ceil(out / denom)) * denom
             dim = max(denom, out)
 

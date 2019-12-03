@@ -47,7 +47,8 @@ class AdaptiveEmbedding(Embedding):
         if cutoff[-1] > input_dim:
             raise ValueError('Can\'t specify cutoff larger than vocab size')
 
-        self.cutoff = cutoff
+        self.cutoff = cutoff + [self.input_dim] if self.input_dim > cutoff[-1] else cutoff
+        self._cutoff = cutoff
         self.factor = factor
         self.mod8 = mod8
         self.proj0 = proj0
@@ -60,25 +61,20 @@ class AdaptiveEmbedding(Embedding):
         self.embeddings = []
         self.projections = []
 
-        if self.input_dim > self.cutoff[-1]: # TODO
-            cutoff = self.cutoff + [self.input_dim]
-        else:
-            cutoff = self.cutoff
-
         prev_dim = None
-        for i in range(len(cutoff)):
-            prev = cutoff[i - 1] if i > 0 else 0
-            size = cutoff[i] - prev
+        for i in range(len(self.cutoff)):
+            prev = self.cutoff[i - 1] if i > 0 else 0
+            size = self.cutoff[i] - prev
             denom = 8 if self.mod8 else 1
-            out = int(self.output_dim // (self.factor ** i))
+            out = self.output_dim // (self.factor ** i)
             out = int(np.ceil(out / denom)) * denom
             dim = max(denom, out)
 
             if dim != prev_dim:
                 prev_dim = dim
             else:
-                raise ValueError('Some cutoffs have same embedding size. '
-                                 'Try to shorten `cutoffs`, decrease `factor` or increase `output_dim`')
+                raise ValueError('Some cutoffs have same embedding size.  Try to shorten `cutoffs`, '
+                                 'decrease `factor` or increase `output_dim`')
 
             # Note: most sparse optimizers do not have GPU kernels defined. When
             # building graphs, the placement algorithm is able to place variables on CPU
@@ -138,7 +134,7 @@ class AdaptiveEmbedding(Embedding):
 
     def get_config(self):
         config = {
-            'cutoff': self.cutoff,
+            'cutoff': self._cutoff,
             'factor': self.factor,
             'mod8': self.mod8,
             'proj0': self.proj0,

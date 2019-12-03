@@ -1,9 +1,29 @@
 py_binary(
-    name = "weight_norm/cifar10/cifar10_test",
+    name = "adaprive_softmax/best_splits/test_device",
     srcs = [
-        "weight_norm/cifar10/cifar10_test.py",
-        "weight_norm/cifar10/model.py",
-        "weight_norm/cifar10/utils.py",
+        "adaprive_softmax/best_splits/test_device.py",
+    ],
+    deps = [
+        "//tfmiss",
+    ],
+)
+
+py_binary(
+    name = "adaprive_softmax/best_splits/best_splits",
+    srcs = [
+        "adaprive_softmax/best_splits/best_splits.py",
+    ],
+    deps = [
+        "//tfmiss",
+    ],
+)
+
+py_binary(
+    name = "adaprive_softmax/text8/text8_test",
+    srcs = [
+        "adaprive_softmax/text8/text8_test.py",
+        "adaprive_softmax/text8/model.py",
+        "adaprive_softmax/text8/utils.py",
     ],
     deps = [
         "//tfmiss",
@@ -53,6 +73,18 @@ py_binary(
         "tcn/mnist_pixel/mnist_test.py",
         "tcn/mnist_pixel/model.py",
         "tcn/mnist_pixel/utils.py",
+    ],
+    deps = [
+        "//tfmiss",
+    ],
+)
+
+py_binary(
+    name = "weight_norm/cifar10/cifar10_test",
+    srcs = [
+        "weight_norm/cifar10/cifar10_test.py",
+        "weight_norm/cifar10/model.py",
+        "weight_norm/cifar10/utils.py",
     ],
     deps = [
         "//tfmiss",

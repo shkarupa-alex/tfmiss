@@ -13,7 +13,7 @@ class DownSampleTest(tf.test.TestCase):
     def test_empty(self):
         source = tf.constant([], dtype=tf.string)
         downsampled = self.evaluate(down_sample(source, ['_'], [1], '', 1., min_freq=0, seed=1))
-        self.assertEquals([], downsampled.tolist())
+        self.assertEqual([], downsampled.tolist())
 
     def test_dense(self):
         freq_vocab = Counter({
@@ -112,7 +112,7 @@ class SampleMaskTest(tf.test.TestCase):
 
     def test_empty(self):
         mask = self.evaluate(sample_mask([], ['_'], [1], 1., min_freq=0, seed=1))
-        self.assertEquals([], mask.tolist())
+        self.assertEqual([], mask.tolist())
 
     def test_uniq(self):
         freq_vocab = Counter({

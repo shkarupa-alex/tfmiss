@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.distribute import distribution_strategy_context
 from tensorflow.python.eager import context
@@ -39,7 +40,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         cutoff: Ordered list of positive integers, numbers for next class-cluster start id's.
         factor: Reduction factor for second level projection matrices.
         dropout: Dropout for second level projections.
-        mod8: Whither second level projection matrices sizes should be evenly divided by 8.
+        mod8: Whether internal projection size should be evenly divided by 8.
         use_bias: Boolean, whether the layer uses a bias vector.
         kernel_initializer: Initializer for the `kernel` weights matrix.
         bias_initializer: Initializer for the bias vector.
@@ -136,8 +137,18 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         )
 
         self.tails = []
+        prev_dim = None
         for i in range(len(self.cutoff) - 1):
-            dim = num_channels // (self.factor ** (i + 1))
+            denom = 8 if self.mod8 else 1
+            out = num_channels // (self.factor ** (i + 1))
+            out = int(np.ceil(out / denom)) * denom
+            dim = max(denom, out)
+
+            if dim != prev_dim:
+                prev_dim = dim
+            else:
+                raise ValueError('Some cutoffs have same internal size. '
+                                 'Try to shorten `cutoffs` or decrease `factor`')
             tail = tf.keras.Sequential([
                 tf.keras.layers.Dense(
                     units=dim,
@@ -373,9 +384,6 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
         if not (dtype.is_floating or dtype.is_complex):
             raise TypeError('Unable to build `{}` layer with non-floating '
                             'point dtype {}'.format(self.__class__.__name__, dtype))
-        if tf.float32 != dtype:
-            # TODO: rewrite candidate sampling?
-            raise TypeError('Layer `{}` supports only float32 dtype for now'.format(self.__class__.__name__))
 
         if not isinstance(input_shape, (tuple, list)) or len(input_shape) != 2:
             raise ValueError('A `{}` layer should be called on exactly 2 inputs: '
@@ -445,14 +453,14 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
 
         def _eval_loss():
             labels_one_hot = tf.one_hot(input_targets, self.units)
-            return tf.nn.sigmoid_cross_entropy_with_logits(
+            per_logit_loss = tf.nn.sigmoid_cross_entropy_with_logits(
                 labels=labels_one_hot,
                 logits=output_logits
             )
+            return tf.reduce_sum(per_logit_loss, axis=-1)
 
         loss = tf_utils.smart_cond(training, _train_loss, _eval_loss)
         loss = compute_weighted_loss(loss, sample_weight=None, reduction=self.loss_reduction)
-        # TODO: check shape
         self.add_loss(loss, inputs=True)
 
         output_logits = tf.nn.softmax(output_logits)

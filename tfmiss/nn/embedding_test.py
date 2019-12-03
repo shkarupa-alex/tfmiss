@@ -293,7 +293,6 @@ class SafeAdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
         embedding_lookup_result = self.evaluate(safe_adaptive_embedding_lookup_sparse(
             embedding_weights, sparse_ids, sparse_weights, embedding_transforms))
 
-        print(embedding_weights)
         self.assertAllClose(
             embedding_lookup_result,
             [(1.0 * embedding_weights[0][0] + 2.0 * embedding_weights[0][1]) /

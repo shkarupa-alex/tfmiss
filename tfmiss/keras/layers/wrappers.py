@@ -77,7 +77,7 @@ class WeightNorm(tf.keras.layers.Wrapper):
 
                 return tf.norm(v_init, ord=2, axis=0)
 
-            g = self.add_variable(
+            g = self.add_weight(
                 name='{}_g'.format(name),
                 shape=(v.shape[-1],),
                 initializer=g_init,
