@@ -52,6 +52,22 @@ class BuildZipfVocabTest(tf.test.TestCase):
 
 
 class GenAllSplitsTest(tf.test.TestCase):
+    def test_normal_1(self):
+        vocab = build_zipf_vocab(30)
+        freq = np.array([f for _, f in vocab.most_common()])
+        prob = freq / np.sum(freq)
+        accum = np.cumsum(prob)
+
+        splits = gen_all_splits(1, accum).tolist()
+        self.assertListEqual([
+            [7, 23],
+            [8, 22],
+            [10, 20],
+            [11, 19],
+            [12, 18],
+            [13, 17]
+        ], splits)
+
     def test_normal_2(self):
         vocab = build_zipf_vocab(30)
         freq = np.array([f for _, f in vocab.most_common()])
@@ -101,17 +117,31 @@ class EstimateSplitCostTest(tf.test.TestCase):
 
 
 class EstimateBestSplitsTest(tf.test.TestCase):
-    def test_normal(self):
+    def test_mod1(self):
         device_params = test_device_matmul(
             max_batch=8, max_hidden=25, max_classes=30, repeats=1, device='CPU:0', dtype='float32')
         freq_vocab = build_zipf_vocab(30)
         batch_sizes, head_sizes, speed_ups, best_splits = estimate_best_splits(
-            device_params, freq_vocab, num_clusters=3, hidden=24, factor=2, mod8=True)
+            device_params, freq_vocab, num_clusters=3, hidden=24, factor=2, mod8=False)
 
         self.assertListEqual([1, 2, 4, 8], batch_sizes)
         self.assertListEqual([5, 6, 7, 8], head_sizes)
         self.assertLen(speed_ups, 16)
         self.assertLen(best_splits, 16)
+
+    def test_mod8(self):
+        device_params = test_device_matmul(
+            max_batch=8, max_hidden=25, max_classes=60, repeats=1, device='CPU:0', dtype='float32')
+        freq_vocab = build_zipf_vocab(60)
+        batch_sizes, head_sizes, speed_ups, best_splits = estimate_best_splits(
+            device_params, freq_vocab, num_clusters=3, hidden=24, factor=2, mod8=True)
+
+        self.assertListEqual([1, 2, 4, 8], batch_sizes)
+        self.assertListEqual([6, 14, 22], head_sizes)
+        self.assertLen(speed_ups, 12)
+        self.assertLen(best_splits, 12)
+        self.assertListEqual([6, 22], best_splits[0])
+
 
 if __name__ == '__main__':
     tf.test.main()

@@ -74,7 +74,7 @@ if __name__ == "__main__":
         freq_vocab = build_zipf_vocab(argv.num_classes)
 
     batch_sizes, head_sizes, speed_ups, best_splits = estimate_best_splits(
-        device_params, freq_vocab, argv.num_clusters - 1, argv.hidden_size, argv.factor, not argv.no_mod8)
+        device_params, freq_vocab, argv.num_clusters, argv.hidden_size, argv.factor, not argv.no_mod8)
 
     # Batch-head-speedup table
     heads_len = len(head_sizes)
@@ -91,5 +91,5 @@ if __name__ == "__main__":
     print(row_format.format('BATCH', 'HEAD', 'SPLIT'))
     for i, batch in enumerate(batch_sizes):
         for j, head in enumerate(head_sizes):
-            split = best_splits[i * len(batch_sizes) + j]
+            split = best_splits[i * len(head_sizes) + j]
             print(row_format.format(batch, head, str(split)))

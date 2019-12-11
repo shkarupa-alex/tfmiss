@@ -62,7 +62,8 @@ def test_device_matmul(max_batch, max_hidden, max_classes, repeats, device, dtyp
             val = mult.numpy()
             start = time.time()
 
-            for _ in range(repeats): mult = tf.matmul(left, right)
+            for _ in range(repeats):
+                mult = tf.matmul(left, right)
 
             # tf.matmul can return before completing the matrix multiplication
             # (e.g., can return after enqueing the operation on a CUDA stream).
@@ -97,7 +98,10 @@ def estimate_best_splits(device_params, freq_vocab, num_clusters, hidden, factor
     prob_accum = np.cumsum(prob_dist)
 
     all_splits = gen_all_splits(num_clusters - 1, prob_accum)
-    all_sizes = np.cumsum(all_splits, axis=-1)
+    if mod8:
+        all_splits[:, 0] = np.ceil(all_splits[:, 0] / 8).astype(np.int32) * 8 - num_clusters + 1
+        all_splits[:, 1:-1] = np.ceil(all_splits[:, 1:-1] / 8).astype(np.int32) * 8
+        all_splits[:, -1] = len(freq_vocab) - np.sum(all_splits[:, :-1], axis=-1)
     head_sizes = list(np.unique(all_splits[:, 0]))
 
     best_splits, speed_ups = [], []
@@ -106,12 +110,13 @@ def estimate_best_splits(device_params, freq_vocab, num_clusters, hidden, factor
         with_costs = {}
 
         base_cost = approx_cost(curr_batch, hidden, len(prob_accum))
-        for curr_split, curr_size in zip(all_splits, all_sizes):
-            curr_cost = estimate_split_cost(approx_cost, prob_accum, curr_size, curr_batch, hidden, factor, mod8)
+        for curr_split in all_splits:
+            curr_cost = estimate_split_cost(approx_cost, prob_accum, curr_split, curr_batch, hidden, factor, mod8)
             speed_up = base_cost / curr_cost
             head_size = curr_split[0]
             if head_size not in with_costs or with_costs[head_size][0] < speed_up:
-                with_costs[head_size] = speed_up, list(curr_split)
+                split_ids = np.cumsum(curr_split[:-1])
+                with_costs[head_size] = speed_up, list(split_ids)
 
         for hs in head_sizes:
             speed_ups.append(with_costs[hs][0])
@@ -159,7 +164,9 @@ def gen_all_splits(num_splits, prob_accum, head=None):
     size_space = size_space[size_space < 0.99 * num_classes]
 
     if head is None:
-        head_split = size_space.reshape([-1, 1])  # TODO: mod8
+        if num_splits < 1:
+            raise ValueError('Number of splits should be greater then 2')
+        head_split = size_space.reshape([-1, 1])
 
         return gen_all_splits(num_splits - 1, prob_accum, head_split)
 

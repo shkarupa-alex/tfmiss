@@ -3,6 +3,8 @@ package(default_visibility = ["//visibility:public"])
 py_library(
     name = "layers",
     srcs = [
+        # TODO: https://mlwhiz.com/blog/2018/12/17/text_classification/
+        # TODO: https://github.com/CyberZHG/keras-self-attention/
         "__init__.py",
         "embedding.py",
         "softmax.py",
