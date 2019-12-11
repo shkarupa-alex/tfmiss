@@ -20,12 +20,12 @@ def _moving_average(data, window):
 class LRFinder(tf.keras.callbacks.Callback):
     """Stop training when a monitored quantity has stopped improving.
     Arguments:
-        monitor: Metric to be monitored.
+        max_steps: Number of steps to run experiment.
         min_lr: The lower bound of the learning rate range for the experiment.
         max_lr: The upper bound of the learning rate range for the experiment.
-        steps_per_epoch: Number of mini-batches in the dataset. Calculated as `np.ceil(epoch_size/batch_size)`.
-        epochs: Number of epochs to run experiment.
-        beta: Parameter for averaging the loss. To pick between 0 and 1.
+        metric: Metric to be monitored.
+        descending: Should metric be minimized.
+        smooth: Parameter for averaging the loss. To pick between 0 and 1.
     Example:
     ```python
     callback = tf.keras.callbacks.EarlyStopping(monitor='val_loss', patience=3)

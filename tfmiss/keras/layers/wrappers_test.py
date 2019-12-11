@@ -95,9 +95,9 @@ class WeightNormTest(keras_parameterized.TestCase):
 
     def test_estimator(self):
         def _input_fn():
-            X = np.random.rand(100, 3)
+            x = np.random.rand(100, 3)
             y = np.random.rand(100) > 0.5
-            dataset = tf.data.Dataset.from_tensor_slices((X, y))
+            dataset = tf.data.Dataset.from_tensor_slices((x, y))
 
             return dataset.batch(4)
 

@@ -51,8 +51,6 @@ def cont_bow(source, window, seed=None, name=None):
         return target, context, position
 
 
-
-
 def skip_gram(source, window, seed=None, name=None):
     """Generates `Skip-Gram` target and context pairs from batched list of tokens.
 

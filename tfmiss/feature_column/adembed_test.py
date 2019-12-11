@@ -231,7 +231,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
 
     def test_get_dense_tensor(self):
         # Inputs.
-        vocabulary_size = 4
         sparse_input = sparse_tensor.SparseTensorValue(
             # example 0, ids [2]
             # example 1, ids [0, 1]
@@ -306,7 +305,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
 
     def test_get_dense_tensor_old_categorical(self):
         # Inputs.
-        vocabulary_size = 4
         sparse_input = sparse_tensor.SparseTensorValue(
             # example 0, ids [2]
             # example 1, ids [0, 1]
@@ -378,7 +376,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
 
     def test_get_dense_tensor_3d(self):
         # Inputs.
-        vocabulary_size = 4
         sparse_input = sparse_tensor.SparseTensorValue(
             # example 0, ids [2]
             # example 1, ids [0, 1]
@@ -457,7 +454,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
             self.skipTest('Placeholders not compatible with eager execution')
 
         # Inputs.
-        vocabulary_size = 3
         sparse_input = sparse_tensor.SparseTensorValue(
             # example 0, ids [2]
             # example 1, ids [0, 1]
@@ -691,7 +687,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
 
     def test_dense_features(self):
         # Inputs.
-        vocabulary_size = 3
         sparse_input = sparse_tensor.SparseTensorValue(
             # example 0, ids [2]
             # example 1, ids [0, 1]
@@ -743,8 +738,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Provide sparse input and get dense result.
-        l = df.DenseFeatures((embedding_column,))
-        dense_features = l({'aaa': sparse_input})
+        layer = df.DenseFeatures((embedding_column,))
+        dense_features = layer({'aaa': sparse_input})
 
         if not tf.executing_eagerly():
             # Assert expected embedding variable and lookups.
@@ -768,7 +763,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
 
     def test_dense_features_not_trainable(self):
         # Inputs.
-        vocabulary_size = 3
         sparse_input = sparse_tensor.SparseTensorValue(
             # example 0, ids [2]
             # example 1, ids [0, 1]
@@ -838,7 +832,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
 
     def test_input_layer(self):
         # Inputs.
-        vocabulary_size = 3
         sparse_input = sparse_tensor.SparseTensorValue(
             # example 0, ids [2]
             # example 1, ids [0, 1]
@@ -924,7 +917,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
 
         # Embedding variable.
         embedding_dimension = 2
-        embedding_shape = (vocabulary_size, embedding_dimension)
 
         def _initializer(shape, dtype, partition_info=None):
             self.assertEqual(tf.float32, dtype)
@@ -999,7 +991,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
 
         # Embedding variable.
         embedding_dimension = 2
-        embedding_shape = (vocabulary_size, embedding_dimension)
 
         def _initializer(shape, dtype, partition_info=None):
             self.assertEqual(tf.float32, dtype)

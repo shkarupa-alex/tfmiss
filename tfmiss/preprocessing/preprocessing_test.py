@@ -105,6 +105,7 @@ class ContBowTest(tf.test.TestCase):
             [-1, 0, 0, 0]
         ], positions.tolist())
 
+
 @test_util.run_all_in_graph_and_eager_modes
 class SkipGramTest(tf.test.TestCase):
     def test_empty(self):

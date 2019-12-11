@@ -4,9 +4,8 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tensorflow.python.framework import ops, sparse_tensor, tensor_shape
-from tensorflow.python.ops import data_flow_ops, embedding_ops, resource_variable_ops
+from tensorflow.python.ops import embedding_ops, data_flow_ops, resource_variable_ops, sparse_ops, variables
 from tensorflow.python.platform import tf_logging as logging
-from tensorflow.python.ops import embedding_ops, sparse_ops, variables
 
 
 def adaptive_embedding_lookup(params, ids, transforms, max_norm=None, name=None):
@@ -114,7 +113,7 @@ def adaptive_embedding_lookup(params, ids, transforms, max_norm=None, name=None)
             partitioned_result.append(result)
 
         # Stitch these back together
-        ret = data_flow_ops.parallel_dynamic_stitch(p_indices, partitioned_result, name=name) # TODO check speed
+        ret = data_flow_ops.parallel_dynamic_stitch(p_indices, partitioned_result, name=name)  # TODO check speed
 
         # Determine the static element shape.
         element_shape_s = ret.get_shape()[1:]

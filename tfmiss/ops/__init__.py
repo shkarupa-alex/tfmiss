@@ -30,9 +30,6 @@ tf.no_gradient('Miss>SplitWords')
 tf.no_gradient('Miss>SplitChars')
 
 
-import os
-
-
 def get_project_root():
     """Returns project root folder."""
     return
@@ -41,13 +38,14 @@ def get_project_root():
 def _get_ops_path(ops_name):
     """Get the path to the specified file in the data dependencies.
     Args:
-      path: a string resource path relative to tfmiss/
+      ops_name: a string resource path relative to tfmiss/
     Returns:
       The path to the specified data file
     """
     curr_dir = os.path.dirname(os.path.abspath(__file__))
 
     return os.path.join(curr_dir, ops_name)
+
 
 def load_so():
     """Load tfmiss ops library and return the loaded module."""

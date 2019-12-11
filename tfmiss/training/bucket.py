@@ -31,11 +31,11 @@ def init_buckets(len2freq, mod8):
     lengths = sorted(source.keys())
 
     buckets = []
-    for l in lengths:
-        b = int(np.ceil(l / denominator)) * denominator + 1
+    for lng in lengths:
+        b = int(np.ceil(lng / denominator)) * denominator + 1
         if not len(buckets) or buckets[-1][0] != b:
             buckets.append((b, {}))
-        buckets[-1][1][l] = source[l]
+        buckets[-1][1][lng] = source[lng]
 
     return buckets
 
@@ -56,7 +56,7 @@ def waste_frac(bucket):
         return 0.0
 
     boundary, len2freq = bucket
-    zero_cnt = sum([(boundary - 1 - l) * f for l, f in len2freq.items()])
+    zero_cnt = sum([(boundary - 1 - lng) * f for lng, f in len2freq.items()])
     total_freq = sum([f for _, f in len2freq.items()])
 
     return zero_cnt / (total_freq * (boundary - 1))
@@ -230,12 +230,8 @@ def estimate_bucket_pipeline(bucket_boundaries, num_samples, safe=True, mod8=Tru
             if len(batch_sizes) < 2:
                 raise ValueError('Too few samples per batch')
 
-            return bucket_boundaries[:len(batch_sizes) - 1], \
-                   batch_sizes, \
-                   bucket_boundaries[len(batch_sizes) - 1]
+            return bucket_boundaries[:len(batch_sizes) - 1], batch_sizes, bucket_boundaries[len(batch_sizes) - 1]
 
         batch_sizes.append(max(batch_step, batch_size.astype(np.int)))
 
-    return bucket_boundaries[:-1], \
-           batch_sizes, \
-           bucket_boundaries[-1]
+    return bucket_boundaries[:-1], batch_sizes, bucket_boundaries[-1]

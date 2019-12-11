@@ -9,7 +9,7 @@ from tensorflow.python.feature_column import feature_column as fc_old
 from tensorflow.python.feature_column import feature_column_v2 as fc
 from tensorflow.python.framework import ops
 from tensorflow.python.keras import initializers
-from tfmiss.nn.embedding import safe_adaptive_embedding_lookup_sparse, adaptive_embedding_lookup
+from tfmiss.nn.embedding import safe_adaptive_embedding_lookup_sparse
 
 
 def adaptive_embedding_column(

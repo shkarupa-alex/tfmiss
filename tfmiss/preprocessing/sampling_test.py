@@ -56,9 +56,7 @@ class DownSampleTest(tf.test.TestCase):
             ['tensorflow']
         ])
         downsampled = self.evaluate(
-            down_sample(source, freq_keys, freq_vals, '', 1e-2, min_freq=2, seed=1)
-                .to_tensor(default_value='')
-        )
+            down_sample(source, freq_keys, freq_vals, '', 1e-2, min_freq=2, seed=1).to_tensor(default_value=''))
 
         self.assertListEqual([
             [b'', b'', b'', b'', b''],
@@ -88,9 +86,7 @@ class DownSampleTest(tf.test.TestCase):
             [['tensorflow']]
         ])
         downsampled = self.evaluate(
-            down_sample(source, freq_keys, freq_vals, '', 1e-2, min_freq=2, seed=1)
-                .to_tensor(default_value='')
-        )
+            down_sample(source, freq_keys, freq_vals, '', 1e-2, min_freq=2, seed=1).to_tensor(default_value=''))
 
         self.assertListEqual([
             [[b'', b'', b'', b''],

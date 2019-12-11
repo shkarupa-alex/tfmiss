@@ -146,7 +146,7 @@ class GroupBucketsTest(tf.test.TestCase):
     def test_group(self):
         expected = (258, {256: 15, 257: 20, 255: 16})
         result = group_buckets(self.buckets[:1], self.buckets[1], self.buckets[2:],
-                                min_waste=0.01, max_waste=0.1, min_aggr=0.01)
+                               min_waste=0.01, max_waste=0.1, min_aggr=0.01)
         self.assertListEqual([expected], [result[1]])
 
     def test_no_group(self):

@@ -106,14 +106,14 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
         self.assertAllClose(outputs, [[[1, 1], [6, 6], [1, 1]]])
 
     def test_eager_gpu_cpu(self):
-        l = AdaptiveEmbedding(cutoff=[100], output_dim=2, input_dim=200, mod8=False, proj0=True)
-        l.build((None, 2))
+        layer = AdaptiveEmbedding(cutoff=[100], output_dim=2, input_dim=200, mod8=False, proj0=True)
+        layer.build((None, 2))
         inputs = tf.keras.backend.constant([[0, 1, 0]], dtype='int32')
         with tf.GradientTape() as tape:
-            output = l(inputs)
-        gs = tape.gradient(output, l.weights)
+            output = layer(inputs)
+        gs = tape.gradient(output, layer.weights)
         opt = tf.keras.optimizers.Adagrad(0.1)
-        opt.apply_gradients(zip(gs, l.weights))
+        opt.apply_gradients(zip(gs, layer.weights))
         self.assertAllEqual(len(gs), 4)
 
     # TODO TF 2.1
