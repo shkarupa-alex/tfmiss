@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
 import tempfile
@@ -112,6 +111,11 @@ class LRFinder(tf.keras.callbacks.Callback):
             raise ValueError('Observations are empty. Run training first.')
 
         values = self.values if not average else _moving_average(self.values, average)
+
+        import matplotlib
+        matplotlib.use('Agg')
+        import matplotlib.pyplot as plt
+
         plt.figure(figsize=(12, 6))
         plt.plot(self.lrs, values)
         plt.xscale('log')
