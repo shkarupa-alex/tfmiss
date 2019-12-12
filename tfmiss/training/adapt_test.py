@@ -120,19 +120,7 @@ class AdaptiveSplitCostTest(tf.test.TestCase):
 
 
 # class EstimateBestSplitsTest(tf.test.TestCase):
-#     def test_mod1(self):
-#         device_params = test_device_matmul(
-#             max_batch=8, max_hidden=25, max_classes=30, repeats=1, device='CPU:0', dtype='float32')
-#         freq_vocab = build_zipf_vocab(30)
-#         batch_sizes, head_sizes, speed_ups, best_splits = estimate_best_splits(
-#             device_params, freq_vocab, num_clusters=3, hidden=24, factor=2, mod8=False)
-#
-#         self.assertListEqual([1, 2, 4, 8], batch_sizes)
-#         self.assertListEqual([5, 6, 7, 8], head_sizes)
-#         self.assertLen(speed_ups, 16)
-#         self.assertLen(best_splits, 16)
-#
-#     def test_mod8(self):
+#     def test_normal(self):
 #         device_params = test_device_matmul(
 #             max_batch=8, max_hidden=25, max_classes=60, repeats=1, device='CPU:0', dtype='float32')
 #         freq_vocab = build_zipf_vocab(60)
