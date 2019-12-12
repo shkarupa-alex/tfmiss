@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import numpy as np
+import math
 import tensorflow as tf
 from tensorflow.python.distribute import distribution_strategy_context
 from tensorflow.python.keras.utils import tf_utils
@@ -38,7 +38,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         cutoff: Ordered list of positive integers, numbers for next class-cluster start id's.
         factor: Reduction factor for second level projection matrices.
         dropout: Dropout for second level projections.
-        mod8: Whether internal projection size should be evenly divided by 8.
         use_bias: Boolean, whether the layer uses a bias vector.
         kernel_initializer: Initializer for the `kernel` weights matrix.
         bias_initializer: Initializer for the bias vector.
@@ -56,7 +55,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                  units, cutoff,
                  factor=4,
                  dropout=0.,
-                 mod8=True,
                  use_bias=True,
                  kernel_initializer='glorot_uniform',
                  bias_initializer='zeros',
@@ -80,7 +78,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         self.units = units
         self.factor = factor
         self.dropout = dropout
-        self.mod8 = mod8
         self.use_bias = use_bias
         self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
         self.bias_initializer = tf.keras.initializers.get(bias_initializer)
@@ -137,16 +134,14 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         self.tails = []
         prev_dim = None
         for i in range(len(self.cutoff) - 1):
-            denom = 8 if self.mod8 else 1
-            out = num_channels // (self.factor ** (i + 1))
-            out = int(np.ceil(out / denom)) * denom
-            dim = max(denom, out)
+            dim = num_channels / (self.factor ** (i + 1))
+            dim = max(1, round(dim / 8)) * 8
 
-            if dim != prev_dim:
-                prev_dim = dim
-            else:
+            if dim == prev_dim:
                 raise ValueError('Some cutoffs have same internal size. '
                                  'Try to shorten `cutoffs` or decrease `factor`')
+            prev_dim = dim
+
             tail = tf.keras.Sequential([
                 tf.keras.layers.Dense(
                     units=dim,
@@ -310,7 +305,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             'units': self.units,
             'factor': self.factor,
             'dropout': self.dropout,
-            'mod8': self.mod8,
             'use_bias': self.use_bias,
             'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
             'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),

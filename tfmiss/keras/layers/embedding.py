@@ -21,7 +21,6 @@ class AdaptiveEmbedding(Embedding):
     def __init__(self,
                  cutoff, input_dim, output_dim,
                  factor=4,
-                 mod8=True,
                  proj0=False,
                  embeddings_initializer='uniform',
                  embeddings_regularizer=None,
@@ -50,7 +49,6 @@ class AdaptiveEmbedding(Embedding):
         self.cutoff = cutoff + [self.input_dim] if self.input_dim > cutoff[-1] else cutoff
         self._cutoff = cutoff
         self.factor = factor
-        self.mod8 = mod8
         self.proj0 = proj0
         self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
         self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
@@ -65,16 +63,13 @@ class AdaptiveEmbedding(Embedding):
         for i in range(len(self.cutoff)):
             prev = self.cutoff[i - 1] if i > 0 else 0
             size = self.cutoff[i] - prev
-            denom = 8 if self.mod8 else 1
-            out = self.output_dim // (self.factor ** i)
-            out = int(np.ceil(out / denom)) * denom
-            dim = max(denom, out)
+            dim = self.output_dim / (self.factor ** i)
+            dim = max(1, round(dim / 8)) * 8
 
-            if dim != prev_dim:
-                prev_dim = dim
-            else:
+            if dim == prev_dim:
                 raise ValueError('Some cutoffs have same embedding size.  Try to shorten `cutoffs`, '
                                  'decrease `factor` or increase `output_dim`')
+            prev_dim = dim
 
             # Note: most sparse optimizers do not have GPU kernels defined. When
             # building graphs, the placement algorithm is able to place variables on CPU
@@ -102,9 +97,7 @@ class AdaptiveEmbedding(Embedding):
             setattr(self, 'embed_{}'.format(i), embed)
             self.embeddings.append(embed)
 
-            if 0 == i and not self.proj0:
-                project = AdaptiveEmbedding._no_projection
-            else:
+            if dim != self.output_dim or self.proj0:
                 project = Dense(
                     units=self.output_dim,
                     activation=None,
@@ -115,6 +108,8 @@ class AdaptiveEmbedding(Embedding):
                     kernel_constraint=self.kernel_constraint
                 )
                 setattr(self, 'project_{}'.format(i), project)
+            else:
+                project = AdaptiveEmbedding._no_projection
             self.projections.append(project)
 
         self.built = True
@@ -136,7 +131,6 @@ class AdaptiveEmbedding(Embedding):
         config = {
             'cutoff': self._cutoff,
             'factor': self.factor,
-            'mod8': self.mod8,
             'proj0': self.proj0,
             'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
             'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),

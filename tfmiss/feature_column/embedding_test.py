@@ -21,7 +21,7 @@ from tensorflow.python.ops import lookup_ops
 from tensorflow.python.ops import parsing_ops
 from tensorflow.python.ops import variable_scope
 from tensorflow.python.ops import variables as variables_lib
-from tfmiss.feature_column.adembed import adaptive_embedding_column, AdaptiveEmbeddingColumn
+from tfmiss.feature_column.embedding import adaptive_embedding_column, AdaptiveEmbeddingColumn
 
 
 def _initialized_session(config=None):
@@ -99,7 +99,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
         self.assertIs(categorical_column, embedding_column.categorical_column)
         self.assertEqual((1,), embedding_column.cutoff)
         self.assertEqual(4, embedding_column.factor)
-        self.assertEqual(True, embedding_column.mod8)
         self.assertEqual(embedding_dimension, embedding_column.dimension)
         self.assertEqual('mean', embedding_column.combiner)
         # self.assertIsNone(embedding_column.ckpt_to_load_from)
@@ -160,7 +159,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
             cutoff=[1],
             dimension=embedding_dimension,
             factor=5,
-            mod8=False,
             combiner='my_combiner',
             initializer=lambda: 'my_initializer',
             # ckpt_to_load_from='my_ckpt',
@@ -176,7 +174,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
             self.assertEqual((1,), embedding_column.cutoff)
             self.assertEqual(embedding_dimension, embedding_column.dimension)
             self.assertEqual(5, embedding_column.factor)
-            self.assertEqual(False, embedding_column.mod8)
             self.assertEqual('my_combiner', embedding_column.combiner)
             # self.assertEqual('my_ckpt', embedding_column.ckpt_to_load_from)
             # self.assertEqual('my_ckpt_tensor', embedding_column.tensor_name_in_ckpt)
@@ -190,12 +187,12 @@ class EmbeddingColumnTest(tf.test.TestCase):
         categorical_column = fc.categorical_column_with_vocabulary_list(
             key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         with self.assertRaisesRegexp(ValueError, 'initializer must be callable'):
-            adaptive_embedding_column(categorical_column, cutoff=[1], dimension=2, mod8=False, initializer='not_fn')
+            adaptive_embedding_column(categorical_column, cutoff=[1], dimension=2, initializer='not_fn')
 
     def test_parse_example(self):
         a = fc.categorical_column_with_vocabulary_list(key='aaa', default_value=0,
                                                        vocabulary_list=('omar', 'stringer', 'marlo'))
-        a_embedded = adaptive_embedding_column(a, cutoff=[1], dimension=2, mod8=False)
+        a_embedded = adaptive_embedding_column(a, cutoff=[1], dimension=2)
         data = example_pb2.Example(features=feature_pb2.Features(feature={
             'aaa': feature_pb2.Feature(bytes_list=feature_pb2.BytesList(value=[b'omar', b'stringer']))}))
         features = parsing_ops.parse_example(
@@ -214,7 +211,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
         # from tensorflow_core.python.feature_column import feature_column_v2 as fc
         a = fc.categorical_column_with_vocabulary_list(
             key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
-        a_embedded = adaptive_embedding_column(a, cutoff=[1], dimension=2, mod8=False)
+        a_embedded = adaptive_embedding_column(a, cutoff=[1], dimension=2)
         features = {'aaa': sparse_tensor.SparseTensor(
             indices=((0, 0), (1, 0), (1, 1)),
             values=('omar', 'stringer', 'omar'),
@@ -242,11 +239,11 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Embedding variable.
-        embedding_dimension = 2
+        embedding_dimension = 24
         embedding_values = (
-            (1., 2.),  # id 0
-            (3., 5.),  # id 1
-            (7., 11.),  # id 2
+            (1., 2.) + (0.,) * 22,  # id 0
+            (3., 5.) + (0.,) * 22,  # id 1
+            (7., 11.) + (0.,) * 22,  # id 2
         )
 
         def _initializer(shape, dtype, partition_info=None):
@@ -256,18 +253,18 @@ class EmbeddingColumnTest(tf.test.TestCase):
             if 1 == shape[0]:
                 return embedding_values[:1]
 
-            return [ew[:1] for ew in embedding_values[1:]]
+            return [ew[:16] for ew in embedding_values[1:]]
 
         # Expected lookup result, using combiner='mean'.
         expected_lookups = (
             # example 0, ids [2], embedding = [7, _] * [1, 1]
-            (7., 7.),
+            (18.,) * 24,
             # example 1, ids [0, 1], embedding = mean([1, 2] * [1, 1] + [3, _] * [1, 1]) = [3, 3]
-            (2., 2.5),
+            (4.5, 5.) + (4.,) * 22,
             # example 2, ids [], embedding = [0, 0]
-            (0., 0.),
+            (0.,) * 24,
             # example 3, ids [1], embedding = [3, _] * [1, 1]
-            (3., 3.),
+            (8.,) * 24,
         )
 
         # Build columns.
@@ -277,7 +274,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             categorical_column,
             cutoff=[1],
             dimension=embedding_dimension,
-            mod8=False,
+            factor=2,
             initializer=_initializer,
             projection_initializer=tf.compat.v1.ones_initializer(),
         )
@@ -316,11 +313,11 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Embedding variable.
-        embedding_dimension = 2
+        embedding_dimension = 24
         embedding_values = (
-            (1., 2.),  # id 0
-            (3., 5.),  # id 1
-            (7., 11.),  # id 2
+            (1., 2.) + (0.,) * 22,  # id 0
+            (3., 5.) + (0.,) * 22,  # id 1
+            (7., 11.) + (0.,) * 22,  # id 2
         )
 
         def _initializer(shape, dtype, partition_info=None):
@@ -330,18 +327,18 @@ class EmbeddingColumnTest(tf.test.TestCase):
             if 1 == shape[0]:
                 return embedding_values[:1]
 
-            return [ew[:1] for ew in embedding_values[1:]]
+            return [ew[:16] for ew in embedding_values[1:]]
 
         # Expected lookup result, using combiner='mean'.
         expected_lookups = (
             # example 0, ids [2], embedding = [7, _] * [1, 1]
-            (7., 7.),
+            (18.,) * 24,
             # example 1, ids [0, 1], embedding = mean([1, 2] * [1, 1] + [3, _] * [1, 1]) = [3, 3]
-            (3., 3.),
+            (5.5,) * 24,
             # example 2, ids [], embedding = [0, 0]
-            (0., 0.),
+            (0.,) * 24,
             # example 3, ids [1], embedding = [3, _] * [1, 1]
-            (3., 3.),
+            (8.,) * 24,
         )
 
         # Build columns.
@@ -351,7 +348,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             categorical_column,
             cutoff=[1],
             dimension=embedding_dimension,
-            mod8=False,
+            factor=2,
             proj0=True,
             initializer=_initializer,
             projection_initializer=tf.compat.v1.ones_initializer(),
@@ -387,12 +384,12 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Embedding variable.
-        embedding_dimension = 3
+        embedding_dimension = 24
         embedding_values = (
-            (1., 2., 4.),  # id 0
-            (3., 5., 1.),  # id 1
-            (7., 11., 2.),  # id 2
-            (2., 7., 12.)  # id 3
+            (1., 2., 4.) + (0.,) * 21,  # id 0
+            (3., 5., 1.) + (0.,) * 21,  # id 1
+            (7., 11., 2.) + (0.,) * 21,  # id 2
+            (2., 7., 12.) + (0.,) * 21  # id 3
         )
 
         def _initializer(shape, dtype, partition_info=None):
@@ -401,19 +398,19 @@ class EmbeddingColumnTest(tf.test.TestCase):
             if 1 == shape[0]:
                 return embedding_values[:1]
 
-            return [ew[:1] for ew in embedding_values[1:]]
+            return [ew[:16] for ew in embedding_values[1:]]
 
         # Expected lookup result, using combiner='mean'.
         expected_lookups = (
             # example 0, ids [[2], []], embedding = [[7, 11, 2], [0, 0, 0]]
-            ((7., 7., 7.), (0., 0., 0.)),
+            ((20.,) * 24, (0.,) * 24),
             # example 1, ids [[], [0, 1]], embedding
             # = mean([[], [1, 2, 4] + [3, 5, 1]]) = [[0, 0, 0], [2, 3.5, 2.5]]
-            ((0., 0., 0.), (2., 2.5, 3.5)),
+            ((0.,) * 24, (5., 5.5, 6.5) + (4.5,) * 21),
             # example 2, ids [[], []], embedding = [[0, 0, 0], [0, 0, 0]]
-            ((0., 0., 0.), (0., 0., 0.)),
+            ((0.,) * 24, (0.,) * 24),
             # example 3, ids [[1], [2]], embedding = [[3, 5, 1], [7, 11, 2]]
-            ((3., 3., 3.), (7., 7., 7.)),
+            ((9.,) * 24, (20.,) * 24),
         )
 
         # Build columns.
@@ -423,7 +420,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             categorical_column,
             cutoff=[1],
             dimension=embedding_dimension,
-            mod8=False,
+            factor=2,
             initializer=_initializer,
             projection_initializer=tf.compat.v1.ones_initializer(),
         )
@@ -465,11 +462,11 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Embedding variable.
-        embedding_dimension = 2
+        embedding_dimension = 24
         embedding_values = (
-            (1., 2.),  # id 0
-            (3., 5.),  # id 1
-            (7., 11.)  # id 2
+            (1., 2.) + (0.,) * 22,  # id 0
+            (3., 5.) + (0.,) * 22,  # id 1
+            (7., 11.) + (0.,) * 22  # id 2
         )
 
         def _initializer(shape, dtype, partition_info=None):
@@ -478,18 +475,18 @@ class EmbeddingColumnTest(tf.test.TestCase):
             if 1 == shape[0]:
                 return embedding_values[:1]
 
-            return [ew[:1] for ew in embedding_values[1:]]
+            return [ew[:16] for ew in embedding_values[1:]]
 
         # Expected lookup result, using combiner='mean'.
         expected_lookups = (
             # example 0, ids [2], embedding = [7, 11]
-            (7., 7.),
+            (18.,) * 24,
             # example 1, ids [0, 1], embedding = mean([1, 2] + [3, 5]) = [2, 3.5]
-            (2., 2.5),
+            (4.5, 5.) + (4.,) * 22,
             # example 2, ids [], embedding = [0, 0]
-            (0., 0.),
+            (0.,) * 24,
             # example 3, ids [1], embedding = [3, 5]
-            (3., 3.),
+            (8.,) * 24,
         )
 
         # Build columns.
@@ -499,7 +496,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             categorical_column,
             cutoff=[1],
             dimension=embedding_dimension,
-            mod8=False,
+            factor=2,
             initializer=_initializer,
             projection_initializer=tf.compat.v1.ones_initializer(),
         )
@@ -624,7 +621,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Embedding variable.
-        embedding_dimension = 2
+        embedding_dimension = 24
 
         def _initializer(shape, dtype, partition_info=None):
             self.assertEqual(tf.float32, dtype)
@@ -639,7 +636,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             categorical_column,
             cutoff=[1],
             dimension=embedding_dimension,
-            mod8=False,
+            factor=2,
             initializer=_initializer,
             projection_initializer=_initializer,
         )
@@ -676,8 +673,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # Predictions with all zero weights.
             self.assertAllClose(np.zeros((1,)), self.evaluate(bias))
             self.assertAllClose(np.zeros((1, embedding_dimension)), self.evaluate(embedding_weights0))
-            self.assertAllClose(np.zeros((vocabulary_size - 1, 1)), self.evaluate(embedding_weights1))
-            self.assertAllClose(np.zeros((1, embedding_dimension)), self.evaluate(embedding_projections_1))
+            self.assertAllClose(np.zeros((vocabulary_size - 1, 16)), self.evaluate(embedding_weights1))
+            self.assertAllClose(np.zeros((16, embedding_dimension)), self.evaluate(embedding_projections_1))
             self.assertAllClose(np.zeros((embedding_dimension, 1)), self.evaluate(linear_weights))
         else:
             self.evaluate(variables_lib.global_variables_initializer())
@@ -698,11 +695,11 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Embedding variable.
-        embedding_dimension = 2
+        embedding_dimension = 24
         embedding_values = (
-            (1., 2.),  # id 0
-            (3., 5.),  # id 1
-            (7., 11.)  # id 2
+            (1., 2.) + (0.,) * 22,  # id 0
+            (3., 5.) + (0.,) * 22,  # id 1
+            (7., 11.) + (0.,) * 22  # id 2
         )
 
         def _initializer(shape, dtype, partition_info=None):
@@ -711,18 +708,18 @@ class EmbeddingColumnTest(tf.test.TestCase):
             if 1 == shape[0]:
                 return embedding_values[:1]
 
-            return [ew[:1] for ew in embedding_values[1:]]
+            return [ew[:16] for ew in embedding_values[1:]]
 
         # Expected lookup result, using combiner='mean'.
         expected_lookups = (
             # example 0, ids [2], embedding = [7, 11]
-            (7., 7.),
+            (18.,) * 24,
             # example 1, ids [0, 1], embedding = mean([1, 2] + [3, 5]) = [2, 3.5]
-            (2., 2.5),
+            (4.5, 5.) + (4.,) * 22,
             # example 2, ids [], embedding = [0, 0]
-            (0., 0.),
+            (0.,) * 24,
             # example 3, ids [1], embedding = [3, 5]
-            (3., 3.),
+            (8.,) * 24,
         )
 
         # Build columns.
@@ -732,7 +729,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             categorical_column,
             cutoff=[1],
             dimension=embedding_dimension,
-            mod8=False,
+            factor=2,
             initializer=_initializer,
             projection_initializer=tf.compat.v1.initializers.ones()
         )
@@ -774,11 +771,11 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Embedding variable.
-        embedding_dimension = 2
+        embedding_dimension = 24
         embedding_values = (
-            (1., 2.),  # id 0
-            (3., 5.),  # id 1
-            (7., 11.)  # id 2
+            (1., 2.) + (0.,) * 22,  # id 0
+            (3., 5.) + (0.,) * 22,  # id 1
+            (7., 11.) + (0.,) * 22  # id 2
         )
 
         def _initializer(shape, dtype, partition_info=None):
@@ -787,18 +784,18 @@ class EmbeddingColumnTest(tf.test.TestCase):
             if 1 == shape[0]:
                 return embedding_values[:1]
 
-            return [ew[:1] for ew in embedding_values[1:]]
+            return [ew[:16] for ew in embedding_values[1:]]
 
         # Expected lookup result, using combiner='mean'.
         expected_lookups = (
             # example 0, ids [2], embedding = [7, 11]
-            (7., 7.),
+            (18.,) * 24,
             # example 1, ids [0, 1], embedding = mean([1, 2] + [3, 5]) = [2, 3.5]
-            (2., 2.5),
+            (4.5, 5.) + (4.,) * 22,
             # example 2, ids [], embedding = [0, 0]
-            (0., 0.),
+            (0.,) * 24,
             # example 3, ids [1], embedding = [3, 5]
-            (3., 3.),
+            (8.,) * 24,
         )
 
         # Build columns.
@@ -808,7 +805,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             categorical_column,
             cutoff=[1],
             dimension=embedding_dimension,
-            mod8=False,
+            factor=2,
             initializer=_initializer,
             projection_initializer=tf.compat.v1.initializers.ones(),
             trainable=False
@@ -842,11 +839,11 @@ class EmbeddingColumnTest(tf.test.TestCase):
             dense_shape=(4, 5))
 
         # Embedding variable.
-        embedding_dimension = 2
+        embedding_dimension = 24
         embedding_values = (
-            (1., 2.),  # id 0
-            (3., 5.),  # id 1
-            (7., 11.)  # id 2
+            (1., 2.) + (0.,) * 22,  # id 0
+            (3., 5.) + (0.,) * 22,  # id 1
+            (7., 11.) + (0.,) * 22  # id 2
         )
 
         def _initializer(shape, dtype, partition_info=None):
@@ -855,18 +852,18 @@ class EmbeddingColumnTest(tf.test.TestCase):
             if 1 == shape[0]:
                 return embedding_values[:1]
 
-            return [ew[:1] for ew in embedding_values[1:]]
+            return [ew[:16] for ew in embedding_values[1:]]
 
         # Expected lookup result, using combiner='mean'.
         expected_lookups = (
             # example 0, ids [2], embedding = [7, 11]
-            (7., 7.),
+            (18.,) * 24,
             # example 1, ids [0, 1], embedding = mean([1, 2] + [3, 5]) = [2, 3.5]
-            (2., 2.5),
+            (4.5, 5.) + (4.,) * 22,
             # example 2, ids [], embedding = [0, 0]
-            (0., 0.),
+            (0.,) * 24,
             # example 3, ids [1], embedding = [3, 5]
-            (3., 3.),
+            (8.,) * 24,
         )
 
         # Build columns.
@@ -876,7 +873,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             categorical_column,
             cutoff=[1],
             dimension=embedding_dimension,
-            mod8=False,
+            factor=2,
             initializer=_initializer,
             projection_initializer=tf.compat.v1.initializers.ones()
         )
@@ -916,7 +913,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Embedding variable.
-        embedding_dimension = 2
+        embedding_dimension = 24
 
         def _initializer(shape, dtype, partition_info=None):
             self.assertEqual(tf.float32, dtype)
@@ -931,7 +928,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             categorical_column,
             cutoff=[1],
             dimension=embedding_dimension,
-            mod8=False,
+            factor=2,
             initializer=_initializer,
             projection_initializer=_initializer,
         )
@@ -966,8 +963,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # Predictions with all zero weights.
             self.assertAllClose(np.zeros((1,)), self.evaluate(bias))
             self.assertAllClose(np.zeros((1, embedding_dimension)), self.evaluate(embedding_weights0))
-            self.assertAllClose(np.zeros((vocabulary_size - 1, 1)), self.evaluate(embedding_weights1))
-            self.assertAllClose(np.zeros((1, embedding_dimension)), self.evaluate(embedding_projections_1))
+            self.assertAllClose(np.zeros((vocabulary_size - 1, 16)), self.evaluate(embedding_weights1))
+            self.assertAllClose(np.zeros((16, embedding_dimension)), self.evaluate(embedding_projections_1))
             self.assertAllClose(np.zeros((embedding_dimension, 1)), self.evaluate(linear_weights))
         else:
             self.evaluate(variables_lib.global_variables_initializer())
@@ -990,7 +987,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
         )
 
         # Embedding variable.
-        embedding_dimension = 2
+        embedding_dimension = 24
 
         def _initializer(shape, dtype, partition_info=None):
             self.assertEqual(tf.float32, dtype)
@@ -1005,7 +1002,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
             categorical_column,
             cutoff=[1],
             dimension=embedding_dimension,
-            mod8=False,
+            factor=2,
             initializer=_initializer,
             projection_initializer=_initializer,
         )
@@ -1039,8 +1036,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
             # Predictions with all zero weights.
             self.assertAllClose(np.zeros((1,)), self.evaluate(bias))
             self.assertAllClose(np.zeros((1, embedding_dimension)), self.evaluate(embedding_weights0))
-            self.assertAllClose(np.zeros((vocabulary_size - 1, 1)), self.evaluate(embedding_weights1))
-            self.assertAllClose(np.zeros((1, embedding_dimension)), self.evaluate(embedding_projections_1))
+            self.assertAllClose(np.zeros((vocabulary_size - 1, 16)), self.evaluate(embedding_weights1))
+            self.assertAllClose(np.zeros((16, embedding_dimension)), self.evaluate(embedding_projections_1))
             self.assertAllClose(np.zeros((embedding_dimension, 1)), self.evaluate(linear_weights))
             self.assertAllClose(np.zeros((batch_size, 1)), self.evaluate(predictions))
         else:
@@ -1054,7 +1051,7 @@ class EmbeddingColumnTest(tf.test.TestCase):
         categorical_column = fc.categorical_column_with_vocabulary_list(
             key='aaa', default_value=0, vocabulary_list=('omar', 'stringer', 'marlo'))
         embedding_column = adaptive_embedding_column(
-            categorical_column, cutoff=[1], dimension=2, mod8=False, proj0=True)
+            categorical_column, cutoff=[1], dimension=2, proj0=True)
 
         self.assertEqual([categorical_column], embedding_column.parents)
 
@@ -1094,7 +1091,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
                 }
             },
             'max_norm': None,
-            'mod8': False,
             'proj0': True,
             # 'tensor_name_in_ckpt': None,
             'trainable': True
@@ -1145,7 +1141,6 @@ class EmbeddingColumnTest(tf.test.TestCase):
             'initializer': '_initializer',
             'projection_initializer': '_initializer',
             'max_norm': None,
-            'mod8': True,
             'proj0': False,
             # 'tensor_name_in_ckpt': None,
             'trainable': True

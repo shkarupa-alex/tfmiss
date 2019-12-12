@@ -4,14 +4,14 @@ py_library(
     name = "feature_column",
     srcs = [
         "__init__.py",
-        "adembed.py",
+        "embedding.py",
     ],
     srcs_version = "PY2AND3",
 )
 
 py_test(
-    name = "adembed_test",
-    srcs = ["adembed_test.py"],
+    name = "embedding_test",
+    srcs = ["embedding_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         "//tfmiss/nn",

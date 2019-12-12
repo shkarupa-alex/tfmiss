@@ -8,7 +8,6 @@ import logging
 import tensorflow as tf
 from tfmiss.training import test_device_matmul
 
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description='Measure matrix multiplication time: '

@@ -69,12 +69,12 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
                 kwargs={
                     'cutoff': [50, 100],
                     'input_dim': 200,
-                    'output_dim': 128,
+                    'output_dim': 129,
                 },
                 input_shape=(2, 3, 7),
                 input_dtype='int32',
                 expected_output_dtype='float32',
-                expected_output_shape=(None, 3, 7, 128)
+                expected_output_shape=(None, 3, 7, 129)
             )
             testing_utils.layer_test(
                 AdaptiveEmbedding,
@@ -91,22 +91,22 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             )
 
     def test_embedding_correctness(self):
-        layer = AdaptiveEmbedding(cutoff=[1], output_dim=2, input_dim=2, mod8=False)
+        layer = AdaptiveEmbedding(cutoff=[1], output_dim=16, input_dim=2, factor=2)
         model = tf.keras.models.Sequential([layer])
         layer.set_weights([
-            np.array([[1, 1]]),
-            np.array([[2]]),
+            np.array([[1] * 16]),
+            np.array([[2] * 8]),
             # proj0 == False
-            # np.array([[1, 1], [1, 1]]),
-            np.array([[3, 3]]),
+            # np.array(...),
+            np.array([[3] * 16] * 8),
         ])
         model.run_eagerly = testing_utils.should_run_eagerly()
         model._experimental_run_tf_function = testing_utils.should_run_tf_function()
         outputs = model.predict(np.array([[0, 1, 0]], dtype='int32'))
-        self.assertAllClose(outputs, [[[1, 1], [6, 6], [1, 1]]])
+        self.assertAllClose([[[1] * 16, [48] * 16, [1] * 16]], outputs)
 
     def test_eager_gpu_cpu(self):
-        layer = AdaptiveEmbedding(cutoff=[100], output_dim=2, input_dim=200, mod8=False, proj0=True)
+        layer = AdaptiveEmbedding(cutoff=[100], output_dim=32, input_dim=200, proj0=True)
         layer.build((None, 2))
         inputs = tf.keras.backend.constant([[0, 1, 0]], dtype='int32')
         with tf.GradientTape() as tape:
@@ -118,7 +118,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
 
     # TODO TF 2.1
     # def test_embedding_with_ragged_input(self):
-    #     layer = tf.keras.layers.AdaptiveEmbedding(cutoff=[1], input_dim=3, output_dim=2, mod8=False)
+    #     layer = tf.keras.layers.AdaptiveEmbedding(cutoff=[1], input_dim=3, output_dim=2)
     #     layer.set_weights([
     #         np.array([[1, 1]]),
     #         np.array([[2]]),

@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import collections
-import numpy as np
 import tensorflow as tf
 from tensorflow.python.feature_column import feature_column as fc_old
 from tensorflow.python.feature_column import feature_column_v2 as fc
@@ -13,7 +12,7 @@ from tfmiss.nn.embedding import safe_adaptive_embedding_lookup_sparse
 
 
 def adaptive_embedding_column(
-        categorical_column, cutoff, dimension, factor=4, mod8=True, proj0=False,
+        categorical_column, cutoff, dimension, factor=4, proj0=False,
         combiner='mean', initializer=None, projection_initializer=None, max_norm=None, trainable=True):
     """`DenseColumn` that converts from sparse, categorical input.
     Use this when your inputs are sparse, but you want to convert them to a dense representation (e.g., to feed to a
@@ -25,7 +24,6 @@ def adaptive_embedding_column(
         cutoff: A list of split sizes for embeddings.
         dimension: An integer specifying dimension of the embedding, must be > 0.
         factor: A split factor used to calculate reduced embedding size di = d0 / (factor**i).
-        mod8: If true, internal variable dimensions will be dividable by 8 without reminder.
         proj0: If false, no projection will be applied to the head embedding
         combiner: A string specifying how to reduce if there are multiple entries in a single row. Currently 'mean',
             'sqrtn' and 'sum' are supported, with 'mean' the default. 'sqrtn' often achieves good accuracy, in
@@ -68,7 +66,6 @@ def adaptive_embedding_column(
         cutoff=tuple(cutoff),
         dimension=dimension,
         factor=factor,
-        mod8=mod8,
         proj0=proj0,
         combiner=combiner,
         initializer=initializer,
@@ -80,7 +77,7 @@ def adaptive_embedding_column(
 
 class AdaptiveEmbeddingColumn(
     collections.namedtuple('AdaptiveEmbeddingColumn', (
-            'categorical_column', 'cutoff', 'dimension', 'factor', 'mod8', 'proj0',
+            'categorical_column', 'cutoff', 'dimension', 'factor', 'proj0',
             'combiner', 'initializer', 'projection_initializer', 'max_norm', 'trainable')),
     fc.EmbeddingColumn):
     """See `adaptive_embedding_column`."""
@@ -112,16 +109,13 @@ class AdaptiveEmbeddingColumn(
         for i in range(len(cutoff)):
             prev = cutoff[i - 1] if i > 0 else 0
             size = cutoff[i] - prev
-            denom = 8 if self.mod8 else 1
-            out = self.dimension // (self.factor ** i)
-            out = int(np.ceil(out / denom)) * denom
-            dim = max(denom, out)
+            dim = self.dimension // (self.factor ** i)
+            dim = max(1, round(dim / 8)) * 8
 
-            if dim != prev_dim:
-                prev_dim = dim
-            else:
+            if dim == prev_dim:
                 raise ValueError('Some cutoffs have same embedding size. '
                                  'Try to shorten `cutoffs`, decrease `factor` or increase `dimension`')
+            prev_dim = dim
 
             state_manager.create_variable(
                 self,
@@ -133,7 +127,7 @@ class AdaptiveEmbeddingColumn(
                 initializer=self.initializer
             )
 
-            if self.proj0 or i > 0:
+            if dim != self.dimension or self.proj0:
                 state_manager.create_variable(
                     self,
                     name='embedding_projections_{}'.format(i),
@@ -169,7 +163,10 @@ class AdaptiveEmbeddingColumn(
         embedding_weights, embedding_projections = [], []
         for i in range(len(cutoff)):
             embedding_weights.append(state_manager.get_variable(self, name='embedding_weights_{}'.format(i)))
-            if self.proj0 or i > 0:
+
+            dim = self.dimension // (self.factor ** i)
+            dim = max(1, round(dim / 8)) * 8
+            if dim != self.dimension or self.proj0:
                 embedding_projections.append(state_manager.get_variable(
                     self, name='embedding_projections_{}'.format(i)))
             else:
@@ -189,16 +186,13 @@ class AdaptiveEmbeddingColumn(
         for i in range(len(cutoff)):
             prev = cutoff[i - 1] if i > 0 else 0
             size = cutoff[i] - prev
-            denom = 8 if self.mod8 else 1
-            out = self.dimension // (self.factor ** i)
-            out = int(np.ceil(out / denom)) * denom
-            dim = max(denom, out)
+            dim = self.dimension // (self.factor ** i)
+            dim = max(1, round(dim / 8)) * 8
 
-            if dim != prev_dim:
-                prev_dim = dim
-            else:
+            if dim == prev_dim:
                 raise ValueError('Some cutoffs have same embedding size. '
                                  'Try to shorten `cutoffs`, decrease `factor` or increase `dimension`.')
+            prev_dim = dim
 
             embedding_weights.append(tf.compat.v1.get_variable(
                 name='embedding_weights_{}'.format(i),
@@ -208,7 +202,7 @@ class AdaptiveEmbeddingColumn(
                 trainable=self.trainable and trainable,
                 collections=weight_collections
             ))
-            if self.proj0 or i > 0:
+            if dim != self.dimension or self.proj0:
                 embedding_projections.append(tf.compat.v1.get_variable(
                     name='embedding_projections_{}'.format(i),
                     shape=(dim, self.dimension),
