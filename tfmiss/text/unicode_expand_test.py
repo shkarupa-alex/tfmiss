@@ -516,6 +516,20 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
+    def test_split_alnum(self):
+        expected = tf.constant([
+            [' ', '0', '.', '5', 'word', ' '],
+            [' ', '0', ',', '5', 'word', ' '],
+        ], dtype=tf.string)
+        result = split_words([
+            ' 0.5word ', ' 0,5word ',
+        ], extended=True)
+        self.assertIsInstance(result, tf.RaggedTensor)
+        result = result.to_tensor(default_value='')
+
+        expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
+
     def test_complex_extended(self):
         dangerous = u'\',.:;‘’'
         source = []

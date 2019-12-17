@@ -34,6 +34,30 @@ public:
           regex67Error);
       OP_REQUIRES(ctx, U_SUCCESS(regex67Error), errors::InvalidArgument("RegexPattern compilation failed"));
 
+      // Regex for rule 9
+      // ($ALetterEx | $Hebrew_LetterEx) $NumericEx
+      UErrorCode regex9Error = U_ZERO_ERROR;
+      _wb9 = RegexPattern::compile(
+          "([[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]]"
+          "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)"
+          "([[\\p{Word_Break = Numeric}][\uFF10-\uff19]]"
+          "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)",
+          0,
+          regex9Error);
+      OP_REQUIRES(ctx, U_SUCCESS(regex9Error), errors::InvalidArgument("RegexPattern compilation failed"));
+
+      // Regex for rule 10
+      // $NumericEx ($ALetterEx | $Hebrew_LetterEx)
+      UErrorCode regex10Error = U_ZERO_ERROR;
+      _wb10 = RegexPattern::compile(
+          "([[\\p{Word_Break = Numeric}][\uFF10-\uff19]]"
+          "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)"
+          "([[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]]"
+          "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)",
+          0,
+          regex10Error);
+      OP_REQUIRES(ctx, U_SUCCESS(regex10Error), errors::InvalidArgument("RegexPattern compilation failed"));
+
       // Regex for rule 11 and 12
       // $NumericEx ($MidNumEx | $MidNumLetEx | $Single_QuoteEx) $NumericEx
       UErrorCode regex1112Error = U_ZERO_ERROR;
@@ -58,6 +82,8 @@ private:
   bool _extended;
   const BreakIterator *_wordIterator;
   const RegexPattern *_wb67;
+  const RegexPattern *_wb9;
+  const RegexPattern *_wb10;
   const RegexPattern *_wb1112;
 
 protected:
@@ -97,7 +123,6 @@ protected:
 
         return false;
       }
-
       while (matcher67->find(extendedError) && U_SUCCESS(extendedError))
       {
         for (int i = 1; i < 3; i++)
@@ -113,8 +138,47 @@ protected:
           }
         }
       }
-
       delete matcher67;
+
+      RegexMatcher *matcher9 = _wb9->matcher(unicode_string, extendedError);
+      if (!U_SUCCESS(extendedError))
+      {
+        delete matcher9;
+
+        return false;
+      }
+      while (matcher9->find(extendedError) && U_SUCCESS(extendedError))
+      {
+          int32_t end9 = matcher9->end(1, extendedError);
+          split_positions.push_back(end9);
+          if (!U_SUCCESS(extendedError))
+          {
+            delete matcher9;
+
+            return false;
+          }
+      }
+      delete matcher9;
+
+      RegexMatcher *matcher10 = _wb10->matcher(unicode_string, extendedError);
+      if (!U_SUCCESS(extendedError))
+      {
+        delete matcher10;
+
+        return false;
+      }
+      while (matcher10->find(extendedError) && U_SUCCESS(extendedError))
+      {
+          int32_t end10 = matcher10->end(1, extendedError);
+          split_positions.push_back(end10);
+          if (!U_SUCCESS(extendedError))
+          {
+            delete matcher10;
+
+            return false;
+          }
+      }
+      delete matcher10;
 
       RegexMatcher *matcher1112 = _wb1112->matcher(unicode_string, extendedError);
       if (!U_SUCCESS(extendedError))
@@ -123,7 +187,6 @@ protected:
 
         return false;
       }
-
       while (matcher1112->find(extendedError) && U_SUCCESS(extendedError))
       {
         for (int i = 1; i < 3; i++)
@@ -138,7 +201,6 @@ protected:
           }
         }
       }
-
       delete matcher1112;
     }
 
