@@ -109,6 +109,7 @@ def interpolate_matmul_cost(device_params):
 
     Args:
         device_params: A dict with 4 keys (`batch_sizes`, `hidden_sizes`, `class_sizes`, `cost_values`).
+            Device performance measurements.
 
     Returns:
         A linear interpolation function with signature (batch_size, hidden_size, classes_size);
@@ -134,37 +135,6 @@ def interpolate_matmul_cost(device_params):
         return value.item()
 
     return _with_bounds
-
-
-def estimate_best_splits(device_params, freq_vocab, num_clusters, hidden, factor):
-    approx_cost = interpolate_matmul_cost(device_params)
-
-    all_freq = np.array([f for _, f in freq_vocab.most_common()])
-    prob_dist = all_freq / np.sum(all_freq)
-    prob_accum = np.cumsum(prob_dist)
-
-    all_splits = generate_class_clusters(num_clusters - 1, prob_accum)
-    head_sizes = list(np.unique(all_splits[:, 0]))
-
-    best_splits, speed_ups = [], []
-    batch_sizes = list(device_params['batch_sizes'])
-    for curr_batch in batch_sizes:
-        with_costs = {}
-
-        base_cost = approx_cost(curr_batch, hidden, len(prob_accum))
-        for curr_split in all_splits:
-            curr_cost = adaptive_split_cost(approx_cost, prob_accum, curr_split, curr_batch, hidden, factor)
-            speed_up = base_cost / curr_cost
-            head_size = curr_split[0]
-            if head_size not in with_costs or with_costs[head_size][0] < speed_up:
-                split_ids = np.cumsum(curr_split[:-1])
-                with_costs[head_size] = speed_up, list(split_ids)
-
-        for hs in head_sizes:
-            speed_ups.append(with_costs[hs][0])
-            best_splits.append(with_costs[hs][1])
-
-    return batch_sizes, head_sizes, speed_ups, best_splits
 
 
 def build_zipf_vocab(num_classes):
@@ -245,11 +215,28 @@ def generate_class_clusters(num_tails, prob_accum, head=None):
     return generate_class_clusters(num_tails - 1, prob_accum, body)
 
 
-def adaptive_split_cost(approx_cost, prob_accum, split_size, batch_size, hidden_size, factor):
-    cost = approx_cost(batch_size, hidden_size, split_size[0] + len(split_size) - 1)  # Root prediction cost
+def adaptive_split_cost(approx_cost, prob_accum, cluster_sizes, batch_size, hidden_size, factor):
+    """Estimates computation time for adaptpive softmax split.
+
+    Args:
+        approx_cost: Function to estimate matmul for batch-hidden_size-class matrices.
+        prob_accum: Per-class appearance probability.
+        cluster_sizes: List of cluster sizes
+        batch_size: Size of input batch
+        hidden_size: Size of input logits
+        factor: Scale factor for tail projections.
+
+    Returns:
+        Split computation time.
+    """
+    if np.sum(cluster_sizes).item() != len(prob_accum):
+        raise ValueError('Wrong inputs: Sum of cluster sizes should be equal to size of accumulated probabilities.')
+    cluster_accum = np.cumsum(cluster_sizes)
+
+    cost = approx_cost(batch_size, hidden_size, cluster_sizes[0] + len(cluster_sizes) - 1)  # Root prediction cost
 
     prev_dim = None
-    for i, (tail_start, tail_end) in enumerate(zip(split_size[:-1], split_size[1:])):
+    for i, tail_size in enumerate(cluster_sizes[1:]):
         dim = hidden_size / (factor ** (i + 1))
         dim = max(1, round(dim / 8)) * 8
 
@@ -258,13 +245,72 @@ def adaptive_split_cost(approx_cost, prob_accum, split_size, batch_size, hidden_
                              'Try to decrease number of clusters or `factor`')
         prev_dim = dim
 
-        clust_prob = prob_accum[tail_end - 1] - prob_accum[tail_start - 1]
+        tail_start, tail_end = cluster_accum[i] - 1, cluster_accum[i + 1] - 1
+        clust_prob = prob_accum[tail_end] - prob_accum[tail_start]
         tail_batch = int(batch_size * clust_prob)
 
-        # In most cases we can't guarantee batch size evenly dividable by 8. So, for estimation it won't.
+        # In most cases we can't guarantee tail batch size evenly dividable by 8. So, for estimation it won't.
         tail_batch = tail_batch + 1 if 0 == tail_batch % 8 else tail_batch
 
         cost += approx_cost(tail_batch, hidden_size, dim)  # Tail projection cost
-        cost += approx_cost(tail_batch, dim, tail_end - tail_start)  # Tail prediction cost
+        cost += approx_cost(tail_batch, dim, tail_size)  # Tail prediction cost
 
     return cost
+
+
+def estimate_best_splits(device_params, freq_vocab, num_tails, hidden_size, factor):
+    """Estimates best class splits for Adaptive Softmax.
+
+    Args:
+        device_params: A dict with 4 keys (`batch_sizes`, `hidden_sizes`, `class_sizes`, `cost_values`).
+            Device performance measurements.
+        freq_vocab: Class-to-frequency counter.
+        num_tails: Number of tail clusters.
+        hidden_size: Size of input logits
+        factor: Scale factor for tail projections.
+
+    Returns:
+        A tuple of:
+            - unique batch sizes
+            - unique head sizes
+            - speedups for each batch & head
+            - split indices for each batch & head
+    """
+    approx_cost = interpolate_matmul_cost(device_params)
+
+    if not isinstance(freq_vocab, Counter):
+        raise ValueError('Frequency vocabulary should be a Counter instance.')
+    all_freq = np.array([f for _, f in freq_vocab.most_common()])
+    prob_dist = all_freq / np.sum(all_freq)
+    prob_accum = np.cumsum(prob_dist)
+
+    all_splits = generate_class_clusters(num_tails, prob_accum)
+    head_sizes = list(np.unique(all_splits[:, 0]))
+
+    batch_sizes = list(device_params['batch_sizes'])
+    try:
+        base_costs = [approx_cost(batch, hidden_size, len(prob_accum)) for batch in batch_sizes]
+    except ValueError:
+        base_costs = None
+        tf.get_logger().warning('Can\'t estimate non-adaptive softmax computation time. '
+                                'Will use worst split time to compute speedup.')
+
+    best_ids, split_speedups = [], []
+    for bi, batch in enumerate(batch_sizes):
+        with_costs = {}
+        for split in all_splits:
+            curr_cost = adaptive_split_cost(approx_cost, prob_accum, split, batch, hidden_size, factor)
+            head_size = split[0]
+            if head_size not in with_costs or with_costs[head_size][0] > curr_cost:
+                split_ids = np.cumsum(split[:-1])
+                with_costs[head_size] = curr_cost, list(split_ids)
+
+        max_cost = max([with_costs[hs][0] for hs in head_sizes])
+        if base_costs is not None:
+            max_cost = base_costs[bi]
+
+        for hs in head_sizes:
+            split_speedups.append(max_cost / with_costs[hs][0])
+            best_ids.append(with_costs[hs][1])
+
+    return batch_sizes, head_sizes, split_speedups, best_ids

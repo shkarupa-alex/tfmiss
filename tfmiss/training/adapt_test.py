@@ -115,23 +115,34 @@ class AdaptiveSplitCostTest(tf.test.TestCase):
         all_prob = all_freq / np.sum(all_freq)
         prob_accum = np.cumsum(all_prob)
 
-        split_size = np.cumsum([2, 9, 19])
+        split_size = [2, 9, 19]
         adaptive_split_cost(approx_cost, prob_accum, split_size, batch_size=6, hidden_size=24, factor=2)
 
 
-# class EstimateBestSplitsTest(tf.test.TestCase):
-#     def test_normal(self):
-#         device_params = test_device_matmul(
-#             max_batch=8, max_hidden=25, max_classes=60, repeats=1, device='CPU:0', dtype='float32')
-#         freq_vocab = build_zipf_vocab(60)
-#         batch_sizes, head_sizes, speed_ups, best_splits = estimate_best_splits(
-#             device_params, freq_vocab, num_clusters=3, hidden=24, factor=2, mod8=True)
-#
-#         self.assertListEqual([1, 2, 4, 8], batch_sizes)
-#         self.assertListEqual([6, 14, 22], head_sizes)
-#         self.assertLen(speed_ups, 12)
-#         self.assertLen(best_splits, 12)
-#         self.assertListEqual([6, 22], best_splits[0])
+class EstimateBestSplitsTest(tf.test.TestCase):
+    def test_normalize_to_normal_softmax(self):
+        device_params = test_device_matmul(
+            max_batch=8, max_hidden=25, max_classes=120, repeats=1, device='CPU:0', dtype='float32')
+        freq_vocab = build_zipf_vocab(120)
+        batch_sizes, head_sizes, speed_ups, best_splits = estimate_best_splits(
+            device_params, freq_vocab, num_tails=2, hidden_size=24, factor=2)
+
+        self.assertListEqual([1, 2, 3, 4, 5, 7, 8], batch_sizes)
+        self.assertListEqual([14, 22, 30], head_sizes)
+        self.assertLen(speed_ups, 7 * 3)
+        self.assertLen(best_splits, 7 * 3)
+
+    def test_normalize_to_worst_adaptive(self):
+        device_params = test_device_matmul(
+            max_batch=8, max_hidden=25, max_classes=110, repeats=1, device='CPU:0', dtype='float32')
+        freq_vocab = build_zipf_vocab(120)
+        batch_sizes, head_sizes, speed_ups, best_splits = estimate_best_splits(
+            device_params, freq_vocab, num_tails=2, hidden_size=24, factor=2)
+
+        self.assertListEqual([1, 2, 3, 4, 5, 7, 8], batch_sizes)
+        self.assertListEqual([14, 22, 30], head_sizes)
+        self.assertLen(speed_ups, 7 * 3)
+        self.assertLen(best_splits, 7 * 3)
 
 
 if __name__ == '__main__':

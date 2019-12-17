@@ -7,6 +7,7 @@ import json
 import logging
 import tensorflow as tf
 from nlpvocab import Vocabulary
+from tabulate import tabulate
 from tfmiss.training import build_zipf_vocab, estimate_best_splits
 
 
@@ -18,10 +19,10 @@ if __name__ == "__main__":
         type=argparse.FileType('r'),
         help='File to load device matmul measurements')
     parser.add_argument(
-        'num_clusters',
+        'num_tails',
         type=int,
         default=5,
-        help='Number of clusters including head one')
+        help='Number of tail clusters')
     parser.add_argument(
         'batch_size',
         type=int,
@@ -34,7 +35,7 @@ if __name__ == "__main__":
         '--classes_vocab',
         type=argparse.FileType('r'),
         default=None,
-        help='Vocabulary with classes and corresponding frequencies')
+        help='Vocabulary with classes and corresponding frequencies (should be preferred over num_classes)')
     parser.add_argument(
         '--vocab_format',
         choices=[
@@ -53,11 +54,7 @@ if __name__ == "__main__":
         '--factor',
         type=int,
         default=4,
-        help='Maximum number of classes')
-    parser.add_argument(
-        '--no_mod8',
-        action='store_true',
-        help='Whether internal projection size should be evenly divided by 8.')
+        help='Scale factor for tail projections')
 
     argv, _ = parser.parse_known_args()
     tf.get_logger().setLevel(logging.INFO)
@@ -74,22 +71,27 @@ if __name__ == "__main__":
         freq_vocab = build_zipf_vocab(argv.num_classes)
 
     batch_sizes, head_sizes, speed_ups, best_splits = estimate_best_splits(
-        device_params, freq_vocab, argv.num_clusters, argv.hidden_size, argv.factor, not argv.no_mod8)
+        device_params=device_params,
+        freq_vocab=freq_vocab,
+        num_tails=argv.num_tails,
+        hidden_size=argv.hidden_size,
+        factor=argv.factor
+    )
 
     # Batch-head-speedup table
+    speedup_headers = ['BATCH\\HEAD'] + head_sizes
+    speedup_table = []
     heads_len = len(head_sizes)
-    head_format = '{:>10} |' + '{:>10}' * heads_len
-    print(head_format.format('BATCH\HEAD', *head_sizes))
-    print('-' * (12 + 10 * heads_len))
-    row_format = '{:>10} |' + '{:>10.1f}' * heads_len
     for i, batch in enumerate(batch_sizes):
-        row = speed_ups[heads_len * i: heads_len * (i + 1)]
-        print(row_format.format(batch, *row))
+        row = [batch] + speed_ups[heads_len * i: heads_len * (i + 1)]
+        speedup_table.append(row)
+    print(tabulate(speedup_table, headers=speedup_headers, tablefmt='presto', floatfmt='.1f'))
 
     # Batch-head-split table
-    row_format = '{:<10} | {:<10} | {:<10}'
-    print(row_format.format('BATCH', 'HEAD', 'SPLIT'))
+    splits_table = []
     for i, batch in enumerate(batch_sizes):
         for j, head in enumerate(head_sizes):
-            split = best_splits[i * len(head_sizes) + j]
-            print(row_format.format(batch, head, str(split)))
+            split = best_splits[i * heads_len + j]
+            row = [batch, head, str(split)]
+            splits_table.append(row)
+    print(tabulate(splits_table, headers=['BATCH', 'HEAD', 'SPLIT'], tablefmt='presto'))
