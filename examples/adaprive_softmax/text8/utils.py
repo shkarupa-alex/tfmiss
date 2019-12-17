@@ -25,7 +25,7 @@ def data_generator(seq_length, batch_size):
         input_text = chunk[:-1]
         target_text = chunk[1:]
 
-        return input_text, target_text
+        return {'inputs': input_text, 'targets': target_text}, target_text
 
     # Shuffle only train dataset
     train_dataset = tf.data.Dataset.from_tensor_slices(train_ids) \
