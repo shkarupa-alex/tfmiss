@@ -6,12 +6,11 @@ import numpy as np
 from collections import Counter
 
 
-def init_buckets(len2freq, mod8):
+def init_buckets(len2freq):
     """Splits length-to-frequency mapping into list of initial buckets.
 
     Args:
         len2freq: Dict of `sequence length`: `frequency`.
-        mod8: If `True`, each `bucket boundary - 1` will be dividable by 8 without reminder.
 
     Returns:
         List of buckets. Each bucket is a tuple (`bucket boundary`, `subset of len2freq`).
@@ -27,15 +26,15 @@ def init_buckets(len2freq, mod8):
     if not all(map(lambda x: isinstance(x, int), source.values())):
         raise ValueError('Values of length-to-frequency must be integers')
 
-    denominator = 8 if mod8 else 1
+    denominator = 8
     lengths = sorted(source.keys())
 
     buckets = []
-    for l in lengths:
-        b = int(np.ceil(l / denominator)) * denominator + 1
+    for lng in lengths:
+        b = int(np.ceil(lng / denominator)) * denominator + 1
         if not len(buckets) or buckets[-1][0] != b:
             buckets.append((b, {}))
-        buckets[-1][1][l] = source[l]
+        buckets[-1][1][lng] = source[lng]
 
     return buckets
 
@@ -56,7 +55,7 @@ def waste_frac(bucket):
         return 0.0
 
     boundary, len2freq = bucket
-    zero_cnt = sum([(boundary - 1 - l) * f for l, f in len2freq.items()])
+    zero_cnt = sum([(boundary - 1 - lng) * f for lng, f in len2freq.items()])
     total_freq = sum([f for _, f in len2freq.items()])
 
     return zero_cnt / (total_freq * (boundary - 1))
@@ -150,14 +149,13 @@ def group_buckets(before, middle, after, min_waste, max_waste, min_aggr):
     return before, middle, after
 
 
-def estimate_bucket_boundaries(len2freq, mod8=True, min_waste=0.01, max_waste=0.1, min_aggr=0.01):
+def estimate_bucket_boundaries(len2freq, min_waste=0.01, max_waste=0.1, min_aggr=0.01):
     """Estimates and merges buckets from the most common (middle).
     By default tries to make buckets with more then 1% of samples and no more then 1% of paddings
     or at least  no more then 10% of paddings.
 
     Args:
         len2freq: Dict of `sequence length`: `frequency`.
-        mod8: If `True`, each `bucket boundary - 1` will be dividable by 8 without reminder.
         min_waste: Minimum waste fraction.
         max_waste: Maximum waste fraction
         min_aggr: Minimum aggregate fraction.
@@ -165,7 +163,7 @@ def estimate_bucket_boundaries(len2freq, mod8=True, min_waste=0.01, max_waste=0.
     Returns:
         List of integer bucket boundaries.
     """
-    buckets = init_buckets(len2freq, mod8)
+    buckets = init_buckets(len2freq)
 
     sizes = [sum(l2f.values()) for _, l2f in buckets]
     start = sizes.index(max(sizes))
@@ -199,14 +197,13 @@ def estimate_bucket_boundaries(len2freq, mod8=True, min_waste=0.01, max_waste=0.
     return [r[0] for r in result]
 
 
-def estimate_bucket_pipeline(bucket_boundaries, num_samples, safe=True, mod8=True):
+def estimate_bucket_pipeline(bucket_boundaries, num_samples, safe=True):
     """Estimates bach sizes and reduces bucket boundaries to fit required number of samples per batch.
 
     Args:
         bucket_boundaries: pre-estimated bucket boundaries (see `estimate_bucket_boundaries`).
         num_samples: number of samples per batch (same as `batch size` / `sequence length`).
         safe: Do not allow maximum number of samples to be greater then `num_samples`.
-        mod8: If `True`, each `batch size` will be dividable by 8 without reminder.
 
     Returns:
         A tuple of (`reduced bucket boundaries`, `batch sizes`, `maximum boundary`).
@@ -217,7 +214,7 @@ def estimate_bucket_pipeline(bucket_boundaries, num_samples, safe=True, mod8=Tru
     if len(bucket_boundaries) < 2:
         raise ValueError('Bucket boundaries must contain at least 2 values')
 
-    batch_step = 8 if mod8 else 1
+    batch_step = 8
 
     batch_sizes = []
     for boundary in bucket_boundaries:
@@ -230,12 +227,8 @@ def estimate_bucket_pipeline(bucket_boundaries, num_samples, safe=True, mod8=Tru
             if len(batch_sizes) < 2:
                 raise ValueError('Too few samples per batch')
 
-            return bucket_boundaries[:len(batch_sizes) - 1], \
-                   batch_sizes, \
-                   bucket_boundaries[len(batch_sizes) - 1]
+            return bucket_boundaries[:len(batch_sizes) - 1], batch_sizes, bucket_boundaries[len(batch_sizes) - 1]
 
         batch_sizes.append(max(batch_step, batch_size.astype(np.int)))
 
-    return bucket_boundaries[:-1], \
-           batch_sizes, \
-           bucket_boundaries[-1]
+    return bucket_boundaries[:-1], batch_sizes, bucket_boundaries[-1]

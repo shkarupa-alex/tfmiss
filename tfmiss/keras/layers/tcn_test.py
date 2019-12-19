@@ -13,7 +13,7 @@ from tfmiss.keras.layers.tcn import TemporalBlock, TemporalConvNet
 
 @keras_parameterized.run_all_keras_modes
 class TemporalBlockTest(keras_parameterized.TestCase):
-    def testLayer(self):
+    def test_layer(self):
         with tf.keras.utils.custom_object_scope({'TemporalBlock': TemporalBlock}):
             testing_utils.layer_test(
                 TemporalBlock,
@@ -26,7 +26,7 @@ class TemporalBlockTest(keras_parameterized.TestCase):
                 input_shape=(2, 3, 7)
             )
 
-    def testLayerSamePadding(self):
+    def test_layer_same_padding(self):
         with tf.keras.utils.custom_object_scope({'TemporalBlock': TemporalBlock}):
             testing_utils.layer_test(
                 TemporalBlock,
@@ -40,7 +40,7 @@ class TemporalBlockTest(keras_parameterized.TestCase):
                 input_shape=(2, 3, 7)
             )
 
-    def testShape(self):
+    def test_shape(self):
         layer = TemporalBlock(
             filters=3,
             kernel_size=2,
@@ -55,7 +55,7 @@ class TemporalBlockTest(keras_parameterized.TestCase):
         dynamic_shape = self.evaluate(out).shape
         self.assertAllEqual((1, 5, 3), dynamic_shape)
 
-    def testModel(self):
+    def test_model(self):
         model = tf.keras.models.Sequential()
         model.add(TemporalBlock(
             filters=3,
@@ -64,7 +64,8 @@ class TemporalBlockTest(keras_parameterized.TestCase):
             dropout=0.2,
             input_shape=(3, 4)
         ))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly(),
+                      experimental_run_tf_function=testing_utils.should_run_tf_function())
         model.fit(np.random.random((10, 3, 4)), np.random.random((10, 3, 3)), epochs=1, batch_size=10)
 
         # test config
@@ -78,7 +79,7 @@ class TemporalBlockTest(keras_parameterized.TestCase):
 
 @keras_parameterized.run_all_keras_modes
 class TemporalConvNetTest(keras_parameterized.TestCase):
-    def testLayer(self):
+    def test_layer(self):
         with tf.keras.utils.custom_object_scope({'TemporalConvNet': TemporalConvNet}):
             testing_utils.layer_test(
                 TemporalConvNet,
@@ -90,7 +91,7 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
                 input_shape=(2, 3, 7)
             )
 
-    def testLayerSamePadding(self):
+    def test_layer_same_padding(self):
         with tf.keras.utils.custom_object_scope({'TemporalConvNet': TemporalConvNet}):
             testing_utils.layer_test(
                 TemporalConvNet,
@@ -103,7 +104,7 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
                 input_shape=(2, 3, 7)
             )
 
-    def testShape(self):
+    def test_shape(self):
         layer = TemporalConvNet(
             filters=[5, 4, 3],
             kernel_size=3,
@@ -117,14 +118,15 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
         dynamic_shape = self.evaluate(out).shape
         self.assertAllEqual((1, 5, 3), dynamic_shape)
 
-    def testModel(self):
+    def test_model(self):
         model = tf.keras.models.Sequential()
         model.add(TemporalConvNet(
             filters=[5, 4, 3],
             kernel_size=3,
             dropout=0.2
         ))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly(),
+                      experimental_run_tf_function=testing_utils.should_run_tf_function())
         model.fit(np.random.random((10, 3, 4)), np.random.random((10, 3, 3)), epochs=1, batch_size=10)
 
         # test config

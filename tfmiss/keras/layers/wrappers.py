@@ -3,7 +3,9 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.python.keras.utils import generic_utils
+from tensorflow.python.keras.utils import generic_utils, tf_utils
+from tensorflow.python.framework import ops
+from tensorflow.python.ops import variables
 
 
 class WeightNorm(tf.keras.layers.Wrapper):
@@ -47,6 +49,7 @@ class WeightNorm(tf.keras.layers.Wrapper):
         self.input_spec = layer.input_spec
         self.supports_masking = layer.supports_masking
 
+    @tf_utils.shape_type_conversion
     def build(self, input_shape=None):
         if not self.layer.built:
             self.layer.build(input_shape)
@@ -63,19 +66,23 @@ class WeightNorm(tf.keras.layers.Wrapper):
             norm_axes = list(range(v.shape.rank - 1))
 
             def g_init(*args, **kwargs):
-                v_init = v.read_value()
+                with ops.init_scope():
+                    v_init = tf.cond(
+                        variables.is_variable_initialized(v),
+                        v.read_value,
+                        lambda: v.initial_value
+                    )
                 c = tf.shape(v_init)[-1]
                 v_init = tf.reshape(v_init, [-1, c])
 
                 return tf.norm(v_init, ord=2, axis=0)
 
-            g = self.add_variable(
+            g = self.add_weight(
                 name='{}_g'.format(name),
                 shape=(v.shape[-1],),
                 initializer=g_init,
                 dtype=v.dtype,
                 trainable=True,
-                aggregation=tf.VariableAggregation.MEAN
             )
 
             setattr(self, '{}_v'.format(name), v)
@@ -86,18 +93,24 @@ class WeightNorm(tf.keras.layers.Wrapper):
         super(WeightNorm, self).build()
 
     def compute_weights(self):
+        updates = []
+
         for name in self.weight_names:
             v = getattr(self, '{}_v'.format(name))
             g = getattr(self, '{}_g'.format(name))
             norm_axes = getattr(self, '{}_norm_axes'.format(name))
 
+            # Replace kernel by normalized weight variable.
             w = tf.nn.l2_normalize(v, axis=norm_axes) * g
+            updates.append(tf.identity(w))
             setattr(self.layer, name, w)
 
+        return updates
+
     def call(self, inputs, **kwargs):
-        compute_weights = kwargs.pop('compute_weights', True)
-        if compute_weights:
-            self.compute_weights()
+        kernel_updates = []
+        if kwargs.pop('compute_weights', True):
+            kernel_updates = self.compute_weights()
 
         for name in self.weight_names:
             if getattr(self.layer, name) is None:
@@ -108,8 +121,11 @@ class WeightNorm(tf.keras.layers.Wrapper):
             if generic_utils.has_arg(self.layer.call, key):
                 layer_kwargs[key] = kwargs[key]
 
-        return self.layer.call(inputs, **layer_kwargs)
+        # Ensure we calculate result after updating kernel.
+        with tf.control_dependencies(kernel_updates):
+            return self.layer.call(inputs, **layer_kwargs)
 
+    @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
         return self.layer.compute_output_shape(input_shape)
 

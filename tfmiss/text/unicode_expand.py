@@ -82,10 +82,11 @@ def split_chars(source, name=None):
 def split_words(source, extended=False, name=None):
     """Split unicode strings into words.
     Result tokens could be simply joined with empty separator to obtain original strings.
+    See http://www.unicode.org/reports/tr29/#Word_Boundaries
 
     Args:
         source: `Tensor` or `RaggedTensor` of any shape, strings to split
-        extended: Ignore rules WB6, WB7, WB11 and WB12 to break on "stop", "colon" & etc.
+        extended: Ignore rules WB6, WB7, WB9, WB10, WB11 and WB12 to break on "stop", "colon" & etc.
         name: A name for the operation (optional).
     Returns:
         `Tensor` if rank(source) is 0, `RaggedTensor` with an additional dimension otherwise.

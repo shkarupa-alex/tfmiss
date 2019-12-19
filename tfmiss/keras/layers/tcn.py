@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tfmiss.keras.layers.wrappers import WeightNorm
+from tensorflow.python.keras.utils import tf_utils
 
 
 class TemporalBlock(tf.keras.layers.Layer):
@@ -32,7 +33,6 @@ class TemporalBlock(tf.keras.layers.Layer):
                  activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
-                 *args,
                  **kwargs):
         if padding not in {'causal', 'same'}:
             raise ValueError('Only "causal" and "same" padding are compatible with this layer.')
@@ -61,9 +61,10 @@ class TemporalBlock(tf.keras.layers.Layer):
         self.act = None
 
         super(TemporalBlock, self).__init__(
-            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), *args, **kwargs)
+            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
 
+    @tf_utils.shape_type_conversion
     def build(self, input_shape):
         if len(input_shape) != 3:
             raise ValueError('Shape {} must have rank 3'.format(input_shape))
@@ -132,6 +133,9 @@ class TemporalBlock(tf.keras.layers.Layer):
         super(TemporalBlock, self).build(input_shape)
 
     def call(self, inputs, training=None):
+        if training is None:
+            training = tf.keras.backend.learning_phase()
+
         out = self.conv1d1(inputs)
         out = self.dropout1(out, training=training)
 
@@ -145,8 +149,9 @@ class TemporalBlock(tf.keras.layers.Layer):
 
         return out
 
+    @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return input_shape[:-1].concatenate(self.filters)
+        return input_shape[:-1] + (self.filters,)
 
     def get_config(self):
         config = {
@@ -191,7 +196,7 @@ class TemporalConvNet(tf.keras.layers.Layer):
                  activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
-                 *args, **kwargs):
+                 **kwargs):
 
         if not isinstance(filters, (list, tuple)) or not len(filters):
             raise ValueError('Number of residual layers could not be zero.')
@@ -214,9 +219,10 @@ class TemporalConvNet(tf.keras.layers.Layer):
         self.bias_constraint = tf.keras.constraints.get(bias_constraint)
 
         super(TemporalConvNet, self).__init__(
-            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), *args, **kwargs)
+            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
 
+    @tf_utils.shape_type_conversion
     def build(self, input_shape):
         if len(input_shape) != 3:
             raise ValueError('Shape {} must have rank 3'.format(input_shape))
@@ -251,19 +257,23 @@ class TemporalConvNet(tf.keras.layers.Layer):
 
         super(TemporalConvNet, self).build(input_shape)
 
-    def call(self, inputs, **kwargs):
+    def call(self, inputs, training=None):
+        if training is None:
+            training = tf.keras.backend.learning_phase()
+
         outputs = inputs
 
         for layer in self.layers:
-            outputs = layer(outputs, **kwargs)
+            outputs = layer(outputs, training=training)
 
         return outputs
 
+    @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
         if len(input_shape) != 3:
             raise ValueError('Shape {} must have rank 3'.format(input_shape))
 
-        return input_shape[:-1].concatenate(self.filters[-1])
+        return input_shape[:-1] + (self.filters[-1],)
 
     def get_config(self):
         config = {

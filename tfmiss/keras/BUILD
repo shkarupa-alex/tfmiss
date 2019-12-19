@@ -6,8 +6,10 @@ py_library(
         "__init__.py",
     ],
     data = [
+        "//tfmiss/keras/callbacks",
         "//tfmiss/keras/layers",
-        # "//tfmiss/keras/metrics",
+         "//tfmiss/keras/losses",
+#         "//tfmiss/keras/metrics",
     ],
     srcs_version = "PY2AND3",
 )

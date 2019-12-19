@@ -89,9 +89,6 @@ class F1Base(Metric):
                 sample_weight=sample_weight
             )
 
-        # TODO https://github.com/tensorflow/tensorflow/issues/30711
-        # return tf.group(update_ops) if len(update_ops) > 1 else update_ops[0]
-
     def reset_states(self):
         num_thresholds = len(to_list(self.thresholds))
         batch_set_value([(v, np.zeros((num_thresholds,))) for v in self.variables])

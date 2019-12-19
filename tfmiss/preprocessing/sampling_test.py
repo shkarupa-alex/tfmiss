@@ -10,12 +10,12 @@ from tfmiss.preprocessing.sampling import down_sample, sample_mask
 
 @test_util.run_all_in_graph_and_eager_modes
 class DownSampleTest(tf.test.TestCase):
-    def testEmpty(self):
+    def test_empty(self):
         source = tf.constant([], dtype=tf.string)
         downsampled = self.evaluate(down_sample(source, ['_'], [1], '', 1., min_freq=0, seed=1))
-        self.assertEquals([], downsampled.tolist())
+        self.assertEqual([], downsampled.tolist())
 
-    def testDense(self):
+    def test_dense(self):
         freq_vocab = Counter({
             'tensorflow': 99,
             'the': 9,
@@ -36,7 +36,7 @@ class DownSampleTest(tf.test.TestCase):
             downsampled.tolist()
         )
 
-    def testRagged2D(self):
+    def test_ragged_2d(self):
         freq_vocab = Counter({
             'tensorflow': 99,
             'the': 9,
@@ -56,9 +56,7 @@ class DownSampleTest(tf.test.TestCase):
             ['tensorflow']
         ])
         downsampled = self.evaluate(
-            down_sample(source, freq_keys, freq_vals, '', 1e-2, min_freq=2, seed=1)
-                .to_tensor(default_value='')
-        )
+            down_sample(source, freq_keys, freq_vals, '', 1e-2, min_freq=2, seed=1).to_tensor(default_value=''))
 
         self.assertListEqual([
             [b'', b'', b'', b'', b''],
@@ -67,7 +65,7 @@ class DownSampleTest(tf.test.TestCase):
             [b'', b'', b'', b'', b'']
         ], downsampled.tolist())
 
-    def testRagged3D(self):
+    def test_ragged_3d(self):
         freq_vocab = Counter({
             'tensorflow': 99,
             'the': 9,
@@ -88,9 +86,7 @@ class DownSampleTest(tf.test.TestCase):
             [['tensorflow']]
         ])
         downsampled = self.evaluate(
-            down_sample(source, freq_keys, freq_vals, '', 1e-2, min_freq=2, seed=1)
-                .to_tensor(default_value='')
-        )
+            down_sample(source, freq_keys, freq_vals, '', 1e-2, min_freq=2, seed=1).to_tensor(default_value=''))
 
         self.assertListEqual([
             [[b'', b'', b'', b''],
@@ -106,15 +102,15 @@ class DownSampleTest(tf.test.TestCase):
 
 @test_util.run_all_in_graph_and_eager_modes
 class SampleMaskTest(tf.test.TestCase):
-    def testDenseShapeInference(self):
+    def test_dense_shape_inference(self):
         mask = sample_mask(['_'], ['_'], [1], 1., min_freq=0, seed=1)
         self.assertEqual([1], mask.shape.as_list())
 
-    def testEmpty(self):
+    def test_empty(self):
         mask = self.evaluate(sample_mask([], ['_'], [1], 1., min_freq=0, seed=1))
-        self.assertEquals([], mask.tolist())
+        self.assertEqual([], mask.tolist())
 
-    def testUniq(self):
+    def test_uniq(self):
         freq_vocab = Counter({
             'tensorflow': 99,
             'the': 9,
@@ -135,7 +131,7 @@ class SampleMaskTest(tf.test.TestCase):
             mask.tolist()
         )
 
-    def testNoUniq(self):
+    def test_no_uniq(self):
         freq_vocab = Counter({
             'tensorflow': 99,
             'the': 9,

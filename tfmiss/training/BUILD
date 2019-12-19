@@ -5,6 +5,7 @@ py_library(
     name = "training",
     srcs = [
         "__init__.py",
+        "adapt.py",
         "bucket.py",
         "hparam.py",
     ],
@@ -12,6 +13,13 @@ py_library(
          ":hparam_proto_py",
     ],
     srcs_version = "PY2AND3",
+)
+
+py_test(
+    name = "adapt_test",
+    srcs = ["adapt_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [":training"],
 )
 
 py_test(
