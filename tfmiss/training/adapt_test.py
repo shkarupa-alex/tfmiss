@@ -13,9 +13,9 @@ class TestDeviceMatmulTest(tf.test.TestCase):
     def test_normal_cpu(self):
         device_params = test_device_matmul(
             max_batch=5, max_hidden=9, max_classes=17, repeats=1, device='CPU:0', dtype='float32')
-        self.assertListEqual([1, 2, 3, 4, 5], device_params['batch_sizes'].tolist())
-        self.assertListEqual([1, 2, 3, 4, 5, 7, 8, 9], device_params['hidden_sizes'].tolist())
-        self.assertListEqual([1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17], device_params['class_sizes'].tolist())
+        self.assertListEqual([1, 2, 3, 4, 5], device_params['batch_sizes'])
+        self.assertListEqual([1, 2, 3, 4, 5, 7, 8, 9], device_params['hidden_sizes'])
+        self.assertListEqual([1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17], device_params['class_sizes'])
         self.assertLen(device_params['cost_values'], 5 * 8 * 11)
 
     def test_normal_gpu(self):
@@ -25,9 +25,9 @@ class TestDeviceMatmulTest(tf.test.TestCase):
         device_params = test_device_matmul(
             max_batch=32, max_hidden=8, max_classes=16, repeats=1, device='GPU:0', dtype='float32')
         self.assertListEqual([1, 2, 3, 4, 5, 7, 8, 9, 15, 16, 17, 23, 24, 25, 31, 32],
-                             device_params['batch_sizes'].tolist())
-        self.assertListEqual([1, 2, 3, 4, 5, 7, 8], device_params['hidden_sizes'].tolist())
-        self.assertListEqual([1, 2, 3, 4, 5, 7, 8, 9, 15, 16], device_params['class_sizes'].tolist())
+                             device_params['batch_sizes'])
+        self.assertListEqual([1, 2, 3, 4, 5, 7, 8], device_params['hidden_sizes'])
+        self.assertListEqual([1, 2, 3, 4, 5, 7, 8, 9, 15, 16], device_params['class_sizes'])
         self.assertLen(device_params['cost_values'], 16 * 7 * 10)
 
 
