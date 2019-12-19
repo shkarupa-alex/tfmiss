@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import math
 import tensorflow as tf
 from tensorflow.python.distribute import distribution_strategy_context
 from tensorflow.python.keras.utils import tf_utils
@@ -31,7 +30,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
     """Adaptive softmax layer.
     Reference https://arxiv.org/pdf/1609.04309.pdf
     Efficient softmax approximation for GPUs
-    Edouard Grave, Armand Joulin, Moustapha Cissé, David Grangier, Hervé Jégou (2017)
+    Edouard Grave, Armand Joulin, Moustapha Cisse, David Grangier, Herve Jegou (2017)
 
     Args:
         units: Positive integer, dimensionality of the output space (number of classes).

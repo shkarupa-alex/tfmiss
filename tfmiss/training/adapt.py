@@ -97,9 +97,9 @@ def test_device_matmul(max_batch, max_hidden, max_classes, repeats, device, dtyp
             tf.get_logger().info('Done {} steps of {}'.format(step + 1, dense_grid.shape[0]))
 
     return {
-        'batch_sizes': batch_sizes,
-        'hidden_sizes': hidden_sizes,
-        'class_sizes': class_sizes,
+        'batch_sizes': list(batch_sizes),
+        'hidden_sizes': list(hidden_sizes),
+        'class_sizes': list(class_sizes),
         'cost_values': cost_values
     }
 

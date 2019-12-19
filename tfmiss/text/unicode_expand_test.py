@@ -17,7 +17,7 @@ class CharNgramsTest(tf.test.TestCase):
         ]
         result = char_ngrams(source, 1, 1, itself='ALWAYS')
 
-        self.assertEqual([2, None, None], result.shape.as_list())
+        self.assertEqual([2, 3, None], result.shape.as_list())
 
     def test_actual_shape(self):
         source = [
@@ -184,7 +184,7 @@ class LowerCaseTest(tf.test.TestCase):
         ]
         result = split_chars(source)
 
-        self.assertEqual([2, None, None], result.shape.as_list())
+        self.assertEqual([2, 3, None], result.shape.as_list())
 
     def test_actual_shape(self):
         source = [
@@ -274,7 +274,7 @@ class SplitWordsTest(tf.test.TestCase):
         ]
         result = split_words(source)
 
-        self.assertEqual([2, None, None], result.shape.as_list())
+        self.assertEqual([2, 3, None], result.shape.as_list())
 
     def test_actual_shape(self):
         source = [

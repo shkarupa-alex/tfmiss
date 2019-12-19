@@ -12,6 +12,7 @@ from tensorflow.python.client import session
 from tensorflow.python.feature_column import dense_features as df
 from tensorflow.python.feature_column import feature_column as fc_old
 from tensorflow.python.feature_column import feature_column_v2 as fc
+from tensorflow.python.feature_column import serialization
 from tensorflow.python.framework import ops
 from tensorflow.python.framework import sparse_tensor
 from tensorflow.python.framework import test_util
@@ -1103,7 +1104,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
 
         new_embedding_column = AdaptiveEmbeddingColumn._from_config(
             config, custom_objects=custom_objects,
-            columns_by_name={categorical_column.name: categorical_column})
+            columns_by_name={serialization._column_name_with_class_name(categorical_column): categorical_column}
+        )
         self.assertEqual(config, new_embedding_column._get_config())
         self.assertIs(categorical_column, new_embedding_column.categorical_column)
 
@@ -1157,7 +1159,8 @@ class EmbeddingColumnTest(tf.test.TestCase):
         new_embedding_column = AdaptiveEmbeddingColumn._from_config(
             config,
             custom_objects=custom_objects,
-            columns_by_name={categorical_column.name: categorical_column})
+            columns_by_name={serialization._column_name_with_class_name(categorical_column): categorical_column}
+        )
         self.assertEqual(embedding_column, new_embedding_column)
         self.assertIs(categorical_column, new_embedding_column.categorical_column)
 
