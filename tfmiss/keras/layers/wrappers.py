@@ -8,6 +8,7 @@ from tensorflow.python.framework import ops
 from tensorflow.python.ops import variables
 
 
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class WeightNorm(tf.keras.layers.Wrapper):
     """ Applies weight normalization to a layer. Weight normalization is a reparameterization that decouples the
     magnitude of a weight tensor from its direction. This speeds up convergence by improving the conditioning of the

@@ -9,7 +9,7 @@ py_library(
         "//tfmiss/keras/callbacks",
         "//tfmiss/keras/layers",
          "//tfmiss/keras/losses",
-#         "//tfmiss/keras/metrics",
+         "//tfmiss/keras/metrics",
     ],
     srcs_version = "PY2AND3",
 )

@@ -7,6 +7,7 @@ from tfmiss.keras.layers.wrappers import WeightNorm
 from tensorflow.python.keras.utils import tf_utils
 
 
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class TemporalBlock(tf.keras.layers.Layer):
     """Residual block for Temporal Convolutional Network.
     Reference: https://arxiv.org/abs/1803.01271
@@ -175,6 +176,7 @@ class TemporalBlock(tf.keras.layers.Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class TemporalConvNet(tf.keras.layers.Layer):
     """Temporal Convolutional Network layer.
     Reference: https://arxiv.org/abs/1803.01271

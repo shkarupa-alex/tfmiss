@@ -12,39 +12,38 @@ from tfmiss.keras.testing_utils import layer_multi_io_test
 @keras_parameterized.run_all_keras_modes
 class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
     def test_layer(self):
-        with tf.keras.utils.custom_object_scope({'AdaptiveSoftmax': AdaptiveSoftmax}):
-            layer_multi_io_test(
-                AdaptiveSoftmax,
-                kwargs={
-                    'units': 20,
-                    'cutoff': [3],
-                },
-                input_shapes=[(10, 5), (10,)],
-                input_dtypes=['float32', 'int32'],
-                expected_output_dtypes=['float32']
-            )
-            layer_multi_io_test(
-                AdaptiveSoftmax,
-                kwargs={
-                    'units': 20,
-                    'cutoff': [3],
-                    'dtype': 'float16'
-                },
-                input_shapes=[(2, 10, 5), (2, 10,)],
-                input_dtypes=['float16', 'int32'],
-                expected_output_dtypes=['float16']
-            )
-            layer_multi_io_test(
-                AdaptiveSoftmax,
-                kwargs={
-                    'units': 20,
-                    'cutoff': [3],
-                    'dtype': 'float16'
-                },
-                input_shapes=[(3, 2, 10, 5), (3, 2, 10,)],
-                input_dtypes=['float32', 'int64'],
-                expected_output_dtypes=['float16']
-            )
+        layer_multi_io_test(
+            AdaptiveSoftmax,
+            kwargs={
+                'units': 20,
+                'cutoff': [3],
+            },
+            input_shapes=[(10, 5), (10,)],
+            input_dtypes=['float32', 'int32'],
+            expected_output_dtypes=['float32']
+        )
+        layer_multi_io_test(
+            AdaptiveSoftmax,
+            kwargs={
+                'units': 20,
+                'cutoff': [3],
+                'dtype': 'float16'
+            },
+            input_shapes=[(2, 10, 5), (2, 10,)],
+            input_dtypes=['float16', 'int32'],
+            expected_output_dtypes=['float16']
+        )
+        layer_multi_io_test(
+            AdaptiveSoftmax,
+            kwargs={
+                'units': 20,
+                'cutoff': [3],
+                'dtype': 'float16'
+            },
+            input_shapes=[(3, 2, 10, 5), (3, 2, 10,)],
+            input_dtypes=['float32', 'int64'],
+            expected_output_dtypes=['float16']
+        )
 
     def test_actual_shape_2d(self):
         layer = AdaptiveSoftmax(units=20, cutoff=[3])
@@ -145,37 +144,36 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
 @keras_parameterized.run_all_keras_modes
 class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
     def test_layer(self):
-        with tf.keras.utils.custom_object_scope({'NoiseContrastiveEstimation': NoiseContrastiveEstimation}):
-            layer_multi_io_test(
-                NoiseContrastiveEstimation,
-                kwargs={
-                    'units': 11,
-                    'negatives': 2,
-                },
-                input_shapes=[(10, 5), (10,)],
-                input_dtypes=['float32', 'int32'],
-                expected_output_dtypes=['float32']
-            )
-            layer_multi_io_test(
-                NoiseContrastiveEstimation,
-                kwargs={
-                    'units': 11,
-                    'negatives': 2,
-                },
-                input_shapes=[(2, 10, 5), (2, 10,)],
-                input_dtypes=['float32', 'int32'],
-                expected_output_dtypes=['float32']
-            )
-            layer_multi_io_test(
-                NoiseContrastiveEstimation,
-                kwargs={
-                    'units': 11,
-                    'negatives': 2,
-                },
-                input_shapes=[(3, 2, 10, 5), (3, 2, 10,)],
-                input_dtypes=['float32', 'int64'],
-                expected_output_dtypes=['float32']
-            )
+        layer_multi_io_test(
+            NoiseContrastiveEstimation,
+            kwargs={
+                'units': 11,
+                'negatives': 2,
+            },
+            input_shapes=[(10, 5), (10,)],
+            input_dtypes=['float32', 'int32'],
+            expected_output_dtypes=['float32']
+        )
+        layer_multi_io_test(
+            NoiseContrastiveEstimation,
+            kwargs={
+                'units': 11,
+                'negatives': 2,
+            },
+            input_shapes=[(2, 10, 5), (2, 10,)],
+            input_dtypes=['float32', 'int32'],
+            expected_output_dtypes=['float32']
+        )
+        layer_multi_io_test(
+            NoiseContrastiveEstimation,
+            kwargs={
+                'units': 11,
+                'negatives': 2,
+            },
+            input_shapes=[(3, 2, 10, 5), (3, 2, 10,)],
+            input_dtypes=['float32', 'int64'],
+            expected_output_dtypes=['float32']
+        )
 
     def test_model(self):
         num_samples = 10000
@@ -218,37 +216,36 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
 @keras_parameterized.run_all_keras_modes
 class SampledSofmaxTest(keras_parameterized.TestCase):
     def test_layer(self):
-        with tf.keras.utils.custom_object_scope({'SampledSofmax': SampledSofmax}):
-            layer_multi_io_test(
-                SampledSofmax,
-                kwargs={
-                    'units': 11,
-                    'negatives': 2,
-                },
-                input_shapes=[(10, 5), (10,)],
-                input_dtypes=['float32', 'int32'],
-                expected_output_dtypes=['float32']
-            )
-            layer_multi_io_test(
-                SampledSofmax,
-                kwargs={
-                    'units': 11,
-                    'negatives': 2,
-                },
-                input_shapes=[(2, 10, 5), (2, 10,)],
-                input_dtypes=['float32', 'int32'],
-                expected_output_dtypes=['float32']
-            )
-            layer_multi_io_test(
-                SampledSofmax,
-                kwargs={
-                    'units': 11,
-                    'negatives': 2,
-                },
-                input_shapes=[(3, 2, 10, 5), (3, 2, 10,)],
-                input_dtypes=['float32', 'int64'],
-                expected_output_dtypes=['float32']
-            )
+        layer_multi_io_test(
+            SampledSofmax,
+            kwargs={
+                'units': 11,
+                'negatives': 2,
+            },
+            input_shapes=[(10, 5), (10,)],
+            input_dtypes=['float32', 'int32'],
+            expected_output_dtypes=['float32']
+        )
+        layer_multi_io_test(
+            SampledSofmax,
+            kwargs={
+                'units': 11,
+                'negatives': 2,
+            },
+            input_shapes=[(2, 10, 5), (2, 10,)],
+            input_dtypes=['float32', 'int32'],
+            expected_output_dtypes=['float32']
+        )
+        layer_multi_io_test(
+            SampledSofmax,
+            kwargs={
+                'units': 11,
+                'negatives': 2,
+            },
+            input_shapes=[(3, 2, 10, 5), (3, 2, 10,)],
+            input_dtypes=['float32', 'int64'],
+            expected_output_dtypes=['float32']
+        )
 
     def test_model(self):
         num_samples = 10000

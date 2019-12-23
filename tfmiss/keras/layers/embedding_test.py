@@ -12,83 +12,82 @@ from tfmiss.keras.layers.embedding import AdaptiveEmbedding
 @keras_parameterized.run_all_keras_modes
 class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
     def test_layer(self):
-        with tf.keras.utils.custom_object_scope({'AdaptiveEmbedding': AdaptiveEmbedding}):
-            testing_utils.layer_test(
-                AdaptiveEmbedding,
-                kwargs={
-                    'cutoff': [50, 100],
-                    'input_dim': 200,
-                    'output_dim': 128,
-                },
-                input_shape=(2, 3),
-                input_dtype='int32',
-                expected_output_dtype='float32',
-                expected_output_shape=(None, 3, 128)
-            )
-            testing_utils.layer_test(
-                AdaptiveEmbedding,
-                kwargs={
-                    'cutoff': [50, 100],
-                    'input_dim': 200,
-                    'output_dim': 128,
-                    'proj0': True,
-                },
-                input_shape=(2, 3),
-                input_dtype='int32',
-                expected_output_dtype='float32',
-                expected_output_shape=(None, 3, 128)
-            )
-            testing_utils.layer_test(
-                AdaptiveEmbedding,
-                kwargs={
-                    'cutoff': [50, 100],
-                    'input_dim': 200,
-                    'output_dim': 128,
-                    'input_length': 3,
-                },
-                input_shape=(2, 3),
-                input_dtype='int32',
-                expected_output_dtype='float32',
-                expected_output_shape=(None, 3, 128)
-            )
-            testing_utils.layer_test(
-                AdaptiveEmbedding,
-                kwargs={
-                    'cutoff': [50, 100],
-                    'input_dim': 200,
-                    'output_dim': 128,
-                    'mask_zero': True,
-                },
-                input_shape=(2, 3),
-                input_dtype='int32',
-                expected_output_dtype='float32',
-                expected_output_shape=(None, 3, 128)
-            )
-            testing_utils.layer_test(
-                AdaptiveEmbedding,
-                kwargs={
-                    'cutoff': [50, 100],
-                    'input_dim': 200,
-                    'output_dim': 129,
-                },
-                input_shape=(2, 3, 7),
-                input_dtype='int32',
-                expected_output_dtype='float32',
-                expected_output_shape=(None, 3, 7, 129)
-            )
-            testing_utils.layer_test(
-                AdaptiveEmbedding,
-                kwargs={
-                    'cutoff': [50, 100],
-                    'input_dim': 200,
-                    'output_dim': 128,
-                    'input_length': (None, 7)
-                },
-                input_shape=(2, 3, 7),
-                input_dtype='int32',
-                expected_output_dtype='float32',
-                expected_output_shape=(None, 3, 7, 128)
-            )
+        testing_utils.layer_test(
+            AdaptiveEmbedding,
+            kwargs={
+                'cutoff': [50, 100],
+                'input_dim': 200,
+                'output_dim': 128,
+            },
+            input_shape=(2, 3),
+            input_dtype='int32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 3, 128)
+        )
+        testing_utils.layer_test(
+            AdaptiveEmbedding,
+            kwargs={
+                'cutoff': [50, 100],
+                'input_dim': 200,
+                'output_dim': 128,
+                'proj0': True,
+            },
+            input_shape=(2, 3),
+            input_dtype='int32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 3, 128)
+        )
+        testing_utils.layer_test(
+            AdaptiveEmbedding,
+            kwargs={
+                'cutoff': [50, 100],
+                'input_dim': 200,
+                'output_dim': 128,
+                'input_length': 3,
+            },
+            input_shape=(2, 3),
+            input_dtype='int32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 3, 128)
+        )
+        testing_utils.layer_test(
+            AdaptiveEmbedding,
+            kwargs={
+                'cutoff': [50, 100],
+                'input_dim': 200,
+                'output_dim': 128,
+                'mask_zero': True,
+            },
+            input_shape=(2, 3),
+            input_dtype='int32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 3, 128)
+        )
+        testing_utils.layer_test(
+            AdaptiveEmbedding,
+            kwargs={
+                'cutoff': [50, 100],
+                'input_dim': 200,
+                'output_dim': 129,
+            },
+            input_shape=(2, 3, 7),
+            input_dtype='int32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 3, 7, 129)
+        )
+        testing_utils.layer_test(
+            AdaptiveEmbedding,
+            kwargs={
+                'cutoff': [50, 100],
+                'input_dim': 200,
+                'output_dim': 128,
+                'input_length': (None, 7)
+            },
+            input_shape=(2, 3, 7),
+            input_dtype='int32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 3, 7, 128)
+        )
 
     def test_embedding_correctness(self):
         layer = AdaptiveEmbedding(cutoff=[1], output_dim=16, input_dim=2, factor=2)

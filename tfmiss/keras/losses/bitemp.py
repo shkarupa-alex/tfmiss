@@ -393,6 +393,7 @@ def sparse_bi_tempered_logistic_loss(labels, activations, t1, t2, num_iters=5):
         return loss_values
 
 
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class BiTemperedBinaryLogistic(LossFunctionWrapper):
     """Computes Bi-Tempered Binary Logistic Loss."""
 
@@ -403,6 +404,7 @@ class BiTemperedBinaryLogistic(LossFunctionWrapper):
             t1=t1, t2=t2, label_smoothing=label_smoothing, num_iters=num_iters)
 
 
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class BiTemperedLogistic(LossFunctionWrapper):
     """Computes Bi-Tempered Logistic Loss."""
 
@@ -413,6 +415,7 @@ class BiTemperedLogistic(LossFunctionWrapper):
             t1=t1, t2=t2, label_smoothing=label_smoothing, num_iters=num_iters)
 
 
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class SparseBiTemperedLogistic(LossFunctionWrapper):
     """Computes Sparse Bi-Tempered Logistic Loss."""
 

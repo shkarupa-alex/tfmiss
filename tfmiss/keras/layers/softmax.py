@@ -26,6 +26,7 @@ def compute_weighted_loss(losses, sample_weight=None, reduction=tf.keras.losses.
     return losses_utils.compute_weighted_loss(losses, sample_weight=sample_weight, reduction=reduction)
 
 
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class AdaptiveSoftmax(tf.keras.layers.Layer):
     """Adaptive softmax layer.
     Reference https://arxiv.org/pdf/1609.04309.pdf
@@ -498,6 +499,7 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class NoiseContrastiveEstimation(_SoftmaxSamplingWrapper):
     """Noise-contrastive estimation layer.
     Reference: http://www.jmlr.org/proceedings/papers/v9/gutmann10a/gutmann10a.pdf
@@ -522,6 +524,7 @@ class NoiseContrastiveEstimation(_SoftmaxSamplingWrapper):
             sample_loss=tf.nn.nce_loss, units=units, negatives=negatives, **kwargs)
 
 
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class SampledSofmax(_SoftmaxSamplingWrapper):
     """Sampled softmax layer.
     Reference http://arxiv.org/abs/1412.2007.pdf

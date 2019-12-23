@@ -10,6 +10,7 @@ from tensorflow.python.keras.utils import tf_utils
 from tfmiss.nn.embedding import adaptive_embedding_lookup
 
 
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class AdaptiveEmbedding(Embedding):
     """Adaptive input embedding layer.
     Reference: https://arxiv.org/pdf/1809.10853v3.pdf
