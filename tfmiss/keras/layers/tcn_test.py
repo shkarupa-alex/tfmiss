@@ -130,6 +130,33 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
         for v in model.variables:
             self.assertIn(v, checkpointed_objects)
 
+    def test_model_with_ragged_input(self):
+        inputs = tf.keras.layers.Input(shape=(None, 2), dtype=tf.float32, ragged=True)
+        outputs = TemporalConvNet(
+            filters=[5, 4, 3],
+            kernel_size=3,
+            dropout=0.2
+        )(inputs)
+
+        model = tf.keras.Model(inputs, outputs)
+        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
+        model.run_eagerly = testing_utils.should_run_eagerly()
+
+        data = tf.ragged.constant([
+            [[.1, 1.], [.2, 2.], [.3, 3.]],
+            [[.4, 4.]],
+            [[.5, 5.], [.6, 6.]]
+        ], ragged_rank=1)
+        outputs = model.predict(data)
+        self.assertAllClose(
+            outputs,
+            tf.ragged.constant([
+                [[0.] * 3, [0.] * 3, [0.] * 3],
+                [[0.] * 3],
+                [[0.] * 3, [0.] * 3]
+            ], ragged_rank=1)
+        )
+
 
 if __name__ == "__main__":
     tf.test.main()
