@@ -31,6 +31,9 @@ def adaptive_embedding_lookup(params, ids, transforms, max_norm=None, name=None)
         A `Tensor` with the same type as the tensors in `params`.
     """
 
+    if isinstance(ids, tf.RaggedTensor):
+        return tf.ragged.map_flat_values(adaptive_embedding_lookup, params, ids, transforms, max_norm, name)
+
     if not isinstance(params, (list, tuple)) or len(params) < 2:
         raise ValueError('At least 2 variables required in params')
 
