@@ -67,6 +67,11 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                  **kwargs):
         super(AdaptiveSoftmax, self).__init__(
             activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
+        self.input_spec = [
+            tf.keras.layers.InputSpec(min_ndim=2),  # predictions
+            tf.keras.layers.InputSpec(min_ndim=1),  # targets
+        ]
+        self.supports_masking = True
 
         if cutoff[-1] > units - 1:
             raise ValueError('Can\'t specify `cutoff` larger than `units` size')
@@ -86,12 +91,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         self.kernel_constraint = tf.keras.constraints.get(kernel_constraint)
         self.bias_constraint = tf.keras.constraints.get(bias_constraint)
         self.loss_reduction = loss_reduction
-
-        self.supports_masking = True
-        self.input_spec = [
-            tf.keras.layers.InputSpec(min_ndim=2),  # predictions
-            tf.keras.layers.InputSpec(min_ndim=1),  # targets
-        ]
 
     @tf_utils.shape_type_conversion
     def build(self, input_shape):
@@ -184,7 +183,10 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
 
         input_logits, input_targets = inputs
         input_logits = tf.cast(input_logits, self.dtype)
-        if tf.executing_eagerly() and len(input_logits.shape) == len(input_targets.shape):
+        if tf.executing_eagerly() \
+                and not isinstance(input_logits, tf.RaggedTensor) \
+                and not isinstance(input_targets, tf.RaggedTensor) \
+                and len(input_logits.shape) == len(input_targets.shape):
             # https://github.com/tensorflow/tensorflow/issues/34687
             input_targets = tf.squeeze(input_targets, axis=-1)
 
@@ -357,6 +359,11 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
                  **kwargs):
         super(_SoftmaxSamplingWrapper, self).__init__(
             activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
+        self.input_spec = [
+            tf.keras.layers.InputSpec(min_ndim=2),  # predictions
+            tf.keras.layers.InputSpec(min_ndim=1),  # targets
+        ]
+        self.supports_masking = True
 
         tf.keras.losses.Reduction.validate(loss_reduction)
 
@@ -370,12 +377,6 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
         self.kernel_constraint = tf.keras.constraints.get(kernel_constraint)
         self.bias_constraint = tf.keras.constraints.get(bias_constraint)
         self.loss_reduction = loss_reduction
-
-        self.supports_masking = True
-        self.input_spec = [
-            tf.keras.layers.InputSpec(min_ndim=2),  # predictions
-            tf.keras.layers.InputSpec(min_ndim=1),  # targets
-        ]
 
     @tf_utils.shape_type_conversion
     def build(self, input_shape):
