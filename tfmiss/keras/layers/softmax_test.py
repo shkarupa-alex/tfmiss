@@ -140,6 +140,53 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
         self.assertEqual([sample_size // 100, seq_length, num_classes], list(predictions.shape))
         self.assertAllClose(np.ones_like(predictsum), predictsum)
 
+    def test_ragged_input(self):
+        layer = AdaptiveSoftmax(units=16, cutoff=[1], factor=2)
+        logits_data = tf.ragged.constant([
+            [[1.], [2.], [2.]],
+            [[0.]],
+            [[1.], [2.]]
+        ], ragged_rank=1)
+        targets_data = tf.ragged.constant([
+            [1, 2, 3],
+            [8],
+            [14, 15]
+        ], ragged_rank=1)
+        layer([logits_data, targets_data])
+        layer.set_weights([
+            np.array([[1.] * 2]),
+            np.array([[2.] * 8]),
+            np.array([3.] * 8),
+            np.array([[4.] * 15] * 8),
+            np.array([5.] * 15),
+        ])
+
+        logit_inputs = tf.keras.layers.Input(shape=(None, 1), dtype=tf.float32, ragged=True)
+        logit_targets = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, ragged=True)
+        outputs = layer([logit_inputs, logit_targets])
+
+        model = tf.keras.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
+        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
+        model.run_eagerly = testing_utils.should_run_eagerly()
+        outputs = model.predict([logits_data, targets_data])
+        self.assertAllClose(
+            outputs,
+            tf.ragged.constant([
+                [
+                    [0.5] + [0.03333333134651184] * 15,
+                    [0.5] + [0.03333333134651184] * 15,
+                    [0.5] + [0.03333333134651184] * 15
+                ],
+                [
+                    [0.5] + [0.03333333134651184] * 15
+                ],
+                [
+                    [0.5] + [0.03333333134651184] * 15,
+                    [0.5] + [0.03333333134651184] * 15
+                ]
+            ], ragged_rank=1)
+        )
+
 
 @keras_parameterized.run_all_keras_modes
 class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
@@ -212,6 +259,41 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
         self.assertEqual([sample_size // 100, seq_length, num_classes], list(predictions.shape))
         self.assertAllClose(np.ones_like(predictsum), predictsum)
 
+    def test_with_ragged_input(self):
+        layer = NoiseContrastiveEstimation(units=16, negatives=8)
+        logits_data = tf.ragged.constant([
+            [[1.], [2.], [2.]],
+            [[0.]],
+            [[1.], [2.]]
+        ], ragged_rank=1)
+        targets_data = tf.ragged.constant([
+            [1, 2, 3],
+            [8],
+            [14, 15]
+        ], ragged_rank=1)
+        layer([logits_data, targets_data])
+        layer.set_weights([
+            np.array([[1.] * 16]),
+            np.array([2.] * 16),
+        ])
+
+        logit_inputs = tf.keras.layers.Input(shape=(None, 1), dtype=tf.float32, ragged=True)
+        logit_targets = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, ragged=True)
+        outputs = layer([logit_inputs, logit_targets])
+
+        model = tf.keras.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
+        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
+        model.run_eagerly = testing_utils.should_run_eagerly()
+        outputs = model.predict([logits_data, targets_data])
+        self.assertAllClose(
+            outputs,
+            tf.ragged.constant([
+                [[0.0625] * 16, [0.0625] * 16, [0.0625] * 16],
+                [[0.0625] * 16],
+                [[0.0625] * 16, [0.0625] * 16]
+            ], ragged_rank=1)
+        )
+
 
 @keras_parameterized.run_all_keras_modes
 class SampledSofmaxTest(keras_parameterized.TestCase):
@@ -283,6 +365,41 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
         self.assertGreater(history['val_loss'][0], history['val_loss'][-1])
         self.assertEqual([sample_size // 100, seq_length, num_classes], list(predictions.shape))
         self.assertAllClose(np.ones_like(predictsum), predictsum)
+
+    def test_with_ragged_input(self):
+        layer = SampledSofmax(units=16, negatives=8)
+        logits_data = tf.ragged.constant([
+            [[1.], [2.], [2.]],
+            [[0.]],
+            [[1.], [2.]]
+        ], ragged_rank=1)
+        targets_data = tf.ragged.constant([
+            [1, 2, 3],
+            [8],
+            [14, 15]
+        ], ragged_rank=1)
+        layer([logits_data, targets_data])
+        layer.set_weights([
+            np.array([[1.] * 16]),
+            np.array([2.] * 16),
+        ])
+
+        logit_inputs = tf.keras.layers.Input(shape=(None, 1), dtype=tf.float32, ragged=True)
+        logit_targets = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, ragged=True)
+        outputs = layer([logit_inputs, logit_targets])
+
+        model = tf.keras.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
+        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
+        model.run_eagerly = testing_utils.should_run_eagerly()
+        outputs = model.predict([logits_data, targets_data])
+        self.assertAllClose(
+            outputs,
+            tf.ragged.constant([
+                [[0.0625] * 16, [0.0625] * 16, [0.0625] * 16],
+                [[0.0625] * 16],
+                [[0.0625] * 16, [0.0625] * 16]
+            ], ragged_rank=1)
+        )
 
 
 if __name__ == "__main__":

@@ -4,8 +4,8 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tensorflow.python.distribute import distribution_strategy_context
-from tensorflow.python.keras.utils import tf_utils
-from tensorflow.python.keras.utils import losses_utils
+from tensorflow.python.keras.backend import convert_inputs_if_ragged, maybe_convert_to_ragged
+from tensorflow.python.keras.utils import losses_utils, tf_utils
 
 
 def compute_weighted_loss(losses, sample_weight=None, reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE):
@@ -72,6 +72,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             tf.keras.layers.InputSpec(min_ndim=1),  # targets
         ]
         self.supports_masking = True
+        self._supports_ragged_inputs = True
 
         if cutoff[-1] > units - 1:
             raise ValueError('Can\'t specify `cutoff` larger than `units` size')
@@ -190,6 +191,10 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             # https://github.com/tensorflow/tensorflow/issues/34687
             input_targets = tf.squeeze(input_targets, axis=-1)
 
+        input_logits, row_lengths = convert_inputs_if_ragged(input_logits)
+        input_targets, _ = convert_inputs_if_ragged(input_targets)
+        is_ragged_input = (row_lengths is not None)
+
         root_logits = self.head(input_logits)
         root_logprobs = tf.nn.log_softmax(root_logits)
         head_probs = tf.math.exp(root_logprobs[..., :self.cutoff[0]])
@@ -282,12 +287,15 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             return eval_losses, eval_probs
 
         tail_losses, tail_probs = tf_utils.smart_cond(training, _train_tail_loss_probs, _eval_tail_loss_probs)
-        full_loss.extend(tail_losses)
-        full_probs.extend(tail_probs)
 
+        full_loss.extend(tail_losses)
         self.add_loss(tf.add_n(full_loss), inputs=True)
 
-        return tf.concat(full_probs, axis=-1)
+        full_probs.extend(tail_probs)
+        full_probs = tf.concat(full_probs, axis=-1)
+        full_probs = maybe_convert_to_ragged(is_ragged_input, full_probs, row_lengths)
+
+        return full_probs
 
     @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
@@ -364,6 +372,7 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
             tf.keras.layers.InputSpec(min_ndim=1),  # targets
         ]
         self.supports_masking = True
+        self._supports_ragged_inputs = True
 
         tf.keras.losses.Reduction.validate(loss_reduction)
 
@@ -431,6 +440,10 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
             training = tf.keras.backend.learning_phase()
 
         input_logits, input_targets = inputs
+        input_logits, row_lengths = convert_inputs_if_ragged(input_logits)
+        input_targets, _ = convert_inputs_if_ragged(input_targets)
+        is_ragged_input = (row_lengths is not None)
+
         input_logits = tf.cast(input_logits, self._compute_dtype)
 
         input_shape = tf.shape(input_logits)
@@ -464,9 +477,9 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
         self.add_loss(loss, inputs=True)
 
         output_probs = tf.nn.softmax(output_logits)
-
         output_shape = tf.stack(tf.unstack(input_shape)[:-1] + [self.units])
         output_probs = tf.reshape(output_probs, output_shape)
+        output_probs = maybe_convert_to_ragged(is_ragged_input, output_probs, row_lengths)
 
         return output_probs
 
