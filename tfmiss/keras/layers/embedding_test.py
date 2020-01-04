@@ -12,83 +12,82 @@ from tfmiss.keras.layers.embedding import AdaptiveEmbedding
 @keras_parameterized.run_all_keras_modes
 class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
     def test_layer(self):
-        with tf.keras.utils.custom_object_scope({'AdaptiveEmbedding': AdaptiveEmbedding}):
-            testing_utils.layer_test(
-                AdaptiveEmbedding,
-                kwargs={
-                    'cutoff': [50, 100],
-                    'input_dim': 200,
-                    'output_dim': 128,
-                },
-                input_shape=(2, 3),
-                input_dtype='int32',
-                expected_output_dtype='float32',
-                expected_output_shape=(None, 3, 128)
-            )
-            testing_utils.layer_test(
-                AdaptiveEmbedding,
-                kwargs={
-                    'cutoff': [50, 100],
-                    'input_dim': 200,
-                    'output_dim': 128,
-                    'proj0': True,
-                },
-                input_shape=(2, 3),
-                input_dtype='int32',
-                expected_output_dtype='float32',
-                expected_output_shape=(None, 3, 128)
-            )
-            testing_utils.layer_test(
-                AdaptiveEmbedding,
-                kwargs={
-                    'cutoff': [50, 100],
-                    'input_dim': 200,
-                    'output_dim': 128,
-                    'input_length': 3,
-                },
-                input_shape=(2, 3),
-                input_dtype='int32',
-                expected_output_dtype='float32',
-                expected_output_shape=(None, 3, 128)
-            )
-            testing_utils.layer_test(
-                AdaptiveEmbedding,
-                kwargs={
-                    'cutoff': [50, 100],
-                    'input_dim': 200,
-                    'output_dim': 128,
-                    'mask_zero': True,
-                },
-                input_shape=(2, 3),
-                input_dtype='int32',
-                expected_output_dtype='float32',
-                expected_output_shape=(None, 3, 128)
-            )
-            testing_utils.layer_test(
-                AdaptiveEmbedding,
-                kwargs={
-                    'cutoff': [50, 100],
-                    'input_dim': 200,
-                    'output_dim': 129,
-                },
-                input_shape=(2, 3, 7),
-                input_dtype='int32',
-                expected_output_dtype='float32',
-                expected_output_shape=(None, 3, 7, 129)
-            )
-            testing_utils.layer_test(
-                AdaptiveEmbedding,
-                kwargs={
-                    'cutoff': [50, 100],
-                    'input_dim': 200,
-                    'output_dim': 128,
-                    'input_length': (None, 7)
-                },
-                input_shape=(2, 3, 7),
-                input_dtype='int32',
-                expected_output_dtype='float32',
-                expected_output_shape=(None, 3, 7, 128)
-            )
+        testing_utils.layer_test(
+            AdaptiveEmbedding,
+            kwargs={
+                'cutoff': [50, 100],
+                'input_dim': 200,
+                'output_dim': 128,
+            },
+            input_shape=(2, 3),
+            input_dtype='int32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 3, 128)
+        )
+        testing_utils.layer_test(
+            AdaptiveEmbedding,
+            kwargs={
+                'cutoff': [50, 100],
+                'input_dim': 200,
+                'output_dim': 128,
+                'proj0': True,
+            },
+            input_shape=(2, 3),
+            input_dtype='int32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 3, 128)
+        )
+        testing_utils.layer_test(
+            AdaptiveEmbedding,
+            kwargs={
+                'cutoff': [50, 100],
+                'input_dim': 200,
+                'output_dim': 128,
+                'input_length': 3,
+            },
+            input_shape=(2, 3),
+            input_dtype='int32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 3, 128)
+        )
+        testing_utils.layer_test(
+            AdaptiveEmbedding,
+            kwargs={
+                'cutoff': [50, 100],
+                'input_dim': 200,
+                'output_dim': 128,
+                'mask_zero': True,
+            },
+            input_shape=(2, 3),
+            input_dtype='int32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 3, 128)
+        )
+        testing_utils.layer_test(
+            AdaptiveEmbedding,
+            kwargs={
+                'cutoff': [50, 100],
+                'input_dim': 200,
+                'output_dim': 129,
+            },
+            input_shape=(2, 3, 7),
+            input_dtype='int32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 3, 7, 129)
+        )
+        testing_utils.layer_test(
+            AdaptiveEmbedding,
+            kwargs={
+                'cutoff': [50, 100],
+                'input_dim': 200,
+                'output_dim': 128,
+                'input_length': (None, 7)
+            },
+            input_shape=(2, 3, 7),
+            input_dtype='int32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 3, 7, 128)
+        )
 
     def test_embedding_correctness(self):
         layer = AdaptiveEmbedding(cutoff=[1], output_dim=16, input_dim=2, factor=2)
@@ -116,29 +115,38 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
         opt.apply_gradients(zip(gs, layer.weights))
         self.assertAllEqual(len(gs), 4)
 
-    # TODO TF 2.1
-    # def test_embedding_with_ragged_input(self):
-    #     layer = tf.keras.layers.AdaptiveEmbedding(cutoff=[1], input_dim=3, output_dim=2)
-    #     layer.set_weights([
-    #         np.array([[1, 1]]),
-    #         np.array([[2]]),
-    #         # proj0 == False
-    #         # np.array([[1, 1], [1, 1]]),
-    #         np.array([[3, 3]]),
-    #     ])
-    #
-    #     inputs = tf.keras.layers.Input(shape=(None,), dtype=tf.float32, ragged=True)
-    #     outputs = tf.keras.layers.Lambda(lambda args: tf.keras.backend.identity(args))(inputs)
-    #     outputs = layer(outputs)
-    #
-    #     model = tf.keras.Model(inputs, outputs)
-    #     model._experimental_run_tf_function = testing_utils.should_run_tf_function()
-    #     model.run_eagerly = testing_utils.should_run_eagerly()
-    #     outputs = model.predict(tf.ragged.constant([[1., 2., 2.], [0.], [1., 2.]], ragged_rank=1))
-    #     self.assertAllClose(
-    #         outputs,
-    #         tf.ragged.constant([[[1., 1.], [2., 2.], [2., 2.]], [[0., 0.]], [[1., 1.], [2., 2.]]], ragged_rank=1)
-    #     )
+    def test_embedding_with_ragged_input(self):
+        layer = AdaptiveEmbedding(cutoff=[1], output_dim=16, input_dim=4, factor=2)
+        data = tf.ragged.constant([
+            [1., 2., 2.],
+            [0.],
+            [1., 2.]
+        ], ragged_rank=1)
+        layer(data)
+        layer.set_weights([
+            np.array([[1] * 16]),
+            np.array([[2] * 8] * 3),
+            # proj0 == False
+            # np.array(...),
+            np.array([[3] * 16] * 8),
+        ])
+
+        inputs = tf.keras.layers.Input(shape=(None,), dtype=tf.float32, ragged=True)
+        outputs = tf.keras.layers.Lambda(lambda args: tf.identity(args))(inputs)
+        outputs = layer(outputs)
+
+        model = tf.keras.Model(inputs, outputs)
+        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
+        model.run_eagerly = testing_utils.should_run_eagerly()
+        outputs = model.predict(data)
+        self.assertAllClose(
+            outputs,
+            tf.ragged.constant([
+                [[48.] * 16, [48.] * 16, [48.] * 16],
+                [[1.] * 16],
+                [[48.] * 16, [48.] * 16]
+            ], ragged_rank=1)
+        )
 
 
 if __name__ == "__main__":

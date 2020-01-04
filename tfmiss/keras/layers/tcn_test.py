@@ -14,31 +14,27 @@ from tfmiss.keras.layers.tcn import TemporalBlock, TemporalConvNet
 @keras_parameterized.run_all_keras_modes
 class TemporalBlockTest(keras_parameterized.TestCase):
     def test_layer(self):
-        with tf.keras.utils.custom_object_scope({'TemporalBlock': TemporalBlock}):
-            testing_utils.layer_test(
-                TemporalBlock,
-                kwargs={
-                    'filters': 3,
-                    'kernel_size': 2,
-                    'dilation': 1,
-                    'dropout': 0.2,
-                },
-                input_shape=(2, 3, 7)
-            )
-
-    def test_layer_same_padding(self):
-        with tf.keras.utils.custom_object_scope({'TemporalBlock': TemporalBlock}):
-            testing_utils.layer_test(
-                TemporalBlock,
-                kwargs={
-                    'filters': 3,
-                    'kernel_size': 2,
-                    'dilation': 1,
-                    'dropout': 0.2,
-                    'padding': 'same',
-                },
-                input_shape=(2, 3, 7)
-            )
+        testing_utils.layer_test(
+            TemporalBlock,
+            kwargs={
+                'filters': 3,
+                'kernel_size': 2,
+                'dilation': 1,
+                'dropout': 0.2,
+            },
+            input_shape=(2, 3, 7)
+        )
+        testing_utils.layer_test(
+            TemporalBlock,
+            kwargs={
+                'filters': 3,
+                'kernel_size': 2,
+                'dilation': 1,
+                'dropout': 0.2,
+                'padding': 'same',
+            },
+            input_shape=(2, 3, 7)
+        )
 
     def test_shape(self):
         layer = TemporalBlock(
@@ -80,29 +76,26 @@ class TemporalBlockTest(keras_parameterized.TestCase):
 @keras_parameterized.run_all_keras_modes
 class TemporalConvNetTest(keras_parameterized.TestCase):
     def test_layer(self):
-        with tf.keras.utils.custom_object_scope({'TemporalConvNet': TemporalConvNet}):
-            testing_utils.layer_test(
-                TemporalConvNet,
-                kwargs={
-                    'filters': [5, 4, 3],
-                    'kernel_size': 3,
-                    'dropout': 0.2,
-                },
-                input_shape=(2, 3, 7)
-            )
+        testing_utils.layer_test(
+            TemporalConvNet,
+            kwargs={
+                'filters': [5, 4, 3],
+                'kernel_size': 3,
+                'dropout': 0.2,
+            },
+            input_shape=(2, 3, 7)
+        )
 
-    def test_layer_same_padding(self):
-        with tf.keras.utils.custom_object_scope({'TemporalConvNet': TemporalConvNet}):
-            testing_utils.layer_test(
-                TemporalConvNet,
-                kwargs={
-                    'filters': [5, 4, 3],
-                    'kernel_size': 3,
-                    'dropout': 0.2,
-                    'padding': 'same',
-                },
-                input_shape=(2, 3, 7)
-            )
+        testing_utils.layer_test(
+            TemporalConvNet,
+            kwargs={
+                'filters': [5, 4, 3],
+                'kernel_size': 3,
+                'dropout': 0.2,
+                'padding': 'same',
+            },
+            input_shape=(2, 3, 7)
+        )
 
     def test_shape(self):
         layer = TemporalConvNet(
@@ -136,6 +129,33 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
         checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
         for v in model.variables:
             self.assertIn(v, checkpointed_objects)
+
+    def test_model_with_ragged_input(self):
+        inputs = tf.keras.layers.Input(shape=(None, 2), dtype=tf.float32, ragged=True)
+        outputs = TemporalConvNet(
+            filters=[5, 4, 3],
+            kernel_size=3,
+            dropout=0.2
+        )(inputs)
+
+        model = tf.keras.Model(inputs, outputs)
+        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
+        model.run_eagerly = testing_utils.should_run_eagerly()
+
+        data = tf.ragged.constant([
+            [[.1, 1.], [.2, 2.], [.3, 3.]],
+            [[.4, 4.]],
+            [[.5, 5.], [.6, 6.]]
+        ], ragged_rank=1)
+        outputs = model.predict(data)
+        self.assertAllClose(
+            outputs,
+            tf.ragged.constant([
+                [[0.] * 3, [0.] * 3, [0.] * 3],
+                [[0.] * 3],
+                [[0.] * 3, [0.] * 3]
+            ], ragged_rank=1)
+        )
 
 
 if __name__ == "__main__":

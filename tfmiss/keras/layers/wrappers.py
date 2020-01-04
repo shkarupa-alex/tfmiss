@@ -8,6 +8,7 @@ from tensorflow.python.framework import ops
 from tensorflow.python.ops import variables
 
 
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class WeightNorm(tf.keras.layers.Wrapper):
     """ Applies weight normalization to a layer. Weight normalization is a reparameterization that decouples the
     magnitude of a weight tensor from its direction. This speeds up convergence by improving the conditioning of the
@@ -23,6 +24,11 @@ class WeightNorm(tf.keras.layers.Wrapper):
     """
 
     def __init__(self, layer, weight_names='kernel', **kwargs):
+        super(WeightNorm, self).__init__(layer, **kwargs)
+        self.input_spec = layer.input_spec
+        self.supports_masking = layer.supports_masking
+        self._supports_ragged_inputs = layer._supports_ragged_inputs
+
         if not isinstance(layer, tf.keras.layers.Layer):
             raise ValueError(
                 'Please initialize `WeightNorm` layer with a '
@@ -44,10 +50,6 @@ class WeightNorm(tf.keras.layers.Wrapper):
             setattr(self, '{}_v'.format(name), None)
             setattr(self, '{}_g'.format(name), None)
             setattr(self, '{}_norm_axes'.format(name), None)
-
-        super(WeightNorm, self).__init__(layer, **kwargs)
-        self.input_spec = layer.input_spec
-        self.supports_masking = layer.supports_masking
 
     @tf_utils.shape_type_conversion
     def build(self, input_shape=None):

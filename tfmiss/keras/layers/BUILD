@@ -5,6 +5,7 @@ py_library(
     srcs = [
         # TODO: https://mlwhiz.com/blog/2018/12/17/text_classification/
         # TODO: https://github.com/CyberZHG/keras-self-attention/
+        # TODO: L2-softmax https://arxiv.org/pdf/1703.09507.pdf
         "__init__.py",
         "embedding.py",
         "softmax.py",

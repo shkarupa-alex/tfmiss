@@ -4,6 +4,7 @@ load("@protobuf_archive//:protobuf.bzl", "proto_gen")
 py_library(
     name = "training",
     srcs = [
+        # TODO: https://github.com/jasonwei20/eda_nlp + change case
         "__init__.py",
         "adapt.py",
         "bucket.py",

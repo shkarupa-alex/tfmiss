@@ -16,6 +16,7 @@ def _moving_average(data, window):
     return np.convolve(data, weights, mode='valid')
 
 
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class LRFinder(tf.keras.callbacks.Callback):
     """Stop training when a monitored quantity has stopped improving.
     Arguments:
@@ -42,7 +43,7 @@ class LRFinder(tf.keras.callbacks.Callback):
         self.min_lr = min_lr
         self.max_lr = max_lr
         self.metric = metric
-        self.ascending = descending
+        self.descending = descending
         self.smooth = smooth
 
         self.monitor_op = np.less if descending else np.greater
@@ -153,3 +154,16 @@ class LRFinder(tf.keras.callbacks.Callback):
         best_idx = np.argmax(derivatives) + delta
 
         return self.lrs[best_idx]
+
+    def get_config(self):
+        config = {
+            'max_steps': self.max_steps,
+            'min_lr': self.min_lr,
+            'max_lr': self.max_lr,
+            'metric': self.metric,
+            'descending': self.descending,
+            'smooth': self.smooth,
+        }
+
+        base_config = super(LRFinder, self).get_config()
+        return dict(list(base_config.items()) + list(config.items()))

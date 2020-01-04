@@ -5,11 +5,11 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.python.keras.layers.embeddings import Embedding
 from tensorflow.python.keras.layers.core import Dense
-from tensorflow.python.eager import context
 from tensorflow.python.keras.utils import tf_utils
 from tfmiss.nn.embedding import adaptive_embedding_lookup
 
 
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class AdaptiveEmbedding(Embedding):
     """Adaptive input embedding layer.
     Reference: https://arxiv.org/pdf/1809.10853v3.pdf
@@ -25,11 +25,11 @@ class AdaptiveEmbedding(Embedding):
                  embeddings_regularizer=None,
                  activity_regularizer=None,
                  embeddings_constraint=None,
-                 mask_zero=False,
-                 input_length=None,
                  kernel_initializer='glorot_uniform',
                  kernel_regularizer=None,
                  kernel_constraint=None,
+                 mask_zero=False,
+                 input_length=None,
                  **kwargs):
         super(AdaptiveEmbedding, self).__init__(
             input_dim=input_dim,
@@ -70,22 +70,7 @@ class AdaptiveEmbedding(Embedding):
                                  'decrease `factor` or increase `output_dim`')
             prev_dim = dim
 
-            # Note: most sparse optimizers do not have GPU kernels defined. When
-            # building graphs, the placement algorithm is able to place variables on CPU
-            # since it knows all kernels using the variable only exist on CPU.
-            # When eager execution is enabled, the placement decision has to be made
-            # right now. Checking for the presence of GPUs to avoid complicating the
-            # TPU codepaths which can handle sparse optimizers.
-            if context.executing_eagerly() and context.context().num_gpus():
-                with tf.device('cpu:0'):
-                    embed = self.add_weight(
-                        shape=(size, dim),
-                        initializer=self.embeddings_initializer,
-                        name='embeddings_{}'.format(i),
-                        regularizer=self.embeddings_regularizer,
-                        constraint=self.embeddings_constraint
-                    )
-            else:
+            with tf.device('CPU:0'):
                 embed = self.add_weight(
                     shape=(size, dim),
                     initializer=self.embeddings_initializer,

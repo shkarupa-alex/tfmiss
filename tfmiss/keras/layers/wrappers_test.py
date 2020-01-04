@@ -14,12 +14,11 @@ from tfmiss.keras.layers.wrappers import WeightNorm
 @keras_parameterized.run_all_keras_modes
 class WeightNormTest(keras_parameterized.TestCase):
     def test_layer(self):
-        with tf.keras.utils.custom_object_scope({'WeightNorm': WeightNorm}):
-            testing_utils.layer_test(
-                WeightNorm,
-                kwargs={'layer': tf.keras.layers.Dense(1)},
-                input_shape=(3, 7)
-            )
+        testing_utils.layer_test(
+            WeightNorm,
+            kwargs={'layer': tf.keras.layers.Dense(1)},
+            input_shape=(3, 7)
+        )
 
     def test_double_wrap(self):
         layer = tf.keras.layers.Dense(7)

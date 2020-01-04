@@ -117,6 +117,30 @@ class AdaptiveEmbeddingLookupTest(tf.test.TestCase):
                 [lambda embed: _transform_embedding(4, embed)] * 2
             ))
 
+    def test_adaptive_ragged(self):
+        params = [
+            [[1.0, 1.0, 1.0, 1.0],
+             [1.1, 1.1, 1.1, 1.1],
+             [1.2, 1.2, 1.2, 1.2],
+             [1.3, 1.3, 1.3, 1.3]],
+            [[2.0, 2.0, 2.0],
+             [2.1, 2.1, 2.1],
+             [2.2, 2.2, 2.2]],
+            [[3.0, 3.0],
+             [3.1, 3.1]],
+            [[4.0]]
+        ]
+        ids = tf.ragged.constant([[0, 8], [3]])
+
+        transforms = [lambda embed: _transform_embedding(4, embed)] * len(params)
+        embeddings = adaptive_embedding_lookup(params, ids, transforms)
+        expected = [
+            [[1.0, 1.0, 1.0, 1.0],
+             [3.1, 3.1, 0.0, 0.0]],
+            [[1.3, 1.3, 1.3, 1.3]]
+        ]
+        self.assertAllClose(self.evaluate(embeddings), expected)
+
 
 @test_util.run_all_in_graph_and_eager_modes
 class AdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
@@ -396,7 +420,7 @@ class SafeAdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
         sparse_ids, _ = self._ids_and_weights_3d()
 
         embedding_lookup_result = self.evaluate(safe_adaptive_embedding_lookup_sparse(
-                embedding_weights, sparse_ids, None, embedding_transforms))
+            embedding_weights, sparse_ids, None, embedding_transforms))
 
         embedding_weights = list(itertools.chain(*embedding_weights))
         self.assertAllClose(embedding_lookup_result, [[
