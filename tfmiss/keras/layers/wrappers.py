@@ -65,31 +65,35 @@ class WeightNorm(tf.keras.layers.Wrapper):
                     '{} not found in layer {}'.format(name, self.layer))
 
             v = getattr(self.layer, name)
-            norm_axes = list(range(v.shape.rank - 1))
+            setattr(self, '{}_v'.format(name), v)
 
-            def g_init(*args, **kwargs):
-                with ops.init_scope():
-                    v_init = tf.cond(
-                        variables.is_variable_initialized(v),
-                        v.read_value,
-                        lambda: v.initial_value
-                    )
-                c = tf.shape(v_init)[-1]
-                v_init = tf.reshape(v_init, [-1, c])
+            v_depth = int(v.shape[-1])
+            setattr(self, '{}_v_depth'.format(name), v_depth)
 
-                return tf.norm(v_init, ord=2, axis=0)
+            v_axes = list(range(v.shape.rank - 1))
+            setattr(self, '{}_v_axes'.format(name), v_axes)
 
             g = self.add_weight(
                 name='{}_g'.format(name),
                 shape=(v.shape[-1],),
-                initializer=g_init,
+                initializer='ones',
                 dtype=v.dtype,
                 trainable=True,
             )
-
-            setattr(self, '{}_v'.format(name), v)
             setattr(self, '{}_g'.format(name), g)
-            setattr(self, '{}_norm_axes'.format(name), norm_axes)
+
+            g_init = self.add_weight(
+                name='{}_g_init'.format(name),
+                shape=None,
+                initializer='zeros',
+                dtype=tf.dtypes.bool,
+                trainable=False
+            )
+            setattr(self, '{}_g_init'.format(name), g_init)
+
+            g_mutex = tf.CriticalSection(name='{}_g_mutex'.format(name))
+            setattr(self, '{}_g_mutex'.format(name), g_mutex)
+
             setattr(self.layer, name, None)
 
         super(WeightNorm, self).build()
@@ -99,13 +103,33 @@ class WeightNorm(tf.keras.layers.Wrapper):
 
         for name in self.weight_names:
             v = getattr(self, '{}_v'.format(name))
+            v_depth = getattr(self, '{}_v_depth'.format(name))
+            v_axes = getattr(self, '{}_v_axes'.format(name))
             g = getattr(self, '{}_g'.format(name))
-            norm_axes = getattr(self, '{}_norm_axes'.format(name))
+            g_init = getattr(self, '{}_g_init'.format(name))
+            g_mutex = getattr(self, '{}_g_mutex'.format(name))
+
+            def _read_g():
+                return tf.identity(g)
+
+            def _init_g():
+                # Ensure we read `g` after _update_weights.
+                assert_init = tf.debugging.assert_equal(g_init, False, message='The layer already initialized')
+                with tf.control_dependencies([assert_init]):
+                    v_flat = tf.reshape(v, [-1, v_depth])
+                    v_norm = tf.norm(v_flat, axis=0)
+                    g_assign = g.assign(tf.reshape(v_norm, (v_depth,)))
+                    g_init_assign = g_init.assign(True)
+
+                    with tf.control_dependencies([g_assign, g_init_assign]):
+                        return tf.identity(g)
+
+            g = g_mutex.execute(lambda: tf.cond(g_init, _read_g, _init_g))
 
             # Replace kernel by normalized weight variable.
-            w = tf.nn.l2_normalize(v, axis=norm_axes) * g
-            updates.append(tf.identity(w))
+            w = tf.nn.l2_normalize(v, axis=v_axes) * g
             setattr(self.layer, name, w)
+            updates.append(tf.identity(w))
 
         return updates
 

@@ -32,14 +32,17 @@ function main() {
   $PY_BIN setup.py bdist_wheel > /dev/null
 
   # Define OS-specific repair command for
-  if [[ $(uname) == "Darwin" ]]; then
+  if [[ ${SKIP_REPAIR:-0} ]]; then
+    REPAIR_CMD="cp -t repaired/"
+  elif [[ $(uname) == "Darwin" ]]; then
     python3 -m pip install -U delocate
     REPAIR_CMD="delocate-wheel -w repaired"
   else
     python3 -m pip install -U auditwheel==2.0.0
 
     # Patch auditwheel
-    POLICY_JSON="/usr/local/lib/python3.5/dist-packages/auditwheel/policy/policy.json"
+    AUDIT_WHEEL_PATH=$(python3 -c 'import auditwheel as aw; import os; print(os.path.dirname(aw.__file__))')
+    POLICY_JSON="${AUDIT_WHEEL_PATH}/policy/policy.json"
     if [[ ! -f ${POLICY_JSON}.bak ]]; then
       cp -f ${POLICY_JSON} ${POLICY_JSON}.bak
     fi
