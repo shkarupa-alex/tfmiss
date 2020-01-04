@@ -111,4 +111,4 @@ ENV/
 *.swp
 .vscode/
 *.whl
-data/
+/data
