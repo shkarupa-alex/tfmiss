@@ -10,7 +10,6 @@ from tensorflow.python.util import object_identity
 from tensorflow.python.training.tracking import util as trackable_util
 from tfmiss.keras.layers.wrappers import WeightNorm
 
-
 @keras_parameterized.run_all_keras_modes
 class WeightNormTest(keras_parameterized.TestCase):
     def test_layer(self):
@@ -18,6 +17,11 @@ class WeightNormTest(keras_parameterized.TestCase):
             WeightNorm,
             kwargs={'layer': tf.keras.layers.Dense(1)},
             input_shape=(3, 7)
+        )
+        testing_utils.layer_test(
+            WeightNorm,
+            kwargs={'layer': tf.keras.layers.Conv2D(5, (2, 2))},
+            input_shape=(2, 4, 4, 3)
         )
 
     def test_double_wrap(self):

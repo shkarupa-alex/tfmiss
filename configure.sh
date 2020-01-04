@@ -55,3 +55,5 @@ write_action_env_to_bazelrc "TF_CXX11_ABI_FLAG" ${TF_CXX11_ABI_FLAG}
 # Store common flags
 write_to_bazelrc "build -c opt"
 write_to_bazelrc ""
+write_to_bazelrc "test --action_env TF_FORCE_GPU_ALLOW_GROWTH=true"
+write_to_bazelrc ""
