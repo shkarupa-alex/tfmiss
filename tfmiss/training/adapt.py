@@ -53,7 +53,7 @@ def test_device_matmul(max_batch, max_hidden, max_classes, repeats, device, dtyp
         final_space = final_space[final_space > 0]
         final_space = final_space[final_space <= max_val]
 
-        return final_space
+        return np.array(final_space)
 
     batch_sizes = _matmul_dim_space(max_batch)
     hidden_sizes = _matmul_dim_space(max_hidden)
@@ -97,9 +97,9 @@ def test_device_matmul(max_batch, max_hidden, max_classes, repeats, device, dtyp
             tf.get_logger().info('Done {} steps of {}'.format(step + 1, dense_grid.shape[0]))
 
     return {
-        'batch_sizes': list(batch_sizes),
-        'hidden_sizes': list(hidden_sizes),
-        'class_sizes': list(class_sizes),
+        'batch_sizes': batch_sizes.tolist(),
+        'hidden_sizes': hidden_sizes.tolist(),
+        'class_sizes': class_sizes.tolist(),
         'cost_values': cost_values
     }
 
