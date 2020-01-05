@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import json
 import numpy as np
 import tensorflow as tf
 from collections import Counter
@@ -29,6 +30,11 @@ class TestDeviceMatmulTest(tf.test.TestCase):
         self.assertListEqual([1, 2, 3, 4, 5, 7, 8], device_params['hidden_sizes'])
         self.assertListEqual([1, 2, 3, 4, 5, 7, 8, 9, 15, 16], device_params['class_sizes'])
         self.assertLen(device_params['cost_values'], 16 * 7 * 10)
+
+    def test_serializable(self):
+        device_params = test_device_matmul(
+            max_batch=5, max_hidden=9, max_classes=17, repeats=1, device='CPU:0', dtype='float32')
+        json.dumps(device_params)
 
 
 class InterpolateMatmulCostTest(tf.test.TestCase):
