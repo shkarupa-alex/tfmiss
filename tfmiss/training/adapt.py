@@ -8,6 +8,11 @@ import time
 from collections import Counter
 from scipy.interpolate import LinearNDInterpolator
 
+try:
+    from functools import lru_cache
+except:
+    from repoze.lru import lru_cache
+
 
 def test_device_matmul(max_batch, max_hidden, max_classes, repeats, device, dtype):
     """Measures matrix multiplication time: [BATCH, HIDDEN] * [HIDDEN, CLASSES].
@@ -123,6 +128,7 @@ def interpolate_matmul_cost(device_params):
     cost_values = np.array(cost_values)
     approx_cost = LinearNDInterpolator(point_grid, cost_values, fill_value=np.nan, rescale=True)
 
+    @lru_cache(maxsize=10000)
     def _with_bounds(batch_size, hidden_size, num_classes):
         batch_size = max(1, batch_size)
         hidden_size = max(1, hidden_size)
@@ -130,7 +136,8 @@ def interpolate_matmul_cost(device_params):
 
         value = approx_cost(batch_size, hidden_size, num_classes)
         if np.isnan(value):
-            raise ValueError('Required point is out of known bounds')
+            raise ValueError('Required point ({}, {}, {}) is out of known bounds'.format(
+                batch_size, hidden_size, num_classes))
 
         return value.item()
 
@@ -287,7 +294,8 @@ def estimate_best_splits(device_params, freq_vocab, num_tails, hidden_size, fact
     all_splits = generate_class_clusters(num_tails, prob_accum)
     head_sizes = list(np.unique(all_splits[:, 0]))
 
-    batch_sizes = list(device_params['batch_sizes'])
+    batch_sizes = [bs for bs in device_params['batch_sizes'] if bs < 8 or bs % 8 == 0]
+    batch_sizes = sorted(set(batch_sizes + [max(device_params['batch_sizes'])]))
     try:
         base_costs = [approx_cost(batch, hidden_size, len(prob_accum)) for batch in batch_sizes]
     except ValueError:

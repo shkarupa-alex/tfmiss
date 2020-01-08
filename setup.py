@@ -43,6 +43,7 @@ setup(
         # https://github.com/tensorflow/tensorflow/issues/7166
         # 'tensorflow>=2.0.0',
         'matplotlib>=3.1.1',
+        'repoze.lru>=0.7',
         'tabulate>=0.8.6',
     ],
     extras_require={
