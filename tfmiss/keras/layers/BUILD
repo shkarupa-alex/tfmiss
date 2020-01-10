@@ -5,9 +5,9 @@ py_library(
     srcs = [
         # TODO: https://mlwhiz.com/blog/2018/12/17/text_classification/
         # TODO: https://github.com/CyberZHG/keras-self-attention/
-        # TODO: L2-softmax https://arxiv.org/pdf/1703.09507.pdf
         "__init__.py",
         "embedding.py",
+        "scale.py",
         "softmax.py",
         "tcn.py",
         "wrappers.py",
@@ -21,6 +21,15 @@ py_library(
 py_test(
     name = "embedding_test",
     srcs = ["embedding_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":layers"
+    ],
+)
+
+py_test(
+    name = "scale_test",
+    srcs = ["scale_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":layers"
