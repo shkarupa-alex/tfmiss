@@ -12,11 +12,10 @@ from utils import data_generator
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Sequence Modeling - Character Level Language Model')
-    parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
+    parser.add_argument('--batch_size', type=int, default=256, help='Batch size')
     parser.add_argument('--dropout', type=float, default=0.1, help='Dropout applied to layers')
-    parser.add_argument('--clip', type=float, default=0.15, help='Gradient clip')
     parser.add_argument('--epochs', type=int, default=100, help='Upper epoch limit')
-    parser.add_argument('--lr', type=float, default=4, help='Initial learning rate')
+    parser.add_argument('--lr', type=float, default=0.1, help='Initial learning rate')
     parser.add_argument('--embed_size', type=int, default=100, help='Dimension of character embeddings')
     parser.add_argument('--nhid', type=int, default=512, help='Number of hidden units per layer')
     parser.add_argument('--seq_len', type=int, default=400, help='Total sequence length, including effective history')
@@ -64,7 +63,7 @@ if __name__ == "__main__":
             units=argv.nhid,
             core=Text8Model.OUT_ASM,
             dropout=argv.dropout,
-            cutoff=[454, 5870],
+            cutoff=[454, 6590],
             negatives=argv.negatives
         ),
 
@@ -107,10 +106,7 @@ if __name__ == "__main__":
         loss = 'sparse_categorical_crossentropy' if 'Softmax' == title else None
         model.compile(
             run_eagerly=False,
-            optimizer=keras.optimizers.SGD(
-                lr=argv.lr,
-                clipnorm=argv.clip
-            ),
+            optimizer=keras.optimizers.SGD(lr=argv.lr),
             loss='sparse_categorical_crossentropy',
         )
         model.summary()

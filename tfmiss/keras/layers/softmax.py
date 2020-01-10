@@ -465,12 +465,7 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
             )
 
         def _eval_loss():
-            labels_one_hot = tf.one_hot(input_targets, self.units)
-            per_logit_loss = tf.nn.sigmoid_cross_entropy_with_logits(
-                labels=labels_one_hot,
-                logits=output_logits
-            )
-            return tf.reduce_sum(per_logit_loss, axis=-1)
+            return tf.nn.sparse_softmax_cross_entropy_with_logits(logits=output_logits, labels=input_targets)
 
         loss = tf_utils.smart_cond(training, _train_loss, _eval_loss)
         loss = compute_weighted_loss(loss, sample_weight=None, reduction=self.loss_reduction)
