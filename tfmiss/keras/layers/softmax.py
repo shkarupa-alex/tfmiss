@@ -183,7 +183,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             training = tf.keras.backend.learning_phase()
 
         input_logits, input_targets = inputs
-        input_logits = tf.cast(input_logits, self.dtype)
         if tf.executing_eagerly() \
                 and not isinstance(input_logits, tf.RaggedTensor) \
                 and not isinstance(input_targets, tf.RaggedTensor) \
@@ -195,107 +194,106 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         input_targets, _ = convert_inputs_if_ragged(input_targets)
         is_ragged_input = (row_lengths is not None)
 
-        root_logits = self.head(input_logits)
+        probs, loss = tf_utils.smart_cond(
+            training,
+            lambda: self._train_probs_loss(input_logits, input_targets),
+            lambda: self._eval_probs_loss(input_logits, input_targets)
+        )
+        self.add_loss(loss, inputs=True)
+
+        probs = maybe_convert_to_ragged(is_ragged_input, probs, row_lengths)
+
+        return probs
+
+    def _train_probs_loss(self, inputs, targets):
+        root_logits = self.head(inputs)
+        root_logits = tf.cast(root_logits, tf.float32)
         root_logprobs = tf.nn.log_softmax(root_logits)
-        head_probs = tf.math.exp(root_logprobs[..., :self.cutoff[0]])
+        head_logprobs = root_logprobs[..., :self.cutoff[0]]
 
         tail_masks = []
-        root_targets = input_targets
-        for t in range(len(self.cutoff) - 1):
+        root_targets = targets
+        for i in range(len(self.cutoff) - 1):
             tail_masks.append(tf.logical_and(
-                tf.greater_equal(input_targets, self.cutoff[t]),
-                tf.less(input_targets, self.cutoff[t + 1])
+                tf.greater_equal(targets, self.cutoff[i]),
+                tf.less(targets, self.cutoff[i + 1])
             ))
-            clust_targets = tf.fill(tf.shape(root_targets), tf.cast(self.cutoff[0] + t, root_targets.dtype))
-            root_targets = tf.where(tail_masks[t], clust_targets, root_targets)
+            clust_targets = tf.fill(tf.shape(root_targets), tf.cast(self.cutoff[0] + i, root_targets.dtype))
+            root_targets = tf.where(tail_masks[i], clust_targets, root_targets)
         root_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=root_logits, labels=root_targets)
         root_loss = compute_weighted_loss(root_loss, sample_weight=None, reduction=self.loss_reduction)
 
         full_loss = [root_loss]
-        full_probs = [head_probs]
+        full_logprobs = [head_logprobs]
+        targets_shape = tf.shape(targets)
+        for i in range(len(self.cutoff) - 1):
+            clust_start = self.cutoff[0] + i
+            clust_logprob = root_logprobs[..., clust_start:clust_start + 1]
+            tail_targets = targets - self.cutoff[i]
 
-        def _train_tail_loss_probs():
-            train_losses, train_probs = [], []
+            true_mask = tail_masks[i]
+            true_inputs = tf.boolean_mask(inputs, true_mask)
+            true_logits = self.tails[i](true_inputs, training=True)
+            true_logits = tf.cast(true_logits, tf.float32)
+            true_clust_logprob = tf.boolean_mask(clust_logprob, true_mask)
+            true_logprobs = tf.nn.log_softmax(true_logits)
+            true_logprobs = tf.math.add(true_logprobs, true_clust_logprob)
 
-            targets_shape = tf.shape(input_targets)
-            for i in range(len(self.cutoff) - 1):
-                tail_clust_start = self.cutoff[0] + i
-                tail_clust_logprobs = root_logprobs[..., tail_clust_start:tail_clust_start + 1]
-                tail_input_targets = input_targets - self.cutoff[i]
+            false_mask = tf.logical_not(true_mask)
+            false_clust_logprob = tf.boolean_mask(clust_logprob, false_mask)
+            clust_size = tf.cast(self.cutoff[i + 1] - self.cutoff[i], false_clust_logprob.dtype)
+            false_logprobs = false_clust_logprob - tf.math.log(clust_size)
+            false_logprobs = tf.tile(false_logprobs, [1, clust_size])
 
-                true_tail_inputs = tf.boolean_mask(input_logits, tail_masks[i])
-                true_tail_logits = self.tails[i](true_tail_inputs)
-                true_clust_logprobs = tf.boolean_mask(tail_clust_logprobs, tail_masks[i])
-                true_tail_logprobs = tf.nn.log_softmax(true_tail_logits)
-                true_tail_logprobs = tf.math.add(true_tail_logprobs, true_clust_logprobs)
-                true_tail_probs = tf.math.exp(true_tail_logprobs)
+            target_indices = tf.range(tf.size(targets))
+            target_indices = tf.reshape(target_indices, targets_shape)
+            true_indices = tf.boolean_mask(target_indices, true_mask)
+            false_indices = tf.boolean_mask(target_indices, false_mask)
 
-                false_tail_mask = tf.logical_not(tail_masks[i])
-                false_clust_logprobs = tf.boolean_mask(tail_clust_logprobs, false_tail_mask)
-                tail_clust_size = self.cutoff[i + 1] - self.cutoff[i]
-                false_tail_probs = tf.math.exp(false_clust_logprobs) / tail_clust_size
-                false_tail_probs = tf.tile(false_tail_probs, [1, tail_clust_size])
+            target_logprobs = tf.dynamic_stitch(
+                [true_indices, false_indices],
+                [true_logprobs, false_logprobs]
+            )
+            probs_shape = tf.concat([targets_shape, tf.shape(target_logprobs)[-1:]], axis=-1)
+            tail_probs = tf.reshape(target_logprobs, probs_shape)
+            full_logprobs.append(tail_probs)
 
-                target_tail_indices = tf.range(tf.size(input_targets))
-                target_tail_indices = tf.reshape(target_tail_indices, targets_shape)
-                true_tail_indices = tf.boolean_mask(target_tail_indices, tail_masks[i])
-                false_tail_indices = tf.boolean_mask(target_tail_indices, false_tail_mask)
+            true_targets = tf.boolean_mask(tail_targets, tail_masks[i])
+            true_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=true_logits, labels=true_targets)
+            true_loss = compute_weighted_loss(true_loss, sample_weight=None, reduction=self.loss_reduction)
+            full_loss.append(true_loss)
 
-                target_tail_probs = tf.dynamic_stitch(
-                    [true_tail_indices, false_tail_indices],
-                    [true_tail_probs, false_tail_probs]
-                )
-                target_probs_shape = tf.concat([targets_shape, tf.shape(target_tail_probs)[-1:]], axis=-1)
-                target_tail_probs = tf.reshape(target_tail_probs, target_probs_shape)
-                train_probs.append(target_tail_probs)
+        loss = tf.reduce_mean(full_loss)
 
-                true_tail_targets = tf.boolean_mask(tail_input_targets, tail_masks[i])
-                true_tail_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(
-                    logits=true_tail_logits, labels=true_tail_targets)
-                false_tail_targets = tf.boolean_mask(tail_input_targets, false_tail_mask)
-                false_tail_loss = tf.fill(tf.shape(false_tail_targets), tf.cast(0., true_tail_loss.dtype))
-                full_tail_loss = tf.dynamic_stitch(
-                    [true_tail_indices, false_tail_indices],
-                    [true_tail_loss, false_tail_loss]
-                )
-                full_tail_loss = tf.reshape(full_tail_loss, targets_shape)
-                full_tail_loss = compute_weighted_loss(full_tail_loss, sample_weight=None,
-                                                       reduction=self.loss_reduction)
-                train_losses.append(full_tail_loss)
+        full_logprobs = tf.concat(full_logprobs, axis=-1)
+        probs = tf.math.exp(full_logprobs)
 
-            return train_losses, train_probs
+        return probs, loss
 
-        def _eval_tail_loss_probs():
-            eval_losses, eval_probs = [], []
-            for i in range(len(self.cutoff) - 1):
-                tail_logits = self.tails[i](input_logits)
+    def _eval_probs_loss(self, inputs, targets):
+        root_logits = self.head(inputs)
+        root_logits = tf.cast(root_logits, tf.float32)
+        root_logprobs = tf.nn.log_softmax(root_logits)
+        head_logprobs = root_logprobs[..., :self.cutoff[0]]
 
-                tail_targets = tf.where(
-                    tail_masks[i],
-                    input_targets - self.cutoff[i],
-                    tf.zeros_like(input_targets, dtype=input_targets.dtype)
-                )
-                tail_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=tail_logits, labels=tail_targets)
-                tail_loss = compute_weighted_loss(tail_loss, sample_weight=None, reduction=self.loss_reduction)
-                eval_losses.append(tail_loss)
+        full_logprobs = [head_logprobs]
+        for i in range(len(self.cutoff) - 1):
+            tail_logits = self.tails[i](inputs, training=False)
+            tail_logits = tf.cast(tail_logits, tf.float32)
+            tail_logprobs = tf.nn.log_softmax(tail_logits)
 
-                tail_logprobs = tf.nn.log_softmax(tail_logits)
-                clust_start = self.cutoff[0] + i
-                tail_logprobs = tf.math.add(tail_logprobs, root_logprobs[..., clust_start:clust_start + 1])
-                eval_probs.append(tf.math.exp(tail_logprobs))
+            clust_start = self.cutoff[0] + i
+            clust_logprob = root_logprobs[..., clust_start:clust_start + 1]
+            tail_logprobs = tf.math.add(tail_logprobs, clust_logprob)
+            full_logprobs.append(tail_logprobs)
+        full_logprobs = tf.concat(full_logprobs, axis=-1)
 
-            return eval_losses, eval_probs
+        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=full_logprobs, labels=targets)
+        loss = compute_weighted_loss(loss, sample_weight=None, reduction=self.loss_reduction)
 
-        tail_losses, tail_probs = tf_utils.smart_cond(training, _train_tail_loss_probs, _eval_tail_loss_probs)
+        probs = tf.math.exp(full_logprobs)
 
-        full_loss.extend(tail_losses)
-        self.add_loss(tf.add_n(full_loss), inputs=True)
-
-        full_probs.extend(tail_probs)
-        full_probs = tf.concat(full_probs, axis=-1)
-        full_probs = maybe_convert_to_ragged(is_ragged_input, full_probs, row_lengths)
-
-        return full_probs
+        return probs, loss
 
     @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
@@ -330,8 +328,8 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
-    """Wrapper for softmax sampling layers.
+class _SoftmaxSamplingBase(tf.keras.layers.Layer):
+    """Base class for softmax sampling layers.
 
     Note: The full sigmoid loss calculated for evaluation.
 
@@ -365,7 +363,8 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
                  bias_constraint=None,
                  loss_reduction=tf.keras.losses.Reduction.AUTO,
                  **kwargs):
-        super(_SoftmaxSamplingWrapper, self).__init__(
+        kwargs['dtype'] = 'float32'
+        super(_SoftmaxSamplingBase, self).__init__(
             activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
         self.input_spec = [
             tf.keras.layers.InputSpec(min_ndim=2),  # predictions
@@ -414,26 +413,27 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
             tf.keras.layers.InputSpec(ndim=predictions_rank - 1)
         ]
 
-        self.kernel = self.add_weight(
-            shape=(self.num_channels, self.units),
-            initializer=self.kernel_initializer,
-            regularizer=self.kernel_regularizer,
-            constraint=self.kernel_constraint,
-            name='kernel',
-            dtype=self.dtype,
-            trainable=True
-        )
-        self.bias = self.add_weight(
-            shape=(self.units,),
-            initializer=self.bias_initializer,
-            regularizer=self.bias_regularizer,
-            constraint=self.bias_constraint,
-            name='bias',
-            dtype=self.dtype,
-            trainable=True
-        )
+        with tf.device('cpu:0'):
+            self.kernel = self.add_weight(
+                shape=(self.num_channels, self.units),
+                initializer=self.kernel_initializer,
+                regularizer=self.kernel_regularizer,
+                constraint=self.kernel_constraint,
+                name='kernel',
+                dtype=self.dtype,
+                trainable=True
+            )
+            self.bias = self.add_weight(
+                shape=(self.units,),
+                initializer=self.bias_initializer,
+                regularizer=self.bias_regularizer,
+                constraint=self.bias_constraint,
+                name='bias',
+                dtype=self.dtype,
+                trainable=True
+            )
 
-        super(_SoftmaxSamplingWrapper, self).build(input_shape)
+        super(_SoftmaxSamplingBase, self).build(input_shape)
 
     def call(self, inputs, training=None):
         if training is None:
@@ -452,6 +452,7 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
 
         output_logits = tf.matmul(input_logits, self.kernel)
         output_logits = tf.nn.bias_add(output_logits, self.bias)
+        output_logits = tf.cast(output_logits, tf.float32)
 
         def _train_loss():
             labels_exp_dim = tf.expand_dims(input_targets, axis=-1)
@@ -462,7 +463,7 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
                 inputs=input_logits,
                 num_sampled=self.negatives,
                 num_classes=self.units,
-            )
+            ) / (1 + self.negatives)
 
         def _eval_loss():
             return tf.nn.sparse_softmax_cross_entropy_with_logits(logits=output_logits, labels=input_targets)
@@ -503,13 +504,13 @@ class _SoftmaxSamplingWrapper(tf.keras.layers.Layer):
             'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
             'loss_reduction': self.loss_reduction,
         }
-        base_config = super(_SoftmaxSamplingWrapper, self).get_config()
+        base_config = super(_SoftmaxSamplingBase, self).get_config()
 
         return dict(list(base_config.items()) + list(config.items()))
 
 
 @tf.keras.utils.register_keras_serializable(package='Miss')
-class NoiseContrastiveEstimation(_SoftmaxSamplingWrapper):
+class NoiseContrastiveEstimation(_SoftmaxSamplingBase):
     """Noise-contrastive estimation layer.
     Reference: http://www.jmlr.org/proceedings/papers/v9/gutmann10a/gutmann10a.pdf
     Noise-contrastive estimation: A new estimation principle for unnormalized statistical models
@@ -534,7 +535,7 @@ class NoiseContrastiveEstimation(_SoftmaxSamplingWrapper):
 
 
 @tf.keras.utils.register_keras_serializable(package='Miss')
-class SampledSofmax(_SoftmaxSamplingWrapper):
+class SampledSofmax(_SoftmaxSamplingBase):
     """Sampled softmax layer.
     Reference http://arxiv.org/abs/1412.2007.pdf
     On Using Very Large Target Vocabulary for Neural Machine Translation

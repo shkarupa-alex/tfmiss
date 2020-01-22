@@ -112,7 +112,7 @@ def adaptive_embedding_lookup(params, ids, transforms, max_norm=None, name=None)
             transform_fn = transforms[p]
             with ops.colocate_with(params[p]):
                 result = tf.gather(params[p], pids)
-                result = embedding_ops._clip(transform_fn(result), pids, max_norm)
+                result = embedding_ops._clip(transform_fn(result), pids, max_norm)  # TODO check speed
             partitioned_result.append(result)
 
         # Stitch these back together
