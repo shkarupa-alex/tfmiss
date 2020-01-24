@@ -37,11 +37,11 @@ if __name__ == "__main__":
         CopyModel.CORE_GRU: [argv.gru_units],
         CopyModel.CORE_LSTM: [argv.lstm_units],
         CopyModel.CORE_TCN: [argv.nhid] * argv.levels,
-
+        CopyModel.CORE_TCN_HE: [argv.nhid] * argv.levels,
     }
 
     histories = {}
-    for core in [CopyModel.CORE_LSTM, CopyModel.CORE_GRU, CopyModel.CORE_TCN]:
+    for core in [CopyModel.CORE_LSTM, CopyModel.CORE_GRU, CopyModel.CORE_TCN, CopyModel.CORE_TCN_HE]:
         model = CopyModel(
             core=core,
             filters=filters[core],

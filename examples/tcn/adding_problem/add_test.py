@@ -36,11 +36,11 @@ if __name__ == "__main__":
         AddingModel.CORE_GRU: [argv.gru_units],
         AddingModel.CORE_LSTM: [argv.lstm_units],
         AddingModel.CORE_TCN: [argv.nhid] * argv.levels,
-
+        AddingModel.CORE_TCN_HE: [argv.nhid] * argv.levels,
     }
 
     histories = {}
-    for core in [AddingModel.CORE_GRU, AddingModel.CORE_LSTM, AddingModel.CORE_TCN]:
+    for core in [AddingModel.CORE_GRU, AddingModel.CORE_LSTM, AddingModel.CORE_TCN, AddingModel.CORE_TCN_HE]:
         model = AddingModel(
             core=core,
             filters=filters[core],

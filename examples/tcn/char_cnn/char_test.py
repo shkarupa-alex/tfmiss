@@ -40,11 +40,11 @@ if __name__ == "__main__":
         CharModel.CORE_GRU: [argv.gru_units],
         CharModel.CORE_LSTM: [argv.lstm_units],
         CharModel.CORE_TCN: [argv.nhid] * argv.levels,
-
+        CharModel.CORE_TCN_HE: [argv.nhid] * argv.levels,
     }
 
     histories = {}
-    for core in [CharModel.CORE_LSTM, CharModel.CORE_GRU, CharModel.CORE_TCN]:
+    for core in [CharModel.CORE_LSTM, CharModel.CORE_GRU, CharModel.CORE_TCN, CharModel.CORE_TCN_HE]:
         model = CharModel(
             seq_len=argv.seq_len,
             vocab_size=vocab_size,

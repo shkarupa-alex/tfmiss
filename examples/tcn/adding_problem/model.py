@@ -10,6 +10,7 @@ class AddingModel(keras.Model):
     CORE_GRU = 'GRU'
     CORE_LSTM = 'LSTM'
     CORE_TCN = 'TCN'
+    CORE_TCN_HE = 'TCN_HE'
 
     def __init__(self, core, filters, kernel_size, dropout):
         inputs = keras.layers.Input(shape=(None, 2))
@@ -18,9 +19,12 @@ class AddingModel(keras.Model):
             sequence = keras.layers.GRU(units=filters[0], dropout=dropout, return_sequences=True)
         elif self.CORE_LSTM == core:
             sequence = keras.layers.LSTM(units=filters[0], dropout=dropout, return_sequences=True)
-        else:
-            assert self.CORE_TCN == core
+        elif self.CORE_TCN == core:
             sequence = TemporalConvNet(filters=filters, kernel_size=kernel_size, dropout=dropout)
+        else:
+            assert self.CORE_TCN_HE == core
+            sequence = TemporalConvNet(
+                filters=filters, kernel_size=kernel_size, dropout=dropout, kernel_initializer='he_uniform')
 
         last = keras.layers.Lambda(lambda x: x[:, -1, :])
         predict = keras.layers.Dense(1)
