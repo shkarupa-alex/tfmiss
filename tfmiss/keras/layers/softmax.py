@@ -328,13 +328,19 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         return dict(list(base_config.items()) + list(config.items()))
 
 
-class _SoftmaxSamplingBase(tf.keras.layers.Layer):
-    """Base class for softmax sampling layers.
+@tf.keras.utils.register_keras_serializable(package='Miss')
+class SampledSofmax(tf.keras.layers.Layer):
+    """Sampled softmax layer.
+    Reference http://arxiv.org/abs/1412.2007.pdf
+    On Using Very Large Target Vocabulary for Neural Machine Translation
+    Jean et al. (2014)
 
-    Note: The full sigmoid loss calculated for evaluation.
+    Note: The full softmax cross entropy loss calculated for evaluation.
+    Note: By default this uses a log-uniform (Zipfian) distribution for sampling, so your labels must be sorted in
+    order of decreasing frequency to achieve good results.  For more details, see
+    `tf.random.log_uniform_candidate_sampler`.
 
     Args:
-        sample_loss: Softmax sampling loss function.
         units: An `int`. The number of possible classes.
         negatives: An `int`.  The number of negative classes to randomly sample per batch. This single sample of
             negative classes is evaluated for each element in the batch.
@@ -351,7 +357,6 @@ class _SoftmaxSamplingBase(tf.keras.layers.Layer):
     """
 
     def __init__(self,
-                 sample_loss,
                  units,
                  negatives,
                  kernel_initializer='zeros',
@@ -364,7 +369,7 @@ class _SoftmaxSamplingBase(tf.keras.layers.Layer):
                  loss_reduction=tf.keras.losses.Reduction.AUTO,
                  **kwargs):
         kwargs['dtype'] = 'float32'
-        super(_SoftmaxSamplingBase, self).__init__(
+        super(SampledSofmax, self).__init__(
             activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
         self.input_spec = [
             tf.keras.layers.InputSpec(min_ndim=2),  # predictions
@@ -375,7 +380,6 @@ class _SoftmaxSamplingBase(tf.keras.layers.Layer):
 
         tf.keras.losses.Reduction.validate(loss_reduction)
 
-        self.sample_loss = sample_loss
         self.units = units
         self.negatives = negatives
         self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
@@ -433,20 +437,20 @@ class _SoftmaxSamplingBase(tf.keras.layers.Layer):
                 trainable=True
             )
 
-        super(_SoftmaxSamplingBase, self).build(input_shape)
+        super(SampledSofmax, self).build(input_shape)
 
     def call(self, inputs, training=None):
         if training is None:
             training = tf.keras.backend.learning_phase()
 
         input_logits, input_targets = inputs
+        input_logits = tf.cast(input_logits, self._compute_dtype)
         input_logits, row_lengths = convert_inputs_if_ragged(input_logits)
         input_targets, _ = convert_inputs_if_ragged(input_targets)
         is_ragged_input = (row_lengths is not None)
 
-        input_logits = tf.cast(input_logits, self._compute_dtype)
-
         input_shape = tf.shape(input_logits)
+        output_shape = tf.stack(tf.unstack(input_shape)[:-1] + [self.units])
         input_logits = tf.reshape(input_logits, [-1, self.num_channels])
         input_targets = tf.reshape(input_targets, [-1])
 
@@ -454,30 +458,34 @@ class _SoftmaxSamplingBase(tf.keras.layers.Layer):
         output_logits = tf.nn.bias_add(output_logits, self.bias)
         output_logits = tf.cast(output_logits, tf.float32)
 
-        def _train_loss():
-            labels_exp_dim = tf.expand_dims(input_targets, axis=-1)
-            return self.sample_loss(
-                weights=tf.transpose(self.kernel),
-                biases=self.bias,
-                labels=labels_exp_dim,
-                inputs=input_logits,
-                num_sampled=self.negatives,
-                num_classes=self.units,
-            ) / (1 + self.negatives)
-
-        def _eval_loss():
-            return tf.nn.sparse_softmax_cross_entropy_with_logits(logits=output_logits, labels=input_targets)
-
-        loss = tf_utils.smart_cond(training, _train_loss, _eval_loss)
+        loss = tf_utils.smart_cond(
+            training,
+            lambda: self._train_loss(input_logits, input_targets),
+            lambda: self._eval_loss(output_logits, input_targets)
+        )
         loss = compute_weighted_loss(loss, sample_weight=None, reduction=self.loss_reduction)
         self.add_loss(loss, inputs=True)
 
         output_probs = tf.nn.softmax(output_logits)
-        output_shape = tf.stack(tf.unstack(input_shape)[:-1] + [self.units])
         output_probs = tf.reshape(output_probs, output_shape)
         output_probs = maybe_convert_to_ragged(is_ragged_input, output_probs, row_lengths)
 
         return output_probs
+
+    def _train_loss(self, inputs, targets):
+        labels_exp_dim = tf.expand_dims(targets, axis=-1)
+
+        return tf.nn.sampled_softmax_loss(
+            weights=tf.transpose(self.kernel),
+            biases=self.bias,
+            labels=labels_exp_dim,
+            inputs=inputs,
+            num_sampled=self.negatives,
+            num_classes=self.units,
+        )
+
+    def _eval_loss(self, logits, targets):
+        return tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=targets)
 
     @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
@@ -504,13 +512,13 @@ class _SoftmaxSamplingBase(tf.keras.layers.Layer):
             'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
             'loss_reduction': self.loss_reduction,
         }
-        base_config = super(_SoftmaxSamplingBase, self).get_config()
+        base_config = super(SampledSofmax, self).get_config()
 
         return dict(list(base_config.items()) + list(config.items()))
 
 
 @tf.keras.utils.register_keras_serializable(package='Miss')
-class NoiseContrastiveEstimation(_SoftmaxSamplingBase):
+class NoiseContrastiveEstimation(SampledSofmax):
     """Noise-contrastive estimation layer.
     Reference: http://www.jmlr.org/proceedings/papers/v9/gutmann10a/gutmann10a.pdf
     Noise-contrastive estimation: A new estimation principle for unnormalized statistical models
@@ -520,40 +528,26 @@ class NoiseContrastiveEstimation(_SoftmaxSamplingBase):
     Note: By default this uses a log-uniform (Zipfian) distribution for sampling, so your labels must be sorted in
     order of decreasing frequency to achieve good results.  For more details, see
     `tf.random.log_uniform_candidate_sampler`.
-
-    Args:
-        units: An `int`. The number of possible classes.
-        negatives: An `int`.  The number of negative classes to randomly sample per batch. This single sample of
-            negative classes is evaluated for each element in the batch.
-    Returns:
-        A `batch_size` 1-D tensor of per-example NCE losses.
     """
 
-    def __init__(self, units, negatives, **kwargs):
-        super(NoiseContrastiveEstimation, self).__init__(
-            sample_loss=tf.nn.nce_loss, units=units, negatives=negatives, **kwargs)
+    def _train_loss(self, input_logits, input_targets):
+        labels_exp_dim = tf.expand_dims(input_targets, axis=-1)
+        loss = tf.nn.nce_loss(
+            weights=tf.transpose(self.kernel),
+            biases=self.bias,
+            labels=labels_exp_dim,
+            inputs=input_logits,
+            num_sampled=self.negatives,
+            num_classes=self.units,
+        )
 
+        return loss / tf.cast(1 + self.negatives, tf.float32)
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class SampledSofmax(_SoftmaxSamplingBase):
-    """Sampled softmax layer.
-    Reference http://arxiv.org/abs/1412.2007.pdf
-    On Using Very Large Target Vocabulary for Neural Machine Translation
-    Jean et al. (2014)
+    def _eval_loss(self, output_logits, input_targets):
+        labels_one_hot = tf.one_hot(input_targets, self.units)
+        loss = tf.nn.sigmoid_cross_entropy_with_logits(
+            logits=output_logits,
+            labels=labels_one_hot
+        )
 
-    Note: The full sigmoid loss calculated for evaluation.
-    Note: By default this uses a log-uniform (Zipfian) distribution for sampling, so your labels must be sorted in
-    order of decreasing frequency to achieve good results.  For more details, see
-    `tf.random.log_uniform_candidate_sampler`.
-
-    Args:
-        units: An `int`. The number of possible classes.
-        negatives: An `int`.  The number of negative classes to randomly sample per batch. This single sample of
-            negative classes is evaluated for each element in the batch.
-    Returns:
-        A `batch_size` 1-D tensor of per-example NCE losses.
-    """
-
-    def __init__(self, units, negatives, **kwargs):
-        super(SampledSofmax, self).__init__(
-            sample_loss=tf.nn.sampled_softmax_loss, units=units, negatives=negatives, **kwargs)
+        return tf.reduce_sum(loss, axis=-1)
