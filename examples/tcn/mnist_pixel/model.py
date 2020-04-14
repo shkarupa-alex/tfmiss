@@ -22,7 +22,8 @@ class MnistModel(keras.Model):
         elif self.CORE_TCN == core:
             sequence = TemporalConvNet(filters=filters, kernel_size=kernel_size, dropout=dropout)
         else:
-            assert self.CORE_TCN_HE == core
+            if not self.CORE_TCN_HE == core:
+                raise ValueError('Wrong "core" value')
             sequence = TemporalConvNet(
                 filters=filters, kernel_size=kernel_size, dropout=dropout, kernel_initializer='he_uniform')
 

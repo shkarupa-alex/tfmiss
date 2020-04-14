@@ -15,7 +15,7 @@ def char_ngrams(source, minn, maxn, itself, name=None):
         minn: Minimum length of character ngram
         maxn: Maximum length of character ngram
         itself: Strategy for source word preserving.
-            One of `"ASIS"`, `"NEVER"`, `"ALWAYS"`, `"ALONE"`.
+            One of `"asis"`, `"never"`, `"always"`, `"alone"`.
         name: A name for the operation (optional).
     Returns:
         `Tensor` if rank(source) is 0, `RaggedTensor` with an additional dimension otherwise.

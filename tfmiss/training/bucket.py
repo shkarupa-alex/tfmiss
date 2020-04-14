@@ -191,8 +191,8 @@ def estimate_bucket_boundaries(len2freq, min_waste=0.01, max_waste=0.1, min_aggr
 
     original = Counter(len2freq)
     restored = sum([Counter(r[1]) for r in result], Counter())
-    assert set(original.keys()) == set(restored.keys())
-    assert set(original.values()) == set(restored.values())
+    if not set(original.keys()) == set(restored.keys()) or not set(original.values()) == set(restored.values()):
+        raise AssertionError('Estimated boundaries differs from source lengths or frequencies')
 
     return [r[0] for r in result]
 
@@ -211,7 +211,7 @@ def estimate_bucket_pipeline(bucket_boundaries, num_samples, safe=True):
         Maximum boundary should be used to filter out too long sequences
         with `tf.data.Dataset.filter` (`length` < `max_boundary`).
     """
-    if len(bucket_boundaries) < 2:
+    if len(bucket_boundaries) < 2: # TODO: check
         raise ValueError('Bucket boundaries must contain at least 2 values')
 
     batch_step = 8
