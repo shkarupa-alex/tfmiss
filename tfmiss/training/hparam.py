@@ -442,7 +442,7 @@ class HParams(object):
           hparam_def: `HParamDef` protocol buffer.
         """
         if not isinstance(hparam_def, hparam_pb2.HParamDef):
-            raise ValueError('Wrong "hparam_def" type')
+            raise AssertionError('Wrong "hparam_def" type')
         for name, value in hparam_def.hparam.items():
             kind = value.WhichOneof('kind')
             if kind.endswith('_value'):
