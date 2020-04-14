@@ -211,7 +211,7 @@ def estimate_bucket_pipeline(bucket_boundaries, num_samples, safe=True):
         Maximum boundary should be used to filter out too long sequences
         with `tf.data.Dataset.filter` (`length` < `max_boundary`).
     """
-    if len(bucket_boundaries) < 2: # TODO: check
+    if len(bucket_boundaries) < 2:
         raise ValueError('Bucket boundaries must contain at least 2 values')
 
     batch_step = 8
