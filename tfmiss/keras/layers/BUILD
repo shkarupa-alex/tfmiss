@@ -51,10 +51,3 @@ py_test(
     srcs_version = "PY2AND3",
     deps = [":layers"],
 )
-
-py_test(
-    name = "wrappers_test",
-    srcs = ["wrappers_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [":layers"],
-)
