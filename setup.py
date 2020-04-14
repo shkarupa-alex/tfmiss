@@ -19,6 +19,7 @@ class InstallPlatlib(install):
         if self.distribution.has_ext_modules():
             self.install_lib = self.install_platlib
 
+
 class BinaryDistribution(Distribution):
     """This class is needed in order to create OS specific wheels."""
 
@@ -40,16 +41,12 @@ setup(
     author_email='shkarupa.alex@gmail.com',
     packages=find_packages(),
     install_requires=[
-        # https://github.com/tensorflow/tensorflow/issues/7166
-        # 'tensorflow>=2.0.0',
+        'tensorflow>=2.1.0',
+        'tensorflow-addons>=0.9.1',
         'matplotlib>=3.1.1',
         'repoze.lru>=0.7',
         'tabulate>=0.8.6',
     ],
-    extras_require={
-        'tf_cpu': ['tensorflow>=2.0.0'],
-        'tf_gpu': ['tensorflow-gpu>=2.0.0'],
-    },
     include_package_data=True,
     zip_safe=False,
     cmdclass={'install': InstallPlatlib},

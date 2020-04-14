@@ -10,7 +10,6 @@ py_library(
         "scale.py",
         "softmax.py",
         "tcn.py",
-        "wrappers.py",
     ],
     deps = [
         "//tfmiss/nn",

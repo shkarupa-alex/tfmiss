@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tfmiss.keras.layers.wrappers import WeightNorm
+import tensorflow_addons as tfa
 from tensorflow.python.keras.backend import convert_inputs_if_ragged, maybe_convert_to_ragged
 from tensorflow.python.keras.utils import tf_utils
 
@@ -77,7 +77,7 @@ class TemporalBlock(tf.keras.layers.Layer):
 
         self.input_spec = tf.keras.layers.InputSpec(ndim=3, axes={-1: num_channels})
 
-        self.conv1d1 = WeightNorm(tf.keras.layers.Conv1D(
+        self.conv1d1 = tfa.layers.WeightNormalization(tf.keras.layers.Conv1D(
             filters=self.filters,
             kernel_size=self.kernel_size,
             strides=self._STRIDES,
@@ -93,7 +93,7 @@ class TemporalBlock(tf.keras.layers.Layer):
             kernel_constraint=self.kernel_constraint,
             bias_constraint=self.bias_constraint,
         ))
-        self.conv1d2 = WeightNorm(tf.keras.layers.Conv1D(
+        self.conv1d2 = tfa.layers.WeightNormalization(tf.keras.layers.Conv1D(
             filters=self.filters,
             kernel_size=self.kernel_size,
             strides=self._STRIDES,
