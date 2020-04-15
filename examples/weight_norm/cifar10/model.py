@@ -14,9 +14,9 @@ class Cifar10Model(keras.Model):
         # ZCA whitening should be applied to input
         self.noise = keras.layers.GaussianNoise(0.15, input_shape=(32, 32, 3))
 
-        conv1 = keras.layers.Conv2D(96, 3, strides=1, activation=K.nn.leaky_relu, padding='same')
-        conv2 = keras.layers.Conv2D(96, 3, strides=1, activation=K.nn.leaky_relu, padding='same')
-        conv3 = keras.layers.Conv2D(96, 3, strides=1, activation=K.nn.leaky_relu, padding='same')
+        conv1 = keras.layers.Conv2D(96, 3, strides=1, activation='leaky_relu', padding='same')
+        conv2 = keras.layers.Conv2D(96, 3, strides=1, activation='leaky_relu', padding='same')
+        conv3 = keras.layers.Conv2D(96, 3, strides=1, activation='leaky_relu', padding='same')
         self.conv1 = WeightNormalization(conv1) if weight_norm else conv1
         self.conv2 = WeightNormalization(conv2) if weight_norm else conv2
         self.conv3 = WeightNormalization(conv3) if weight_norm else conv3
@@ -24,9 +24,9 @@ class Cifar10Model(keras.Model):
         self.pool1 = keras.layers.MaxPooling2D(pool_size=(2, 2), strides=2)
         self.drop1 = keras.layers.Dropout(0.5)
 
-        conv4 = keras.layers.Conv2D(192, 3, strides=1, activation=K.nn.leaky_relu, padding='same')
-        conv5 = keras.layers.Conv2D(192, 3, strides=1, activation=K.nn.leaky_relu, padding='same')
-        conv6 = keras.layers.Conv2D(192, 3, strides=1, activation=K.nn.leaky_relu, padding='same')
+        conv4 = keras.layers.Conv2D(192, 3, strides=1, activation='leaky_relu', padding='same')
+        conv5 = keras.layers.Conv2D(192, 3, strides=1, activation='leaky_relu', padding='same')
+        conv6 = keras.layers.Conv2D(192, 3, strides=1, activation='leaky_relu', padding='same')
         self.conv4 = WeightNormalization(conv4) if weight_norm else conv4
         self.conv5 = WeightNormalization(conv5) if weight_norm else conv5
         self.conv6 = WeightNormalization(conv6) if weight_norm else conv6
@@ -34,9 +34,9 @@ class Cifar10Model(keras.Model):
         self.pool2 = keras.layers.MaxPooling2D(pool_size=(2, 2), strides=2)
         self.drop2 = keras.layers.Dropout(0.5)
 
-        conv7 = keras.layers.Conv2D(192, 3, strides=2, activation=K.nn.leaky_relu, padding='same')
-        conv8 = keras.layers.Conv2D(192, 1, strides=1, activation=K.nn.leaky_relu, padding='same')
-        conv9 = keras.layers.Conv2D(192, 1, strides=1, activation=K.nn.leaky_relu, padding='same')
+        conv7 = keras.layers.Conv2D(192, 3, strides=2, activation='leaky_relu', padding='same')
+        conv8 = keras.layers.Conv2D(192, 1, strides=1, activation='leaky_relu', padding='same')
+        conv9 = keras.layers.Conv2D(192, 1, strides=1, activation='leaky_relu', padding='same')
         self.conv7 = WeightNormalization(conv7) if weight_norm else conv7
         self.conv8 = WeightNormalization(conv8) if weight_norm else conv8
         self.conv9 = WeightNormalization(conv9) if weight_norm else conv9
