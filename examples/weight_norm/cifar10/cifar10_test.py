@@ -32,37 +32,38 @@ if __name__ == "__main__":
 
     train_dataset, test_dataset = data_generator(argv.batch_size)
 
-    # Train weighted
-    weighted_model = Cifar10Model(weight_norm=True)
-    weighted_model.compile(
-        optimizer=keras.optimizers.Adam(lr=argv.initial_lr, beta_1=0.9),
-        loss='sparse_categorical_crossentropy',
-        metrics=['accuracy'],
-        run_eagerly=False,
-    )
-    weighted_metrics = weighted_model.fit_generator(
-        generator=train_dataset,
-        epochs=argv.epoch_count,
-        validation_data=test_dataset,
-        callbacks=[lr_decay_callback(weighted_model, argv.initial_lr, argv.epoch_count)],
-    ).history
-    weighted_model.summary()
+    with keras.utils.custom_object_scope({'leaky_relu': K.nn.leaky_relu}):
+        # Train weighted
+        weighted_model = Cifar10Model(weight_norm=True)
+        weighted_model.compile(
+            optimizer=keras.optimizers.Adam(lr=argv.initial_lr, beta_1=0.9),
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy'],
+            run_eagerly=False,
+        )
+        weighted_metrics = weighted_model.fit(
+            train_dataset,
+            epochs=argv.epoch_count,
+            validation_data=test_dataset,
+            callbacks=[lr_decay_callback(weighted_model, argv.initial_lr, argv.epoch_count)],
+        ).history
+        weighted_model.summary()
 
-    # Train regular
-    regular_model = Cifar10Model(weight_norm=False)
-    regular_model.compile(
-        optimizer=keras.optimizers.Adam(lr=argv.initial_lr, beta_1=0.9),
-        loss='sparse_categorical_crossentropy',
-        metrics=['accuracy'],
-        run_eagerly=False,
-    )
-    regular_metrics = regular_model.fit_generator(
-        generator=train_dataset,
-        epochs=argv.epoch_count,
-        validation_data=test_dataset,
-        callbacks=[lr_decay_callback(weighted_model, argv.initial_lr, argv.epoch_count)],
-    ).history
-    regular_model.summary()
+        # Train regular
+        regular_model = Cifar10Model(weight_norm=False)
+        regular_model.compile(
+            optimizer=keras.optimizers.Adam(lr=argv.initial_lr, beta_1=0.9),
+            loss='sparse_categorical_crossentropy',
+            metrics=['accuracy'],
+            run_eagerly=False,
+        )
+        regular_metrics = regular_model.fit(
+            train_dataset,
+            epochs=argv.epoch_count,
+            validation_data=test_dataset,
+            callbacks=[lr_decay_callback(weighted_model, argv.initial_lr, argv.epoch_count)],
+        ).history
+        regular_model.summary()
 
     # Draw metrics
     interval = np.linspace(0, argv.epoch_count, argv.epoch_count)
