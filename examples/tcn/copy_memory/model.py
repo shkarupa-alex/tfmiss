@@ -27,9 +27,7 @@ class CopyModel(keras.Model):
             sequence = TemporalConvNet(
                 filters=filters, kernel_size=kernel_size, dropout=dropout, kernel_initializer='he_uniform')
 
-        predict = keras.layers.TimeDistributed(
-            keras.layers.Dense(10, activation='softmax')  # Digits 0 - 9
-        )
+        predict = keras.layers.Dense(10, activation='softmax')  # Digits 0 - 9
 
         outputs = sequence(inputs)
         outputs = predict(outputs)

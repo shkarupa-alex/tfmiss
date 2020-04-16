@@ -58,8 +58,8 @@ if __name__ == "__main__":
             metrics=['accuracy']
         )
         model.summary()
-        histories[core] = model.fit_generator(
-            generator=train_dataset,
+        histories[core] = model.fit(
+            train_dataset,
             epochs=argv.epochs,
             validation_data=test_dataset,
         ).history
