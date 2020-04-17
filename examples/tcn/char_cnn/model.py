@@ -30,9 +30,7 @@ class CharModel(keras.Model):
             sequence = TemporalConvNet(
                 filters=filters, kernel_size=kernel_size, dropout=dropout, kernel_initializer='he_uniform')
 
-        decoder = keras.layers.TimeDistributed(
-            keras.layers.Dense(vocab_size, activation='softmax')
-        )
+        decoder = keras.layers.Dense(vocab_size, activation='softmax')
 
         outputs = drop(encoder(inputs))
         outputs = sequence(outputs)

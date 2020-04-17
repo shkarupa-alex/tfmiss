@@ -19,7 +19,7 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=100, help='Upper epoch limit')
     parser.add_argument('--ksize', type=int, default=3, help='Kernel size')
     parser.add_argument('--levels', type=int, default=3, help='Number of levels')
-    parser.add_argument('--lr', type=float, default=4, help='Initial learning rate')
+    parser.add_argument('--lr', type=float, default=1e-2, help='Initial learning rate')
     parser.add_argument('--embed_size', type=int, default=100, help='Dimension of character embeddings')
     parser.add_argument('--nhid', type=int, default=450, help='Number of hidden units per layer')
     parser.add_argument('--validseqlen', type=int, default=320, help='Valid sequence length')
@@ -57,15 +57,15 @@ if __name__ == "__main__":
         )
         model.compile(
             run_eagerly=False,
-            optimizer=keras.optimizers.SGD(
+            optimizer=keras.optimizers.Adam(
                 lr=argv.lr,
                 clipnorm=argv.clip
             ),
             loss='sparse_categorical_crossentropy',
         )
         model.summary()
-        histories[core] = model.fit_generator(
-            generator=train_dataset,
+        histories[core] = model.fit(
+            train_dataset,
             epochs=argv.epochs,
             validation_data=test_dataset,
         ).history
