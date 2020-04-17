@@ -134,7 +134,8 @@ public:
       string key = source_values(i);
       mask_values(i) = true;
 
-      if (_keep_prob(key) >= 1.0)
+      float keep_prob = _keep_prob(key);
+      if (keep_prob >= 1.0)
         continue;
 
       randoms_count += 1;

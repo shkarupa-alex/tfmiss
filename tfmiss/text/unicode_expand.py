@@ -37,7 +37,7 @@ def char_ngrams(source, minn, maxn, itself, name=None):
             source=source,
             minn=minn,
             maxn=maxn,
-            itself=itself
+            itself=itself.upper()
         )
 
         if source.shape.rank == 0:
