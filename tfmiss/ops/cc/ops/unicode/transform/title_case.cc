@@ -9,6 +9,7 @@ namespace miss
 
 REGISTER_OP("Miss>TitleCase")
     .Input("source: string")
+    .Attr("skip: list(string)")
     .Output("result: string")
     .SetShapeFn(shape_inference::UnchangedShape);
 

@@ -11,6 +11,7 @@ REGISTER_OP("Miss>ReplaceRegex")
     .Input("source: string")
     .Attr("pattern: list(string) >= 1")
     .Attr("rewrite: list(string) >= 1")
+    .Attr("skip: list(string)")
     .Output("result: string")
     .SetShapeFn(shape_inference::UnchangedShape);
 

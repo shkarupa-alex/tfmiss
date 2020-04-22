@@ -3,6 +3,17 @@
 namespace tensorflow {
 namespace miss {
 
+UnicodeExpandOp::UnicodeExpandOp(OpKernelConstruction *ctx) : OpKernel(ctx) {
+
+  // Load skip list
+  std::vector<string> skip;
+  OP_REQUIRES_OK(ctx, ctx->GetAttr("skip", &skip));
+  for (string key : skip)
+  {
+    _skip.insert(key);
+  }
+}
+
 void UnicodeExpandOp::Compute(OpKernelContext *ctx)
 {
   // Prepare source
@@ -28,18 +39,26 @@ void UnicodeExpandOp::Compute(OpKernelContext *ctx)
     intermediate_splits.push_back(intermediate_values.size());
 
     string binary_string = source_values(i);
-    UnicodeString unicode_string = UnicodeString::fromUTF8(binary_string);
 
-    expand_storage.clear();
-    bool expand_ok = expand_unicode(unicode_string, expand_storage);
-    OP_REQUIRES(ctx, expand_ok,
-                errors::InvalidArgument("Unicode expansion failed"));
-
-    for (uint64 j = 0; j < expand_storage.size(); j++)
+    if (_skip.count(binary_string))
     {
-      binary_string.clear();
-      expand_storage[j].toUTF8String(binary_string);
       intermediate_values.push_back(binary_string);
+    }
+    else
+    {
+      UnicodeString unicode_string = UnicodeString::fromUTF8(binary_string);
+      expand_storage.clear();
+
+      bool expand_ok = expand_unicode(unicode_string, expand_storage);
+      OP_REQUIRES(ctx, expand_ok,
+                  errors::InvalidArgument("Unicode expansion failed"));
+
+      for (uint64 j = 0; j < expand_storage.size(); j++)
+      {
+        binary_string.clear();
+        expand_storage[j].toUTF8String(binary_string);
+        intermediate_values.push_back(binary_string);
+      }
     }
   }
   intermediate_splits.push_back(intermediate_values.size());

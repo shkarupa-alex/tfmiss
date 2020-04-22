@@ -3,6 +3,18 @@
 namespace tensorflow {
 namespace miss {
 
+UnicodeTransformOp::UnicodeTransformOp(OpKernelConstruction *ctx) : OpKernel(ctx)
+{
+
+  // Load skip list
+  std::vector<string> skip;
+  OP_REQUIRES_OK(ctx, ctx->GetAttr("skip", &skip));
+  for (string key : skip)
+  {
+    _skip.insert(key);
+  }
+}
+
 void UnicodeTransformOp::Compute(OpKernelContext *ctx)
 {
   // Prepare source
@@ -19,10 +31,14 @@ void UnicodeTransformOp::Compute(OpKernelContext *ctx)
   for (int64 i = 0; i < source_values.size(); i++)
   {
     string binary_string = source_values(i);
-    bool transform_ok = transform_raw(binary_string);
 
-    OP_REQUIRES(ctx, transform_ok,
-                errors::InvalidArgument("Unicode transformation failed"));
+    if (!_skip.count(binary_string))
+    {
+      bool transform_ok = transform_raw(binary_string);
+
+      OP_REQUIRES(ctx, transform_ok,
+                  errors::InvalidArgument("Unicode transformation failed"));
+    }
 
     result_values(i) = binary_string;
   }

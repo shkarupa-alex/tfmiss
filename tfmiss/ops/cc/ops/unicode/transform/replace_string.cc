@@ -11,6 +11,7 @@ REGISTER_OP("Miss>ReplaceString")
     .Input("source: string")
     .Attr("needle: list(string) >= 1")
     .Attr("haystack: list(string) >= 1")
+    .Attr("skip: list(string)")
     .Output("result: string")
     .SetShapeFn(shape_inference::UnchangedShape);
 

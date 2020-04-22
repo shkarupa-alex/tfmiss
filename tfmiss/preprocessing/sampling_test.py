@@ -32,7 +32,7 @@ class DownSampleTest(tf.test.TestCase):
         downsampled = self.evaluate(down_sample(source, freq_keys, freq_vals, '', 1e-2, min_freq=2, seed=1))
 
         self.assertListEqual(
-            [b'', b'', b'quick', b'brown', b'fox', b'', b'over', b'the', b'', b'dog', b''],
+            [b'', b'', b'quick', b'brown', b'fox', b'', b'over', b'the', b'lazy', b'dog', b''],
             downsampled.tolist()
         )
 
@@ -61,7 +61,7 @@ class DownSampleTest(tf.test.TestCase):
         self.assertListEqual([
             [b'', b'', b'', b'', b''],
             [b'', b'quick', b'brown', b'fox', b''],
-            [b'over', b'the', b'', b'dog', b''],
+            [b'over', b'the', b'lazy', b'dog', b''],
             [b'', b'', b'', b'', b'']
         ], downsampled.tolist())
 
@@ -93,7 +93,7 @@ class DownSampleTest(tf.test.TestCase):
              [b'', b'', b'', b'']],
             [[b'', b'quick', b'', b''],
              [b'brown', b'fox', b'', b'']],
-            [[b'over', b'the', b'', b'dog'],
+            [[b'over', b'the', b'lazy', b'dog'],
              [b'', b'', b'', b'']],
             [[b'', b'', b'', b''],
              [b'', b'', b'', b'']]
@@ -127,7 +127,7 @@ class SampleMaskTest(tf.test.TestCase):
         mask = self.evaluate(sample_mask(samples, freq_keys, freq_vals, 1e-2, min_freq=2, seed=1))
 
         self.assertListEqual(
-            [False, False, True, True, True, False, True, True, False, True, False],
+            [False, False, True, True, True, False, True, True, True, True, False],
             mask.tolist()
         )
 
@@ -148,7 +148,7 @@ class SampleMaskTest(tf.test.TestCase):
         mask = self.evaluate(sample_mask(samples, freq_keys, freq_vals, 1e-2, seed=1))
 
         self.assertListEqual(
-            [False, False, True, True, False, False, False, True, False, False, False],
+            [False, False, True, True, True, True, True, False, True, True, True],
             mask.tolist()
         )
 

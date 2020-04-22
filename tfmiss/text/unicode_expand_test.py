@@ -174,9 +174,18 @@ class CharNgramsTest(tf.test.TestCase):
         result = self.evaluate(result)
         self.assertAllEqual([b'123'], result.tolist())
 
+    def test_skip(self):
+        expected = tf.constant([['x', 'y'], ['[UNK]', '']], dtype=tf.string)
+        result = char_ngrams(['xy', '[UNK]'], 1, 1, itself='ASIS', skip=['[UNK]'])
+        self.assertIsInstance(result, tf.RaggedTensor)
+        result = result.to_tensor(default_value='')
+
+        expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
+
 
 @test_util.run_all_in_graph_and_eager_modes
-class LowerCaseTest(tf.test.TestCase):
+class SplitCharsTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [
             ['1', '2', '3'],
@@ -263,6 +272,16 @@ class LowerCaseTest(tf.test.TestCase):
 
         source, restored = self.evaluate(source), self.evaluate(restored)
         self.assertAllEqual(source, restored)
+
+    def test_skip(self):
+        expected = tf.constant([['x', 'y'], ['zz', '']], dtype=tf.string)
+
+        result = split_chars(['xy', 'zz'], skip=['zz'])
+        self.assertIsInstance(result, tf.RaggedTensor)
+        result = result.to_tensor(default_value='')
+
+        expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
 
 
 @test_util.run_all_in_graph_and_eager_modes
@@ -564,6 +583,15 @@ class SplitWordsTest(tf.test.TestCase):
         ], dtype=tf.string)
 
         result = split_words(source, extended=True)
+        self.assertIsInstance(result, tf.RaggedTensor)
+        result = result.to_tensor(default_value='')
+
+        expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
+
+    def test_skip(self):
+        expected = tf.constant([['x', '!'], ['y!', '']], dtype=tf.string)
+        result = split_words(['x!', 'y!'], skip=['y!'])
         self.assertIsInstance(result, tf.RaggedTensor)
         result = result.to_tensor(default_value='')
 

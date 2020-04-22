@@ -11,6 +11,7 @@ REGISTER_OP("Miss>WrapWith")
     .Input("source: string")
     .Attr("left: string")
     .Attr("right: string")
+    .Attr("skip: list(string)")
     .Output("result: string")
     .SetShapeFn(shape_inference::UnchangedShape);
 
