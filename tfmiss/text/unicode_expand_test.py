@@ -175,8 +175,8 @@ class CharNgramsTest(tf.test.TestCase):
         self.assertAllEqual([b'123'], result.tolist())
 
     def test_skip(self):
-        expected = tf.constant([['x', 'y'], ['[UNK]', '']], dtype=tf.string)
-        result = char_ngrams(['xy', '[UNK]'], 1, 1, itself='ASIS', skip=['[UNK]'])
+        expected = tf.constant([[['x', 'y'], ['[UNK]', '']]], dtype=tf.string)
+        result = char_ngrams([['xy', '[UNK]']], 1, 1, itself='ASIS', skip=['[UNK]'], name='abc')
         self.assertIsInstance(result, tf.RaggedTensor)
         result = result.to_tensor(default_value='')
 
@@ -274,9 +274,9 @@ class SplitCharsTest(tf.test.TestCase):
         self.assertAllEqual(source, restored)
 
     def test_skip(self):
-        expected = tf.constant([['x', 'y'], ['zz', '']], dtype=tf.string)
+        expected = tf.constant([[['x', 'y'], ['zz', '']]], dtype=tf.string)
 
-        result = split_chars(['xy', 'zz'], skip=['zz'])
+        result = split_chars([['xy', 'zz']], skip=['zz'])
         self.assertIsInstance(result, tf.RaggedTensor)
         result = result.to_tensor(default_value='')
 
@@ -590,8 +590,8 @@ class SplitWordsTest(tf.test.TestCase):
         self.assertAllEqual(expected, result)
 
     def test_skip(self):
-        expected = tf.constant([['x', '!'], ['y!', '']], dtype=tf.string)
-        result = split_words(['x!', 'y!'], skip=['y!'])
+        expected = tf.constant([[['x', '!'], ['y!', '']]], dtype=tf.string)
+        result = split_words([['x!', 'y!']], skip=['y!'])
         self.assertIsInstance(result, tf.RaggedTensor)
         result = result.to_tensor(default_value='')
 

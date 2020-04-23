@@ -22,7 +22,7 @@ def lower_case(source, skip=None, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                lower_case(source.flat_values)
+                lower_case(source.flat_values, skip)
             )
 
         return load_so().miss_lower_case(
@@ -49,7 +49,7 @@ def normalize_unicode(source, form, skip=None, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                normalize_unicode(source.flat_values, form)
+                normalize_unicode(source.flat_values, form, skip)
             )
 
         return load_so().miss_normalize_unicode(
@@ -77,7 +77,7 @@ def replace_regex(source, pattern, rewrite, skip=None, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                replace_regex(source.flat_values, pattern, rewrite)
+                replace_regex(source.flat_values, pattern, rewrite, skip)
             )
 
         return load_so().miss_replace_regex(
@@ -106,7 +106,7 @@ def replace_string(source, needle, haystack, skip=None, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                replace_string(source.flat_values, needle, haystack)
+                replace_string(source.flat_values, needle, haystack, skip)
             )
 
         return load_so().miss_replace_string(
@@ -133,7 +133,7 @@ def title_case(source, skip=None, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                title_case(source.flat_values)
+                title_case(source.flat_values, skip)
             )
 
         return load_so().miss_title_case(
@@ -158,7 +158,7 @@ def upper_case(source, skip=None, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                upper_case(source.flat_values)
+                upper_case(source.flat_values, skip)
             )
 
         return load_so().miss_upper_case(
@@ -185,7 +185,7 @@ def wrap_with(source, left, right, skip=None, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                wrap_with(source.flat_values, left, right)
+                wrap_with(source.flat_values, left, right, skip)
             )
 
         return load_so().miss_wrap_with(
@@ -212,7 +212,7 @@ def zero_digits(source, skip=None, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                zero_digits(source.flat_values)
+                zero_digits(source.flat_values, skip)
             )
 
         return load_so().miss_zero_digits(

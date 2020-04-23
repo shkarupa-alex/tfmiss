@@ -202,7 +202,7 @@ def estimate_bucket_pipeline(bucket_boundaries, num_samples, safe=True):
 
     Args:
         bucket_boundaries: pre-estimated bucket boundaries (see `estimate_bucket_boundaries`).
-        num_samples: number of samples per batch (same as `batch size` / `sequence length`).
+        num_samples: number of samples per batch (same as `batch size` * `sequence length`).
         safe: Do not allow maximum number of samples to be greater then `num_samples`.
 
     Returns:

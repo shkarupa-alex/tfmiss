@@ -71,10 +71,10 @@ class LowerCaseTest(tf.test.TestCase):
         self.assertAllEqual(expected, result)
 
     def test_skip(self):
-        result = lower_case(['X', '-Y-', 'z'], skip=['-Y-'])
+        result = lower_case([['X', '-Y-', 'z']], skip=['-Y-'])
 
         result = self.evaluate(result)
-        self.assertAllEqual([b'x', b'-Y-', b'z'], result)
+        self.assertAllEqual([[b'x', b'-Y-', b'z']], result)
 
 
 @test_util.run_all_in_graph_and_eager_modes
@@ -168,8 +168,8 @@ class NormalizeUnicodeTest(tf.test.TestCase):
                 self.evaluate(normalize_unicode(u'', 'ABCD'))
 
     def test_skip(self):
-        expected = tf.convert_to_tensor(['X', u'\u1E9B\u0323', u'\u0451'], dtype=tf.string)
-        result = normalize_unicode(['X', u'\u1E9B\u0323', u'\u0435\u0308'], 'NFKC', skip=[u'\u1E9B\u0323'])
+        expected = tf.convert_to_tensor([['X', u'\u1E9B\u0323', u'\u0451']], dtype=tf.string)
+        result = normalize_unicode([['X', u'\u1E9B\u0323', u'\u0435\u0308']], 'NFKC', skip=[u'\u1E9B\u0323'])
 
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
@@ -254,10 +254,10 @@ class ReplaceRegexTest(tf.test.TestCase):
         self.assertAllEqual(expected, result)
 
     def test_skip(self):
-        result = replace_regex(['1test2', '1t3'], ['\\d'], ['0'], skip=['1t3'])
+        result = replace_regex([['1test2', '1t3']], ['\\d'], ['0'], skip=['1t3'])
 
         result = self.evaluate(result)
-        self.assertAllEqual([b'0test0', b'1t3'], result)
+        self.assertAllEqual([[b'0test0', b'1t3']], result)
 
 
 @test_util.run_all_in_graph_and_eager_modes
@@ -335,10 +335,10 @@ class ReplaceStringTest(tf.test.TestCase):
         self.assertAllEqual(expected, result)
 
     def test_skip(self):
-        result = replace_string(['<test>', '<unk>'], ['<'], ['>'], skip=['<unk>'])
+        result = replace_string([['<test>', '<unk>']], ['<'], ['>'], skip=['<unk>'])
 
         result = self.evaluate(result)
-        self.assertAllEqual([b'>test>', b'<unk>'], result)
+        self.assertAllEqual([[b'>test>', b'<unk>']], result)
 
 
 @test_util.run_all_in_graph_and_eager_modes
@@ -410,10 +410,10 @@ class TitleCaseTest(tf.test.TestCase):
         self.assertAllEqual(expected, result)
 
     def test_skip(self):
-        result = title_case(['x', 'y'], skip=['y'])
+        result = title_case([['x', 'y']], skip=['y'])
 
         result = self.evaluate(result)
-        self.assertAllEqual([b'X', b'y'], result)
+        self.assertAllEqual([[b'X', b'y']], result)
 
 
 @test_util.run_all_in_graph_and_eager_modes
@@ -485,10 +485,10 @@ class UpperCaseUnicodeTest(tf.test.TestCase):
         self.assertAllEqual(expected, result)
 
     def test_skip(self):
-        result = upper_case(['x', 'y'], skip=['y'])
+        result = upper_case([['x', 'y']], skip=['y'])
 
         result = self.evaluate(result)
-        self.assertAllEqual([b'X', b'y'], result)
+        self.assertAllEqual([[b'X', b'y']], result)
 
 
 @test_util.run_all_in_graph_and_eager_modes
@@ -560,10 +560,10 @@ class WrapWithTest(tf.test.TestCase):
         self.assertAllEqual(expected, result)
 
     def test_skip(self):
-        result = wrap_with(['X', 'y'], '<', '>', skip=['y'])
+        result = wrap_with([['X', 'y']], '<', '>', skip=['y'])
 
         result = self.evaluate(result)
-        self.assertAllEqual([b'<X>', b'y'], result)
+        self.assertAllEqual([[b'<X>', b'y']], result)
 
 
 @test_util.run_all_in_graph_and_eager_modes
@@ -628,10 +628,10 @@ class ZeroDigitsTest(tf.test.TestCase):
         self.assertEqual(expected, result)
 
     def test_skip(self):
-        result = zero_digits(['7', '8'], skip=['8'])
+        result = zero_digits([['7', '8']], skip=['8'])
 
         result = self.evaluate(result)
-        self.assertAllEqual([b'0', b'8'], result)
+        self.assertAllEqual([[b'0', b'8']], result)
 
 
 if __name__ == "__main__":

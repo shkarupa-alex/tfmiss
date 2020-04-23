@@ -31,7 +31,7 @@ def char_ngrams(source, minn, maxn, itself, skip=None, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                char_ngrams(source.flat_values, minn, maxn, itself)
+                char_ngrams(source.flat_values, minn, maxn, itself, skip)
             )
 
         result_values, result_splits = load_so().miss_char_ngrams(
@@ -69,7 +69,7 @@ def split_chars(source, skip=None, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                split_chars(source.flat_values)
+                split_chars(source.flat_values, skip)
             )
 
         result_values, result_splits = load_so().miss_split_chars(
@@ -106,7 +106,7 @@ def split_words(source, extended=False, skip=None, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                split_words(source.flat_values, extended)
+                split_words(source.flat_values, extended, skip)
             )
 
         result_values, result_splits = load_so().miss_split_words(
