@@ -17,7 +17,7 @@ tf.no_gradient('Miss>ContBow')
 # unicode transform
 tf.no_gradient('Miss>LowerCase')
 tf.no_gradient('Miss>NormalizeUnicode')
-tf.no_gradient('Miss>ReplaceRegex')
+# tf.no_gradient('Miss>ReplaceRegex') # Disabled due to segfault
 tf.no_gradient('Miss>ReplaceString')
 tf.no_gradient('Miss>TitleCase')
 tf.no_gradient('Miss>UpperCase')

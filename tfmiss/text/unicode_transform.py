@@ -59,33 +59,34 @@ def normalize_unicode(source, form, skip=None, name=None):
         )
 
 
-def replace_regex(source, pattern, rewrite, skip=None, name=None):
-    """Replaces all regex matchs from `needle` to corresponding unicode strings in `haystack`.
-
-    Args:
-        source: `Tensor` or `RaggedTensor` of any shape, source strings for replacing.
-        pattern: List of RE2 patterns to search in source
-        rewrite: List of strings to replace with. Should have same length as `needle`.
-        skip: list of strings to pass without changes or None.
-        name: A name for the operation (optional).
-    Returns:
-        `Tensor` or `RaggedTensor` of same shape and size as input.
-    """
-
-    with tf.name_scope(name or 'replace_regex'):
-        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
-
-        if isinstance(source, tf.RaggedTensor):
-            return source.with_flat_values(
-                replace_regex(source.flat_values, pattern, rewrite, skip)
-            )
-
-        return load_so().miss_replace_regex(
-            source=source,
-            pattern=pattern,
-            rewrite=rewrite,
-            skip=skip or [],
-        )
+# Disabled due to segfault
+# def replace_regex(source, pattern, rewrite, skip=None, name=None):
+#     """Replaces all regex matchs from `needle` to corresponding unicode strings in `haystack`.
+#
+#     Args:
+#         source: `Tensor` or `RaggedTensor` of any shape, source strings for replacing.
+#         pattern: List of RE2 patterns to search in source
+#         rewrite: List of strings to replace with. Should have same length as `needle`.
+#         skip: list of strings to pass without changes or None.
+#         name: A name for the operation (optional).
+#     Returns:
+#         `Tensor` or `RaggedTensor` of same shape and size as input.
+#     """
+#
+#     with tf.name_scope(name or 'replace_regex'):
+#         source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
+#
+#         if isinstance(source, tf.RaggedTensor):
+#             return source.with_flat_values(
+#                 replace_regex(source.flat_values, pattern, rewrite, skip)
+#             )
+#
+#         return load_so().miss_replace_regex(
+#             source=source,
+#             pattern=pattern,
+#             rewrite=rewrite,
+#             skip=skip or [],
+#         )
 
 
 def replace_string(source, needle, haystack, skip=None, name=None):

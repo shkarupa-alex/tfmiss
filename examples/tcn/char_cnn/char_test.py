@@ -29,7 +29,6 @@ if __name__ == "__main__":
     parser.add_argument('--gru_units', type=int, default=1000, help='Number of hidden units for GRU layer')
     parser.add_argument('--lstm_units', type=int, default=850, help='Number of hidden units for LSTM layer')
     argv, _ = parser.parse_known_args()
-    # --dataset text8 --ksize 2 --levels 5 --nhid 520 --gru_units 1280 --lstm_units 1152
 
     np.random.seed(argv.seed)
     K.random_ops.random_seed.set_random_seed(argv.seed)
