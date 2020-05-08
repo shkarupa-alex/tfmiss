@@ -112,7 +112,7 @@ def adaptive_embedding_lookup(params, ids, transforms, max_norm=None, name=None)
             transform_fn = transforms[p]
             with ops.colocate_with(params[p]):
                 result = tf.gather(params[p], pids)
-                result = embedding_ops._clip(transform_fn(result), pids, max_norm)
+                result = embedding_ops._clip(transform_fn(result), pids, max_norm)  # TODO check speed
             partitioned_result.append(result)
 
         # Stitch these back together
@@ -248,9 +248,10 @@ def adaptive_embedding_lookup_sparse(
                 weight_sum_sqrt = tf.math.sqrt(weight_sum)
                 embeddings = tf.math.divide(embeddings, weight_sum_sqrt, name=name)
             else:
-                assert False, 'Unrecognized combiner'
+                raise ValueError('Unrecognized combiner')
         else:
-            assert idx is not None
+            if idx is None:
+                raise AssertionError('Value of "idx" should not be None')
             if combiner == 'sum':
                 embeddings = tf.compat.v1.sparse_segment_sum(embeddings, idx, segment_ids, name=name)
             elif combiner == 'mean':
@@ -258,7 +259,7 @@ def adaptive_embedding_lookup_sparse(
             elif combiner == 'sqrtn':
                 embeddings = tf.compat.v1.sparse_segment_sqrt_n(embeddings, idx, segment_ids, name=name)
             else:
-                assert False, 'Unrecognized combiner'
+                raise ValueError('Unrecognized combiner')
 
         return embeddings
 

@@ -9,7 +9,7 @@ Do not use `pyenv` on MacOS X, otherwise tests mostly likely will fail.
 ### Build PIP package manually
 You can build the pip package with Bazel v0.25.3:
 ```bash
-export PYTHON_BIN_PATH=`which python2.7`
+export PYTHON_BIN_PATH=`which python3`
 $PYTHON_BIN_PATH -m pip install -U tensorflow  # Only if you did not install it yet
 ./configure.sh
 bazel clean --expunge

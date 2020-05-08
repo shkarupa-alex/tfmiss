@@ -55,8 +55,9 @@ cc_binary(
        "cc/kernels/unicode/transform/normalize_unicode.cc",
        "cc/ops/unicode/transform/normalize_unicode.cc",
 
-       "cc/kernels/unicode/transform/replace_regex.cc",
-       "cc/ops/unicode/transform/replace_regex.cc",
+       # Disabled due to segfault
+       # "cc/kernels/unicode/transform/replace_regex.cc",
+       # "cc/ops/unicode/transform/replace_regex.cc",
 
        "cc/kernels/unicode/transform/replace_string.cc",
        "cc/ops/unicode/transform/replace_string.cc",

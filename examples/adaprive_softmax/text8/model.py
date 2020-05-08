@@ -26,7 +26,8 @@ class Text8Model(tf.keras.Model):
         elif self.OUT_SS == core:
             decoder = SampledSofmax(vocab_size, negatives=negatives)
         else:
-            assert self.OUT_SM == core
+            if not self.OUT_SM == core:
+                raise ValueError('Wrong "core" value')
             decoder = tf.keras.layers.Dense(vocab_size, activation='softmax')
 
         outputs = encoder(inputs)

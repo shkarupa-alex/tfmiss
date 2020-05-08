@@ -232,10 +232,10 @@ class AdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
 @test_util.run_all_in_graph_and_eager_modes
 class SafeAdaptiveEmbeddingLookupSparseTest(tf.test.TestCase):
     def _random_weights(self, vocab_size=4, embed_dim=4, num_shards=2):
-        assert vocab_size > 0
-        assert embed_dim > 0
-        assert num_shards > 0
-        assert num_shards <= vocab_size
+        self.assertTrue(vocab_size > 0)
+        self.assertTrue(embed_dim > 0)
+        self.assertTrue(num_shards > 0)
+        self.assertTrue(num_shards <= vocab_size)
 
         initializer = tf.compat.v1.truncated_normal_initializer(
             mean=0.0, stddev=1.0 / tf.math.sqrt(vocab_size * 1.0), dtype=tf.float32)

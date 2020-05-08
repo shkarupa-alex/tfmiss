@@ -10,7 +10,7 @@ from tensorflow.python.framework import test_util
 from tensorflow.python.util import tf_inspect
 
 
-@test_util.use_deterministic_cudnn
+@test_util.disable_cudnn_autotune
 def layer_multi_io_test(layer_cls, kwargs=None, input_shapes=None, input_dtypes=None,
                         input_datas=None, expected_outputs=None, expected_output_dtypes=None):
     """Test routine for a layer with a single or multiple inputs and single or multiple outputs.

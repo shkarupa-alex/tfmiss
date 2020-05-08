@@ -119,7 +119,7 @@ public:
     // Prepare input
     const Tensor *source_tensor;
     OP_REQUIRES_OK(ctx, ctx->input("source", &source_tensor));
-    const auto source_values = source_tensor->flat<string>();
+    const auto source_values = source_tensor->flat<tstring>();
     const uint64 num_elements = source_tensor->shape().num_elements();
 
     // Allocate output
@@ -128,13 +128,23 @@ public:
     auto mask_values = mask_tensor->flat<bool>();
 
     // Fill defaults and estimate required randoms count
+    std::vector<float> source_probs;
+    source_probs.resize(num_elements);
+
     uint64 randoms_count = 0;
     for (uint64 i = 0; i < num_elements; i++)
     {
       string key = source_values(i);
       mask_values(i) = true;
 
-      if (_keep_prob(key) >= 1.0)
+      try {
+        source_probs[i] = _keep_probs.at(key);
+      }
+      catch (const std::out_of_range&) {
+        source_probs[i] = _sample_uniq ? _uniq_prob : 1.0;
+      }
+
+      if (source_probs[i] >= 1.0)
         continue;
 
       randoms_count += 1;
@@ -147,14 +157,11 @@ public:
     // Evaluate "keep" flag
     for (uint64 i = 0; i < num_elements; i++)
     {
-      string key = source_values(i);
-
-      float keep_prob = _keep_prob(key);
-      if (keep_prob >= 1.0)
+      if (source_probs[i] >= 1.0)
         continue;
 
       float random_prob = simple_philox.RandFloat();
-      mask_values(i) = random_prob < keep_prob;
+      mask_values(i) = random_prob < source_probs[i];
     }
   }
 
@@ -163,21 +170,6 @@ private:
   float _uniq_prob = 1.0;
   std::map<string, float> _keep_probs;
   GuardedPhiloxRandom _random_generator;
-
-  inline bool _is_unique(string item)
-  {
-    return _keep_probs.lower_bound(item) == _keep_probs.end();
-  }
-
-  inline float _keep_prob(string item)
-  {
-    if (_is_unique(item))
-    {
-      return _sample_uniq ? _uniq_prob : 1.0;
-    }
-
-    return _keep_probs[item];
-  }
 };
 
 REGISTER_KERNEL_BUILDER(Name("Miss>SampleMask").Device(DEVICE_CPU), SampleMaskOp);

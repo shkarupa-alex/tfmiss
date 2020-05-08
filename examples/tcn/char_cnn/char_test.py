@@ -19,7 +19,7 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', type=int, default=100, help='Upper epoch limit')
     parser.add_argument('--ksize', type=int, default=3, help='Kernel size')
     parser.add_argument('--levels', type=int, default=3, help='Number of levels')
-    parser.add_argument('--lr', type=float, default=4, help='Initial learning rate')
+    parser.add_argument('--lr', type=float, default=1e-2, help='Initial learning rate')
     parser.add_argument('--embed_size', type=int, default=100, help='Dimension of character embeddings')
     parser.add_argument('--nhid', type=int, default=450, help='Number of hidden units per layer')
     parser.add_argument('--validseqlen', type=int, default=320, help='Valid sequence length')
@@ -29,7 +29,6 @@ if __name__ == "__main__":
     parser.add_argument('--gru_units', type=int, default=1000, help='Number of hidden units for GRU layer')
     parser.add_argument('--lstm_units', type=int, default=850, help='Number of hidden units for LSTM layer')
     argv, _ = parser.parse_known_args()
-    # --dataset text8 --ksize 2 --levels 5 --nhid 520 --gru_units 1280 --lstm_units 1152
 
     np.random.seed(argv.seed)
     K.random_ops.random_seed.set_random_seed(argv.seed)
@@ -40,11 +39,11 @@ if __name__ == "__main__":
         CharModel.CORE_GRU: [argv.gru_units],
         CharModel.CORE_LSTM: [argv.lstm_units],
         CharModel.CORE_TCN: [argv.nhid] * argv.levels,
-
+        CharModel.CORE_TCN_HE: [argv.nhid] * argv.levels,
     }
 
     histories = {}
-    for core in [CharModel.CORE_LSTM, CharModel.CORE_GRU, CharModel.CORE_TCN]:
+    for core in [CharModel.CORE_LSTM, CharModel.CORE_GRU, CharModel.CORE_TCN, CharModel.CORE_TCN_HE]:
         model = CharModel(
             seq_len=argv.seq_len,
             vocab_size=vocab_size,
@@ -57,15 +56,15 @@ if __name__ == "__main__":
         )
         model.compile(
             run_eagerly=False,
-            optimizer=keras.optimizers.SGD(
+            optimizer=keras.optimizers.Adam(
                 lr=argv.lr,
                 clipnorm=argv.clip
             ),
             loss='sparse_categorical_crossentropy',
         )
         model.summary()
-        histories[core] = model.fit_generator(
-            generator=train_dataset,
+        histories[core] = model.fit(
+            train_dataset,
             epochs=argv.epochs,
             validation_data=test_dataset,
         ).history

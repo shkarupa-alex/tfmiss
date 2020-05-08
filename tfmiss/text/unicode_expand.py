@@ -7,7 +7,7 @@ from tensorflow.python.ops.ragged import ragged_tensor
 from tfmiss.ops import load_so
 
 
-def char_ngrams(source, minn, maxn, itself, name=None):
+def char_ngrams(source, minn, maxn, itself, skip=None, name=None):
     """Split unicode strings into character ngrams.
 
     Args:
@@ -15,7 +15,8 @@ def char_ngrams(source, minn, maxn, itself, name=None):
         minn: Minimum length of character ngram
         maxn: Maximum length of character ngram
         itself: Strategy for source word preserving.
-            One of `"ASIS"`, `"NEVER"`, `"ALWAYS"`, `"ALONE"`.
+            One of `"asis"`, `"never"`, `"always"`, `"alone"`.
+        skip: list of strings to pass without changes or None.
         name: A name for the operation (optional).
     Returns:
         `Tensor` if rank(source) is 0, `RaggedTensor` with an additional dimension otherwise.
@@ -30,14 +31,15 @@ def char_ngrams(source, minn, maxn, itself, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                char_ngrams(source.flat_values, minn, maxn, itself)
+                char_ngrams(source.flat_values, minn, maxn, itself, skip)
             )
 
         result_values, result_splits = load_so().miss_char_ngrams(
             source=source,
             minn=minn,
             maxn=maxn,
-            itself=itself
+            itself=itself.upper(),
+            skip=skip or [],
         )
 
         if source.shape.rank == 0:
@@ -46,12 +48,13 @@ def char_ngrams(source, minn, maxn, itself, name=None):
         return tf.RaggedTensor.from_row_splits(result_values, result_splits)
 
 
-def split_chars(source, name=None):
+def split_chars(source, skip=None, name=None):
     """Split unicode strings into characters.
     Result tokens could be simply joined with empty separator to obtain original strings.
 
     Args:
         source: `Tensor` or `RaggedTensor` of any shape, strings to split
+        skip: list of strings to pass without changes or None.
         name: A name for the operation (optional).
     Returns:
         `Tensor` if rank(source) is 0, `RaggedTensor` with an additional dimension otherwise.
@@ -66,11 +69,12 @@ def split_chars(source, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                split_chars(source.flat_values)
+                split_chars(source.flat_values, skip)
             )
 
         result_values, result_splits = load_so().miss_split_chars(
-            source=source
+            source=source,
+            skip=skip or [],
         )
 
         if source.shape.rank == 0:
@@ -79,7 +83,7 @@ def split_chars(source, name=None):
         return tf.RaggedTensor.from_row_splits(result_values, result_splits)
 
 
-def split_words(source, extended=False, name=None):
+def split_words(source, extended=False, skip=None, name=None):
     """Split unicode strings into words.
     Result tokens could be simply joined with empty separator to obtain original strings.
     See http://www.unicode.org/reports/tr29/#Word_Boundaries
@@ -87,6 +91,7 @@ def split_words(source, extended=False, name=None):
     Args:
         source: `Tensor` or `RaggedTensor` of any shape, strings to split
         extended: Ignore rules WB6, WB7, WB9, WB10, WB11 and WB12 to break on "stop", "colon" & etc.
+        skip: list of strings to pass without changes or None.
         name: A name for the operation (optional).
     Returns:
         `Tensor` if rank(source) is 0, `RaggedTensor` with an additional dimension otherwise.
@@ -101,12 +106,13 @@ def split_words(source, extended=False, name=None):
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
-                split_words(source.flat_values, extended)
+                split_words(source.flat_values, extended, skip)
             )
 
         result_values, result_splits = load_so().miss_split_words(
             source=source,
-            extended=extended
+            extended=extended,
+            skip=skip or [],
         )
 
         if source.shape.rank == 0:

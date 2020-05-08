@@ -35,11 +35,11 @@ if __name__ == "__main__":
         MnistModel.CORE_GRU: [argv.gru_units],
         MnistModel.CORE_LSTM: [argv.lstm_units],
         MnistModel.CORE_TCN: [argv.nhid] * argv.levels,
-
+        MnistModel.CORE_TCN_HE: [argv.nhid] * argv.levels,
     }
 
     histories = {}
-    for core in [MnistModel.CORE_GRU, MnistModel.CORE_LSTM, MnistModel.CORE_TCN]:
+    for core in [MnistModel.CORE_GRU, MnistModel.CORE_LSTM, MnistModel.CORE_TCN, MnistModel.CORE_TCN_HE]:
         model = MnistModel(
             core=core,
             filters=filters[core],
@@ -56,8 +56,8 @@ if __name__ == "__main__":
             metrics=['accuracy']
         )
         model.summary()
-        histories[core] = model.fit_generator(
-            generator=train_dataset,
+        histories[core] = model.fit(
+            train_dataset,
             epochs=argv.epochs,
             validation_data=test_dataset,
         ).history

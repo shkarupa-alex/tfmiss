@@ -17,7 +17,7 @@ tf.no_gradient('Miss>ContBow')
 # unicode transform
 tf.no_gradient('Miss>LowerCase')
 tf.no_gradient('Miss>NormalizeUnicode')
-tf.no_gradient('Miss>ReplaceRegex')
+# tf.no_gradient('Miss>ReplaceRegex') # Disabled due to segfault
 tf.no_gradient('Miss>ReplaceString')
 tf.no_gradient('Miss>TitleCase')
 tf.no_gradient('Miss>UpperCase')
@@ -54,6 +54,7 @@ def load_so():
         global _tfmiss_so
         if not _tfmiss_so:
             _tfmiss_so = tf.load_op_library(_get_ops_path('_tfmiss_ops.so'))
-            assert _tfmiss_so, 'Could not load _tfmiss_ops.so'
+            if not _tfmiss_so:
+                raise IOError('Could not load _tfmiss_ops.so')
 
     return _tfmiss_so

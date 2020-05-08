@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument('--nhid', type=int, default=24, help='Number of hidden units per layer')
     parser.add_argument('--levels', type=int, default=8, help='Number of levels')
     parser.add_argument('--ksize', type=int, default=8, help='Kernel size')
-    parser.add_argument('--dropout', type=float, default=0.0, help='Dropout applied to layers')
+    parser.add_argument('--dropout', type=float, default=0.1, help='Dropout applied to layers')
     parser.add_argument('--lr', type=float, default=4e-3, help='Initial learning rate')
     parser.add_argument('--clip', type=float, default=5., help='Gradient clip')
     parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
@@ -36,11 +36,11 @@ if __name__ == "__main__":
         AddingModel.CORE_GRU: [argv.gru_units],
         AddingModel.CORE_LSTM: [argv.lstm_units],
         AddingModel.CORE_TCN: [argv.nhid] * argv.levels,
-
+        AddingModel.CORE_TCN_HE: [argv.nhid] * argv.levels,
     }
 
     histories = {}
-    for core in [AddingModel.CORE_GRU, AddingModel.CORE_LSTM, AddingModel.CORE_TCN]:
+    for core in [AddingModel.CORE_GRU, AddingModel.CORE_LSTM, AddingModel.CORE_TCN, AddingModel.CORE_TCN_HE]:
         model = AddingModel(
             core=core,
             filters=filters[core],

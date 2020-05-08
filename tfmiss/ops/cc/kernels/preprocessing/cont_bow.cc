@@ -24,7 +24,7 @@ public:
     OP_REQUIRES_OK(ctx, ctx->input("source_values", &source_values_tensor));
     OP_REQUIRES(ctx, TensorShapeUtils::IsVector(source_values_tensor->shape()),
                 errors::InvalidArgument("Values must be a vector, got shape: ", source_values_tensor->shape().DebugString()));
-    const auto source_values = source_values_tensor->flat<string>();
+    const auto source_values = source_values_tensor->flat<tstring>();
 
     const Tensor *source_splits_tensor;
     OP_REQUIRES_OK(ctx, ctx->input("source_splits", &source_splits_tensor));
@@ -113,11 +113,11 @@ public:
     // Create target & context_* outputs
     Tensor *target_tensor;
     OP_REQUIRES_OK(ctx, ctx->allocate_output("target", TensorShape({(int64)cbow_target.size()}), &target_tensor));
-    auto target = target_tensor->vec<string>();
+    auto target = target_tensor->vec<tstring>();
 
     Tensor *context_values_tensor;
     OP_REQUIRES_OK(ctx, ctx->allocate_output("context_values", TensorShape({(int64)cbow_context_values.size()}), &context_values_tensor));
-    auto context_values = context_values_tensor->vec<string>();
+    auto context_values = context_values_tensor->vec<tstring>();
 
     Tensor *context_splits_tensor;
     OP_REQUIRES_OK(ctx, ctx->allocate_output("context_splits", TensorShape({(int64)cbow_context_splits.size()}), &context_splits_tensor));

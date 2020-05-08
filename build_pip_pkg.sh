@@ -33,7 +33,11 @@ function main() {
 
   # Define OS-specific repair command for
   if [[ ${SKIP_REPAIR:-0} ]]; then
-    REPAIR_CMD="cp -t repaired/"
+    if which gcp >/dev/null; then
+      REPAIR_CMD="gcp -t repaired/"
+    else
+      REPAIR_CMD="cp -t repaired/"
+    fi
   elif [[ $(uname) == "Darwin" ]]; then
     python3 -m pip install -U delocate
     REPAIR_CMD="delocate-wheel -w repaired"

@@ -191,8 +191,8 @@ def estimate_bucket_boundaries(len2freq, min_waste=0.01, max_waste=0.1, min_aggr
 
     original = Counter(len2freq)
     restored = sum([Counter(r[1]) for r in result], Counter())
-    assert set(original.keys()) == set(restored.keys())
-    assert set(original.values()) == set(restored.values())
+    if not set(original.keys()) == set(restored.keys()) or not set(original.values()) == set(restored.values()):
+        raise AssertionError('Estimated boundaries differs from source lengths or frequencies')
 
     return [r[0] for r in result]
 
@@ -202,7 +202,7 @@ def estimate_bucket_pipeline(bucket_boundaries, num_samples, safe=True):
 
     Args:
         bucket_boundaries: pre-estimated bucket boundaries (see `estimate_bucket_boundaries`).
-        num_samples: number of samples per batch (same as `batch size` / `sequence length`).
+        num_samples: number of samples per batch (same as `batch size` * `sequence length`).
         safe: Do not allow maximum number of samples to be greater then `num_samples`.
 
     Returns:

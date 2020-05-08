@@ -151,9 +151,9 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
         self.assertAllClose(
             outputs,
             tf.ragged.constant([
-                [[0.] * 3, [0.] * 3, [0.] * 3],
-                [[0.] * 3],
-                [[0.] * 3, [0.] * 3]
+                [[0.0, 0.6933093070983887, 0.0], [0.0, 0.2622586786746979, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 0.0]],
+                [[0.03695070743560791, 0.0, 0.0], [0.0, 0.0, 0.0]]
             ], ragged_rank=1)
         )
 

@@ -8,6 +8,7 @@ namespace miss
 
 REGISTER_OP("Miss>SplitChars")
     .Input("source: string")
+    .Attr("skip: list(string)")
     .Attr("T: {int32, int64} = DT_INT64")
     .Output("result_values: string")
     .Output("result_splits: T")

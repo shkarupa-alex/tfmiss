@@ -11,11 +11,11 @@ namespace miss {
 class UnicodeExpandOp : public OpKernel
 {
 public:
-  explicit UnicodeExpandOp(OpKernelConstruction *ctx) : OpKernel(ctx) {}
-
+  explicit UnicodeExpandOp(OpKernelConstruction *ctx);
   void Compute(OpKernelContext *ctx);
 
 protected:
+  std::unordered_set<string> _skip;
   virtual uint64 expand_rate();
   virtual bool expand_unicode(const UnicodeString &unicode_string, std::vector<UnicodeString> &expanded_strings) = 0;
 };

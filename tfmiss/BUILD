@@ -6,7 +6,6 @@ py_library(
         "__init__.py",
     ],
     deps = [
-        "//tfmiss/estimator",
         "//tfmiss/feature_column",
         "//tfmiss/keras",
         "//tfmiss/nn",

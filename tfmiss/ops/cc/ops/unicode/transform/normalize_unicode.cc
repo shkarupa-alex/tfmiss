@@ -10,6 +10,7 @@ namespace miss
 REGISTER_OP("Miss>NormalizeUnicode")
     .Input("source: string")
     .Attr("form: {'NFC', 'NFD', 'NFKC', 'NFKD'}")
+    .Attr("skip: list(string)")
     .Output("result: string")
     .SetShapeFn(shape_inference::UnchangedShape);
 

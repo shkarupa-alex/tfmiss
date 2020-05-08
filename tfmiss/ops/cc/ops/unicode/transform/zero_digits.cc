@@ -9,6 +9,7 @@ namespace miss
 
 REGISTER_OP("Miss>ZeroDigits")
     .Input("source: string")
+    .Attr("skip: list(string)")
     .Output("result: string")
     .SetShapeFn(shape_inference::UnchangedShape);
 
