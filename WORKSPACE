@@ -3,6 +3,7 @@ tf_configure(name = "local_config_tf")
 
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # curl -L https://github.com/.../.../archive/<git hash>.tar.gz | [g]sha256sum
+
 http_archive(
     name = "icu",
     sha256 = "524960ac99d086cdb6988d2a92fc163436fd3c6ec0a84c475c6382fbf989be05",
@@ -19,11 +20,11 @@ http_archive(
 )
 http_archive(
     name = "re2",
-    sha256 = "2ed94072145272012bb5b7054afcbe707447d49dcd79fd6d1689e6f3dc589def",
-    strip_prefix = "re2-2019-04-01",
+    sha256 = "88864d7f5126bb17daa1aa8f41b05599aa6e3222e7b28a90e372db53c1c49aeb",
+    strip_prefix = "re2-2020-05-01",
     urls = [
-        "https://mirror.bazel.build/github.com/google/re2/archive/2019-04-01.tar.gz",
-        "https://github.com/google/re2/archive/2019-04-01.tar.gz"
+        "https://mirror.bazel.build/github.com/google/re2/archive/2020-05-01.tar.gz",
+        "https://github.com/google/re2/archive/2020-05-01.tar.gz"
     ],
 )
 
@@ -38,8 +39,9 @@ http_archive(
 )
 http_archive(
     name = "bazel_skylib",
-    sha256 = "2ef429f5d7ce7111263289644d233707dba35e39696377ebab8b0bc701f7818e",
-    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/0.8.0/bazel-skylib.0.8.0.tar.gz"],
+    sha256 = "bbccf674aa441c266df9894182d80de104cabd19be98be002f6d478aaa31574d",
+    strip_prefix = "bazel-skylib-2169ae1c374aab4a09aa90e65efe1a3aad4e279b",
+    urls = ["https://github.com/bazelbuild/bazel-skylib/archive/2169ae1c374aab4a09aa90e65efe1a3aad4e279b.tar.gz"],
 )
 http_archive(
     name = "zlib_archive",
@@ -54,11 +56,11 @@ http_archive(
 http_archive(
     name = "six_archive",
     build_file = "//third_party:six.BUILD",
-    sha256 = "105f8d68616f8248e24bf0e9372ef04d3cc10104f1980f54d57b2ce73a5ad56a",
-    strip_prefix = "six-1.10.0",
+    sha256 = "d16a0141ec1a18405cd4ce8b4613101da75da0e9a7aec5bdd4fa804d0e0eba73",
+    strip_prefix = "six-1.12.0",
     urls = [
-        "http://mirror.tensorflow.org/pypi.python.org/packages/source/s/six/six-1.10.0.tar.gz",
-        "https://pypi.python.org/packages/source/s/six/six-1.10.0.tar.gz",
+        "https://storage.googleapis.com/mirror.tensorflow.org/pypi.python.org/packages/source/s/six/six-1.12.0.tar.gz",
+        "https://pypi.python.org/packages/source/s/six/six-1.12.0.tar.gz",
     ],
 )
 bind(

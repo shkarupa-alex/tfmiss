@@ -157,7 +157,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                     dtype=self.dtype,
                     name='tail_proj_{}'.format(i)
                 ),
-                tf.keras.layers.Dropout(self.dropout, 'tail_drop_{}'.format(i)),
+                tf.keras.layers.Dropout(self.dropout, name='tail_drop_{}'.format(i)),
                 tf.keras.layers.Dense(
                     units=self.cutoff[i + 1] - self.cutoff[i],
                     activation=None,
@@ -183,12 +183,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             training = tf.keras.backend.learning_phase()
 
         input_logits, input_targets = inputs
-        if tf.executing_eagerly() \
-                and not isinstance(input_logits, tf.RaggedTensor) \
-                and not isinstance(input_targets, tf.RaggedTensor) \
-                and len(input_logits.shape) == len(input_targets.shape):
-            # https://github.com/tensorflow/tensorflow/issues/34687
-            input_targets = tf.squeeze(input_targets, axis=-1)
 
         input_logits, row_lengths = convert_inputs_if_ragged(input_logits)
         input_targets, _ = convert_inputs_if_ragged(input_targets)

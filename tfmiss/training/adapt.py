@@ -8,10 +8,7 @@ import time
 from collections import Counter
 from scipy.interpolate import LinearNDInterpolator
 
-try:
-    from functools import lru_cache
-except:
-    from repoze.lru import lru_cache
+from functools import lru_cache
 
 
 def test_device_matmul(max_batch, max_hidden, max_classes, repeats, device, dtype):

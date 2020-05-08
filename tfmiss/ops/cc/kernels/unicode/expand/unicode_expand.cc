@@ -19,7 +19,7 @@ void UnicodeExpandOp::Compute(OpKernelContext *ctx)
   // Prepare source
   const Tensor *source_tensor;
   OP_REQUIRES_OK(ctx, ctx->input("source", &source_tensor));
-  const auto source_values = source_tensor->flat<string>();
+  const auto source_values = source_tensor->flat<tstring>();
 
   // Prepare intermediate result storage
   uint64 expand_max = expand_rate();
@@ -66,7 +66,7 @@ void UnicodeExpandOp::Compute(OpKernelContext *ctx)
   // Allocate result
   Tensor *result_values_tensor;
   OP_REQUIRES_OK(ctx, ctx->allocate_output("result_values", TensorShape({(int64)intermediate_values.size()}), &result_values_tensor));
-  auto result_values = result_values_tensor->flat<string>();
+  auto result_values = result_values_tensor->flat<tstring>();
 
   Tensor *result_splits_tensor;
   OP_REQUIRES_OK(ctx, ctx->allocate_output("result_splits", TensorShape({(int64)intermediate_splits.size()}), &result_splits_tensor));

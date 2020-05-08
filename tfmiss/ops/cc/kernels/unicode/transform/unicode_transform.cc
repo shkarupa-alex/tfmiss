@@ -20,12 +20,12 @@ void UnicodeTransformOp::Compute(OpKernelContext *ctx)
   // Prepare source
   const Tensor *source_tensor;
   OP_REQUIRES_OK(ctx, ctx->input("source", &source_tensor));
-  const auto source_values = source_tensor->flat<string>();
+  const auto source_values = source_tensor->flat<tstring>();
 
   // Allocate result
   Tensor *result_tensor;
   OP_REQUIRES_OK(ctx, ctx->allocate_output("result", TensorShape({source_tensor->shape()}), &result_tensor));
-  auto result_values = result_tensor->flat<string>();
+  auto result_values = result_tensor->flat<tstring>();
 
   // Transform and write to output
   for (int64 i = 0; i < source_values.size(); i++)

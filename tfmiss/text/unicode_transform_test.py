@@ -175,89 +175,89 @@ class NormalizeUnicodeTest(tf.test.TestCase):
         self.assertAllEqual(expected, result)
 
 
-@test_util.run_all_in_graph_and_eager_modes
-class ReplaceRegexTest(tf.test.TestCase):
-    def test_inference_shape(self):
-        source = [
-            ['1', '2', '3'],
-            ['4', '5', '6'],
-        ]
-        result = replace_regex(source, ['\\d'], ['0'])
-
-        self.assertAllEqual([2, 3], result.shape.as_list())
-
-    def test_actual_shape(self):
-        source = [
-            ['1', '2', '3'],
-            ['4', '5', '6'],
-        ]
-        result = replace_regex(source, ['\\d'], ['0'])
-        result = tf.shape(result)
-
-        result = self.evaluate(result)
-        self.assertAllEqual([2, 3], result.tolist())
-
-    def test_empty(self):
-        result = replace_regex('', ['\\d'], ['0'])
-
-        result = self.evaluate(result)
-        self.assertAllEqual(b'', result)
-
-    def test_empty_needle(self):
-        with self.assertRaisesRegexp(tf.errors.InvalidArgumentError, 'Items of "pattern" could not be empty'):
-            result = replace_regex('<test>', [''], ['>'])
-            result = self.evaluate(result)
-            self.assertAllEqual(b'test', result)
-
-    def test_empty_haystack(self):
-        result = replace_regex('<test>', ['(<)'], [''])
-
-        result = self.evaluate(result)
-        self.assertAllEqual(b'test>', result)
-
-    def test_0d(self):
-        result = replace_regex('1test2', ['\\d'], ['0'])
-
-        result = self.evaluate(result)
-        self.assertAllEqual(b'0test0', result)
-
-    def test_1d(self):
-        result = replace_regex(['1test2'], ['\\d'], ['0'])
-
-        result = self.evaluate(result)
-        self.assertAllEqual([b'0test0'], result)
-
-    def test_2d(self):
-        result = replace_regex([['1test2']], ['\\d'], ['0'])
-
-        result = self.evaluate(result)
-        self.assertAllEqual([[b'0test0']], result)
-
-    def test_ragged(self):
-        source = tf.ragged.constant([['1test', 'test2'], ['test']])
-        expected = tf.constant([['0test', 'test0'], ['test', '']])
-        result = replace_regex(source, ['\\d'], ['0']).to_tensor(default_value='')
-
-        expected, result = self.evaluate([expected, result])
-        self.assertAllEqual(expected, result)
-
-    def test_unicode(self):
-        expected = u'_ на _ он же _-0 _ _̈_ _'
-        result = replace_regex(
-            u'тест на юникод он же utf-8 плюс совмещённый символ',
-            [u'\\pL{3,}', u'\\d'],
-            ['_', u'0']
-        )
-        expected = tf.convert_to_tensor(expected, dtype=tf.string)
-
-        expected, result = self.evaluate([expected, result])
-        self.assertAllEqual(expected, result)
-
-    def test_skip(self):
-        result = replace_regex([['1test2', '1t3']], ['\\d'], ['0'], skip=['1t3'])
-
-        result = self.evaluate(result)
-        self.assertAllEqual([[b'0test0', b'1t3']], result)
+# @test_util.run_all_in_graph_and_eager_modes
+# class ReplaceRegexTest(tf.test.TestCase):
+#     def test_inference_shape(self):
+#         source = [
+#             ['1', '2', '3'],
+#             ['4', '5', '6'],
+#         ]
+#         result = replace_regex(source, ['\\d'], ['0'])
+#
+#         self.assertAllEqual([2, 3], result.shape.as_list())
+#
+#     def test_actual_shape(self):
+#         source = [
+#             ['1', '2', '3'],
+#             ['4', '5', '6'],
+#         ]
+#         result = replace_regex(source, ['\\d'], ['0'])
+#         result = tf.shape(result)
+#
+#         result = self.evaluate(result)
+#         self.assertAllEqual([2, 3], result.tolist())
+#
+#     def test_empty(self):
+#         result = replace_regex('', ['\\d'], ['0'])
+#
+#         result = self.evaluate(result)
+#         self.assertAllEqual(b'', result)
+#
+#     def test_empty_needle(self):
+#         with self.assertRaisesRegexp(tf.errors.InvalidArgumentError, 'Items of "pattern" could not be empty'):
+#             result = replace_regex('<test>', [''], ['>'])
+#             result = self.evaluate(result)
+#             self.assertAllEqual(b'test', result)
+#
+#     def test_empty_haystack(self):
+#         result = replace_regex('<test>', ['(<)'], [''])
+#
+#         result = self.evaluate(result)
+#         self.assertAllEqual(b'test>', result)
+#
+#     def test_0d(self):
+#         result = replace_regex('1test2', ['\\d'], ['0'])
+#
+#         result = self.evaluate(result)
+#         self.assertAllEqual(b'0test0', result)
+#
+#     def test_1d(self):
+#         result = replace_regex(['1test2'], ['\\d'], ['0'])
+#
+#         result = self.evaluate(result)
+#         self.assertAllEqual([b'0test0'], result)
+#
+#     def test_2d(self):
+#         result = replace_regex([['1test2']], ['\\d'], ['0'])
+#
+#         result = self.evaluate(result)
+#         self.assertAllEqual([[b'0test0']], result)
+#
+#     def test_ragged(self):
+#         source = tf.ragged.constant([['1test', 'test2'], ['test']])
+#         expected = tf.constant([['0test', 'test0'], ['test', '']])
+#         result = replace_regex(source, ['\\d'], ['0']).to_tensor(default_value='')
+#
+#         expected, result = self.evaluate([expected, result])
+#         self.assertAllEqual(expected, result)
+#
+#     def test_unicode(self):
+#         expected = u'_ на _ он же _-0 _ _̈_ _'
+#         result = replace_regex(
+#             u'тест на юникод он же utf-8 плюс совмещённый символ',
+#             [u'\\pL{3,}', u'\\d'],
+#             ['_', u'0']
+#         )
+#         expected = tf.convert_to_tensor(expected, dtype=tf.string)
+#
+#         expected, result = self.evaluate([expected, result])
+#         self.assertAllEqual(expected, result)
+#
+#     def test_skip(self):
+#         result = replace_regex([['1test2', '1t3']], ['\\d'], ['0'], skip=['1t3'])
+#
+#         result = self.evaluate(result)
+#         self.assertAllEqual([[b'0test0', b'1t3']], result)
 
 
 @test_util.run_all_in_graph_and_eager_modes

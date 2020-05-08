@@ -468,8 +468,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
         predictions = model.predict(x=xp, batch_size=100)
         predictsum = np.sum(predictions, axis=-1)
 
-        # TODO: check v2.2
-        # Fails with !eager & func
+        # TODO: Fails with !eager & func
         # print(testing_utils.should_run_eagerly(), testing_utils.should_run_tf_function(), history['loss'][0], history['loss'][-1])
         # self.assertGreater(history['loss'][0], history['loss'][-1])
         # self.assertGreater(history['val_loss'][0], history['val_loss'][-1])

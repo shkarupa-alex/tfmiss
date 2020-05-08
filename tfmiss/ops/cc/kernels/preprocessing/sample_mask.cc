@@ -119,7 +119,7 @@ public:
     // Prepare input
     const Tensor *source_tensor;
     OP_REQUIRES_OK(ctx, ctx->input("source", &source_tensor));
-    const auto source_values = source_tensor->flat<string>();
+    const auto source_values = source_tensor->flat<tstring>();
     const uint64 num_elements = source_tensor->shape().num_elements();
 
     // Allocate output
