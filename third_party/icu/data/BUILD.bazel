@@ -8,29 +8,47 @@ exports_files(["LICENSE"])
 #
 # First, download and unpack ICU.
 # Then, run the following from your icu4c/source directory:
-#   $ ICU_DATA_FILTER_FILE=<path_to_this_dir>/filter.json ./configure
+#   $ ICU_DATA_FILTER_FILE=<path_to_this_dir>/filter.json ./runConfigureICU Linux
 #   $ make
-#   $ DYLD_LIBRARY_PATH=./lib:./stubdata:./tools/ctestfw:$DYLD_LIBRARY_PATH ./bin/genccode -f data/out/tmp/icudt64l data/out/tmp/icudt64l.dat
-#   $ echo "U_CAPI const void * U_EXPORT2 uprv_getICUData_conversion() { return icudt64l_dat.bytes; }" >> data/out/tmp/icudt64l.c
-#   $ gzip data/out/tmp/icudt64l.c
-#   $ split -b 176k data/out/tmp/icudt64l.c.gz icudt64l.c.gz.
-#   $ mv icudt64l.c.gz.* <path_to_this_dir>/
+#   $ mkdir -p \
+#	    data/out/tmp/locales \
+#	    data/out/tmp/coll  \
+#	    data/out/build/icudt67l/coll \
+#	    data/out/tmp/curr \
+#	    data/out/build/icudt67l/curr \
+#	    data/out/tmp/lang \
+#	    data/out/build/icudt67l/lang \
+#	    data/out/tmp/rbnf \
+#	    data/out/build/icudt67l/rbnf \
+#	    data/out/tmp/region \
+#	    data/out/build/icudt67l/region \
+#	    data/out/build/icudt67l/translit \
+#	    data/out/tmp/unit \
+#	    data/out/build/icudt67l/unit \
+#	    data/out/tmp/zone
+#   $ DYLD_LIBRARY_PATH=./lib:./stubdata:./tools/ctestfw:$DYLD_LIBRARY_PATH ./bin/genccode -f data/out/tmp/icudt67l data/out/tmp/icudt67l.dat
+#   $ echo "U_CAPI const void * U_EXPORT2 uprv_getICUData_other() { return icudt67l_dat.bytes; }" >> data/out/tmp/icudt67l.c
+#   $ sed -i -- 's/icudt67l_dat/icudt67l_miss/g' data/out/tmp/icudt67l.c
+#   $ mv data/out/tmp/icudt67l.c data/out/tmp/icudt.c
+#   $ gzip data/out/tmp/icudt.c
+#   $ split -b 176k data/out/tmp/icudt.c.gz icudt.c.gz.
+#   $ mv icudt.c.gz.* <path_to_this_dir>/
 
 filegroup(
-    name = "icudt64l_files",
-    srcs = glob(["icudt64l.c.gz.*"]),
+    name = "icudt_files",
+    srcs = glob(["icudt.c.gz.*"]),
 )
 
 # Data files are compressed and split to work around git performance degradation around large files.
 genrule(
-    name = "merge_icudt64l",
-    srcs = [":icudt64l_files"],
-    outs = ["icudt64l.c"],
-    cmd = "cat $(locations :icudt64l_files) | gunzip > $@",
+    name = "merge_icudt",
+    srcs = [":icudt_files"],
+    outs = ["icudt.c"],
+    cmd = "cat $(locations :icudt_files) | gunzip > $@",
 )
 
 cc_library(
     name = "custom_data",
-    srcs = [":icudt64l.c"],
+    srcs = [":icudt.c"],
     deps = ["@icu//:headers"],
 )

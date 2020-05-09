@@ -6,11 +6,11 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "icu",
-    sha256 = "524960ac99d086cdb6988d2a92fc163436fd3c6ec0a84c475c6382fbf989be05",
-    strip_prefix = "icu-release-64-2",
+    sha256 = "571d3723a8055d85e513b19b70b4f7f370da10df084c3bb598e0fb8333da0a16",
+    strip_prefix = "icu-release-67-1",
     urls = [
-        "https://mirror.bazel.build/github.com/unicode-org/icu/archive/release-64-2.tar.gz",
-        "https://github.com/unicode-org/icu/archive/release-64-2.tar.gz",
+        "https://mirror.bazel.build/github.com/unicode-org/icu/archive/release-67-1.tar.gz",
+        "https://github.com/unicode-org/icu/archive/release-67-1.tar.gz",
     ],
     build_file = "//third_party/icu:BUILD.bazel",
     patch_args= ["-p1"],
@@ -27,7 +27,6 @@ http_archive(
         "https://github.com/google/re2/archive/2020-05-01.tar.gz"
     ],
 )
-
 http_archive(
     name = "protobuf_archive",
     sha256 = "1c020fafc84acd235ec81c6aac22d73f23e85a700871466052ff231d69c1b17a",
