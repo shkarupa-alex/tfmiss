@@ -10,23 +10,7 @@ exports_files(["LICENSE"])
 # Then, run the following from your icu4c/source directory:
 #   $ ICU_DATA_FILTER_FILE=<path_to_this_dir>/filter.json ./runConfigureICU Linux
 #   $ make
-#   $ mkdir -p \
-#	    data/out/tmp/locales \
-#	    data/out/tmp/coll  \
-#	    data/out/build/icudt67l/coll \
-#	    data/out/tmp/curr \
-#	    data/out/build/icudt67l/curr \
-#	    data/out/tmp/lang \
-#	    data/out/build/icudt67l/lang \
-#	    data/out/tmp/rbnf \
-#	    data/out/build/icudt67l/rbnf \
-#	    data/out/tmp/region \
-#	    data/out/build/icudt67l/region \
-#	    data/out/build/icudt67l/translit \
-#	    data/out/tmp/unit \
-#	    data/out/build/icudt67l/unit \
-#	    data/out/tmp/zone
-#   $ DYLD_LIBRARY_PATH=./lib:./stubdata:./tools/ctestfw:$DYLD_LIBRARY_PATH ./bin/genccode -f data/out/tmp/icudt67l data/out/tmp/icudt67l.dat
+#   $ LD_LIBRARY_PATH=./lib:./stubdata:./tools/ctestfw:$LD_LIBRARY_PATH DYLD_LIBRARY_PATH=./lib:./stubdata:./tools/ctestfw:$DYLD_LIBRARY_PATH ./bin/genccode -f data/out/tmp/icudt67l data/out/tmp/icudt67l.dat
 #   $ echo "U_CAPI const void * U_EXPORT2 uprv_getICUData_other() { return icudt67l_dat.bytes; }" >> data/out/tmp/icudt67l.c
 #   $ sed -i -- 's/icudt67l_dat/icudt67l_miss/g' data/out/tmp/icudt67l.c
 #   $ mv data/out/tmp/icudt67l.c data/out/tmp/icudt.c
