@@ -1,9 +1,58 @@
 {
-  "strategy": "additive",
   "featureFilters": {
-    "brkitr_rules": "include",
-    "cnvalias": "include",
-    "normalization": "include",
-    "ulayout": "include"
+    "brkitr_dictionaries": {
+      "filterType": "exclude"
+    },
+    "coll_tree": {
+      "filterType": "exclude"
+    },
+    "coll_ucadata": {
+      "filterType": "exclude"
+    },
+    "confusables": {
+      "filterType": "exclude"
+    },
+    "conversion_mappings": {
+      "filterType": "exclude"
+    },
+    "curr_supplemental": {
+      "filterType": "exclude"
+    },
+    "curr_tree": {
+      "filterType": "exclude"
+    },
+    "lang_tree": {
+      "filterType": "exclude"
+    },
+    "locales_tree": {
+      "filterType": "exclude"
+    },
+    "misc": {
+      "filterType": "exclude"
+    },
+    "rbnf_tree": {
+      "filterType": "exclude"
+    },
+    "region_tree": {
+      "filterType": "exclude"
+    },
+    "stringprep": {
+      "filterType": "exclude"
+    },
+    "translit": {
+      "filterType": "exclude"
+    },
+    "ulayout": {
+      "filterType": "exclude"
+    },
+    "unames": {
+      "filterType": "exclude"
+    },
+    "unit_tree": {
+      "filterType": "exclude"
+    },
+    "zone_tree": {
+      "filterType": "exclude"
+    }
   }
 }
