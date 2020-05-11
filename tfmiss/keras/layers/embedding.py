@@ -70,7 +70,7 @@ class AdaptiveEmbedding(Embedding):
                                  'decrease `factor` or increase `output_dim`')
             prev_dim = dim
 
-            with tf.device('CPU:0'):
+            with tf.device('/CPU:0'):
                 embed = self.add_weight(
                     shape=(size, dim),
                     initializer=self.embeddings_initializer,

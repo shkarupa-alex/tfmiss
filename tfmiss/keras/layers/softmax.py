@@ -386,32 +386,32 @@ class SampledSofmax(tf.keras.layers.Layer):
 
     @tf_utils.shape_type_conversion
     def build(self, input_shape):
-        dtype = tf.dtypes.as_dtype(self.dtype or tf.keras.backend.floatx())
-        if not (dtype.is_floating or dtype.is_complex):
-            raise TypeError('Unable to build `{}` layer with non-floating '
-                            'point dtype {}'.format(self.__class__.__name__, dtype))
+        with tf.device('/CPU:0'):
+            dtype = tf.dtypes.as_dtype(self.dtype or tf.keras.backend.floatx())
+            if not (dtype.is_floating or dtype.is_complex):
+                raise TypeError('Unable to build `{}` layer with non-floating '
+                                'point dtype {}'.format(self.__class__.__name__, dtype))
 
-        if not isinstance(input_shape, (tuple, list)) or len(input_shape) != 2:
-            raise ValueError('A `{}` layer should be called on exactly 2 inputs: '
-                             '`predictions` and `targets`'.format(self.__class__.__name__))
+            if not isinstance(input_shape, (tuple, list)) or len(input_shape) != 2:
+                raise ValueError('A `{}` layer should be called on exactly 2 inputs: '
+                                 '`predictions` and `targets`'.format(self.__class__.__name__))
 
-        predictions_shape, targets_shape = input_shape
-        predictions_rank = len(predictions_shape)
-        if predictions_rank < 2:
-            raise ValueError('Predictions shape {} must have rank >= 2'.format(predictions_shape))
-        if len(targets_shape) + 1 != predictions_rank:
-            raise ValueError('Targets shape {} rank must be one less than predictions '
-                             'shape rank {}'.format(targets_shape, predictions_shape))
+            predictions_shape, targets_shape = input_shape
+            predictions_rank = len(predictions_shape)
+            if predictions_rank < 2:
+                raise ValueError('Predictions shape {} must have rank >= 2'.format(predictions_shape))
+            if len(targets_shape) + 1 != predictions_rank:
+                raise ValueError('Targets shape {} rank must be one less than predictions '
+                                 'shape rank {}'.format(targets_shape, predictions_shape))
 
-        self.num_channels = predictions_shape[-1]
-        if self.num_channels is None:
-            raise ValueError('Channel dimension of predictions should be defined. Found `None`.')
-        self.input_spec = [
-            tf.keras.layers.InputSpec(ndim=predictions_rank, axes={-1: self.num_channels}),
-            tf.keras.layers.InputSpec(ndim=predictions_rank - 1)
-        ]
+            self.num_channels = predictions_shape[-1]
+            if self.num_channels is None:
+                raise ValueError('Channel dimension of predictions should be defined. Found `None`.')
+            self.input_spec = [
+                tf.keras.layers.InputSpec(ndim=predictions_rank, axes={-1: self.num_channels}),
+                tf.keras.layers.InputSpec(ndim=predictions_rank - 1)
+            ]
 
-        with tf.device('cpu:0'):
             self.kernel = self.add_weight(
                 shape=(self.num_channels, self.units),
                 initializer=self.kernel_initializer,
@@ -431,40 +431,41 @@ class SampledSofmax(tf.keras.layers.Layer):
                 trainable=True
             )
 
-        super(SampledSofmax, self).build(input_shape)
+            super(SampledSofmax, self).build(input_shape)
 
     def call(self, inputs, training=None):
-        if training is None:
-            training = tf.keras.backend.learning_phase()
+        with tf.device('/CPU:0'):
+            if training is None:
+                training = tf.keras.backend.learning_phase()
 
-        input_logits, input_targets = inputs
-        input_logits = tf.cast(input_logits, self._compute_dtype)
-        input_logits, row_lengths = convert_inputs_if_ragged(input_logits)
-        input_targets, _ = convert_inputs_if_ragged(input_targets)
-        is_ragged_input = (row_lengths is not None)
+            input_logits, input_targets = inputs
+            input_logits = tf.cast(input_logits, self._compute_dtype)
+            input_logits, row_lengths = convert_inputs_if_ragged(input_logits)
+            input_targets, _ = convert_inputs_if_ragged(input_targets)
+            is_ragged_input = (row_lengths is not None)
 
-        input_shape = tf.shape(input_logits)
-        output_shape = tf.stack(tf.unstack(input_shape)[:-1] + [self.units])
-        input_logits = tf.reshape(input_logits, [-1, self.num_channels])
-        input_targets = tf.reshape(input_targets, [-1])
+            input_shape = tf.shape(input_logits)
+            output_shape = tf.stack(tf.unstack(input_shape)[:-1] + [self.units])
+            input_logits = tf.reshape(input_logits, [-1, self.num_channels])
+            input_targets = tf.reshape(input_targets, [-1])
 
-        output_logits = tf.matmul(input_logits, self.kernel)
-        output_logits = tf.nn.bias_add(output_logits, self.bias)
-        output_logits = tf.cast(output_logits, tf.float32)
+            output_logits = tf.matmul(input_logits, self.kernel)
+            output_logits = tf.nn.bias_add(output_logits, self.bias)
+            output_logits = tf.cast(output_logits, tf.float32)
 
-        loss = tf_utils.smart_cond(
-            training,
-            lambda: self._train_loss(input_logits, input_targets),
-            lambda: self._eval_loss(output_logits, input_targets)
-        )
-        loss = compute_weighted_loss(loss, sample_weight=None, reduction=self.loss_reduction)
-        self.add_loss(loss, inputs=True)
+            loss = tf_utils.smart_cond(
+                training,
+                lambda: self._train_loss(input_logits, input_targets),
+                lambda: self._eval_loss(output_logits, input_targets)
+            )
+            loss = compute_weighted_loss(loss, sample_weight=None, reduction=self.loss_reduction)
+            self.add_loss(loss, inputs=True)
 
-        output_probs = tf.nn.softmax(output_logits)
-        output_probs = tf.reshape(output_probs, output_shape)
-        output_probs = maybe_convert_to_ragged(is_ragged_input, output_probs, row_lengths)
+            output_probs = tf.nn.softmax(output_logits)
+            output_probs = tf.reshape(output_probs, output_shape)
+            output_probs = maybe_convert_to_ragged(is_ragged_input, output_probs, row_lengths)
 
-        return output_probs
+            return output_probs
 
     def _train_loss(self, inputs, targets):
         labels_exp_dim = tf.expand_dims(targets, axis=-1)
