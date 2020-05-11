@@ -12,8 +12,8 @@ http_archive(
         "https://mirror.bazel.build/github.com/unicode-org/icu/archive/release-64-2.tar.gz",
         "https://github.com/unicode-org/icu/archive/release-64-2.tar.gz",
     ],
-    build_file = "//third_party/icu:BUILD.bazel",
-    patch_args= ["-p1"],
+    build_file = "//third_party/icu:BUILD.bzl",
+    patch_args= ["-p1", "-s"],
     patches = [
         "//third_party/icu:udata.patch",
     ],

@@ -1,6 +1,6 @@
 #include "re2/re2.h"
-#include "tensorflow/core/util/ptr_util.h"
 #include "unicode_transform.h"
+#include "tensorflow/core/util/ptr_util.h"
 
 namespace tensorflow {
 namespace miss {

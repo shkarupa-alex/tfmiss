@@ -1,4 +1,3 @@
-#include <unicode/unistr.h>
 #include "unicode_transform.h"
 
 namespace tensorflow {
