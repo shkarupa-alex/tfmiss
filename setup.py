@@ -42,7 +42,6 @@ setup(
     packages=find_packages(),
     install_requires=[
         'tensorflow>=2.2.0',
-        'tensorflow-addons>=0.9.1',
         'matplotlib>=3.1.1',
         'tabulate>=0.8.6',
     ],

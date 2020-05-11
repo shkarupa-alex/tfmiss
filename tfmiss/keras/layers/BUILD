@@ -10,6 +10,7 @@ py_library(
         "scale.py",
         "softmax.py",
         "tcn.py",
+        "wrappers.py",
     ],
     deps = [
         "//tfmiss/nn",
@@ -48,6 +49,13 @@ py_test(
 py_test(
     name = "tcn_test",
     srcs = ["tcn_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [":layers"],
+)
+
+py_test(
+    name = "wrappers_test",
+    srcs = ["wrappers_test.py"],
     srcs_version = "PY2AND3",
     deps = [":layers"],
 )

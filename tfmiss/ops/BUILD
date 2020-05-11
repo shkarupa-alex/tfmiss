@@ -55,9 +55,8 @@ cc_binary(
        "cc/kernels/unicode/transform/normalize_unicode.cc",
        "cc/ops/unicode/transform/normalize_unicode.cc",
 
-       # Disabled due to segfault
-       # "cc/kernels/unicode/transform/replace_regex.cc",
-       # "cc/ops/unicode/transform/replace_regex.cc",
+       "cc/kernels/unicode/transform/replace_regex.cc",
+       "cc/ops/unicode/transform/replace_regex.cc",
 
        "cc/kernels/unicode/transform/replace_string.cc",
        "cc/ops/unicode/transform/replace_string.cc",
@@ -76,11 +75,11 @@ cc_binary(
     ],
     linkshared = 1,
     deps = [
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
         "//third_party/icu/data:custom_data",
         "@icu//:common",
         "@re2//:re2",
+        "@local_config_tf//:libtensorflow_framework",
+        "@local_config_tf//:tf_header_lib",
     ],
     copts = [
         "-pthread",
