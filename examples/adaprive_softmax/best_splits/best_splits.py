@@ -8,8 +8,8 @@ import logging
 import tensorflow as tf
 from nlpvocab import Vocabulary
 from tabulate import tabulate
+from tfmiss.preprocessing import sample_probs
 from tfmiss.training import build_zipf_vocab, estimate_best_splits
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -46,6 +46,11 @@ if __name__ == "__main__":
         default=Vocabulary.FORMAT_BINARY_PICKLE,
         help='Vocabulary file format')
     parser.add_argument(
+        '--thres_hold',
+        type=float,
+        default=0.,
+        help='Number of classes')
+    parser.add_argument(
         '--num_classes',
         type=int,
         default=0,
@@ -69,6 +74,11 @@ if __name__ == "__main__":
         freq_vocab = Vocabulary.load(vocab_file, format=argv.vocab_format)
     else:
         freq_vocab = build_zipf_vocab(argv.num_classes)
+
+    if argv.thres_hold > 0.:
+        keep_probs = sample_probs(freq_vocab, argv.thres_hold)
+        for key in keep_probs:
+            freq_vocab[key] = round(freq_vocab[key] * keep_probs[key])
 
     batch_sizes, head_sizes, speed_ups, best_splits = estimate_best_splits(
         device_params=device_params,

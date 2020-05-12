@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import argparse
 import numpy as np
+import time
 from matplotlib import pyplot
 from tensorflow import keras
 from tensorflow.python.keras import backend as K
@@ -33,37 +34,17 @@ if __name__ == "__main__":
 
     train_dataset, test_dataset, vocab_size = data_generator(argv.seq_len, argv.batch_size)
 
-    titles = ['AdaptiveSoftmax (default)', 'AdaptiveSoftmax (accurate)', 'AdaptiveSoftmax (fast)',
-              'NoiseContrastiveEstimation', 'SampledSoftmax', 'Softmax']
+    titles = ['Softmax', 'NoiseContrastiveEstimation', 'SampledSoftmax', 'AdaptiveSoftmax (default)',
+              'AdaptiveSoftmax (accurate)', 'AdaptiveSoftmax (fast)']
     models = [
         Text8Model(
             seq_len=argv.seq_len,
             vocab_size=vocab_size,
             embed_size=argv.embed_size,
             units=argv.nhid,
-            core=Text8Model.OUT_ASM,
+            core=Text8Model.OUT_SM,
             dropout=argv.dropout,
             cutoff=argv_cutoff,
-            negatives=argv.negatives
-        ),
-        Text8Model(
-            seq_len=argv.seq_len,
-            vocab_size=vocab_size,
-            embed_size=argv.embed_size,
-            units=argv.nhid,
-            core=Text8Model.OUT_ASM,
-            dropout=argv.dropout,
-            cutoff=[2030, 6774],
-            negatives=argv.negatives
-        ),
-        Text8Model(
-            seq_len=argv.seq_len,
-            vocab_size=vocab_size,
-            embed_size=argv.embed_size,
-            units=argv.nhid,
-            core=Text8Model.OUT_ASM,
-            dropout=argv.dropout,
-            cutoff=[454, 6590],
             negatives=argv.negatives
         ),
 
@@ -94,9 +75,29 @@ if __name__ == "__main__":
             vocab_size=vocab_size,
             embed_size=argv.embed_size,
             units=argv.nhid,
-            core=Text8Model.OUT_SM,
+            core=Text8Model.OUT_ASM,
             dropout=argv.dropout,
             cutoff=argv_cutoff,
+            negatives=argv.negatives
+        ),
+        Text8Model(
+            seq_len=argv.seq_len,
+            vocab_size=vocab_size,
+            embed_size=argv.embed_size,
+            units=argv.nhid,
+            core=Text8Model.OUT_ASM,
+            dropout=argv.dropout,
+            cutoff=[2030, 6774],
+            negatives=argv.negatives
+        ),
+        Text8Model(
+            seq_len=argv.seq_len,
+            vocab_size=vocab_size,
+            embed_size=argv.embed_size,
+            units=argv.nhid,
+            core=Text8Model.OUT_ASM,
+            dropout=argv.dropout,
+            cutoff=[454, 6590],
             negatives=argv.negatives
         ),
     ]
@@ -110,25 +111,26 @@ if __name__ == "__main__":
             loss='sparse_categorical_crossentropy',
         )
         model.summary()
+
+        start_time = time.time()
         histories[title] = model.fit(
             train_dataset,
             epochs=argv.epochs,
             validation_data=test_dataset,
         ).history
+        histories[title]['time'] = (time.time() - start_time) / 60
+        histories[title]['ppl'] = np.exp(histories[title]['val_loss'])
 
-    interval = np.linspace(0, argv.epochs, argv.epochs)
     cmap = pyplot.get_cmap('viridis')
     colors = cmap(np.linspace(0, 1, len(histories.items())))
 
     for (core, m), color in zip(histories.items(), colors):
-        pyplot.plot(interval, m['loss'], color=color, label=core)
+        interval = np.linspace(0, m['time'], argv.epochs)
+        pyplot.plot(interval, m['ppl'], color=color, label=core)
 
     pyplot.title('Character LM on {}'.format(argv.dataset.upper()))
-    pyplot.xlabel('Epoch')
-    pyplot.ylabel('Loss')
+    pyplot.xlabel('Time (minutes)')
+    pyplot.ylabel('Perplexity')
     pyplot.legend()
-    pyplot.savefig('loss_{}.png'.format(argv.dataset))
+    pyplot.savefig('ppl.png')
     pyplot.close()
-
-    for (core, m), color in zip(histories.items(), colors):
-        pyplot.plot(interval, np.exp(m['loss']), color=color, label=core)
