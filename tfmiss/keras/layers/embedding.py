@@ -93,14 +93,17 @@ class AdaptiveEmbedding(Embedding):
                 )
                 setattr(self, 'project_{}'.format(i), project)
             else:
-                project = AdaptiveEmbedding._no_projection
+                project = self._no_projection
             self.projections.append(project)
+
+        # Tail projections will use global policy compute dtype, need to change ours for stitching
+        compute_dtype = tf.keras.mixed_precision.experimental.global_policy().compute_dtype
+        self._dtype_policy._compute_dtype = compute_dtype
 
         self.built = True
 
-    @staticmethod
-    def _no_projection(embedding):
-        return embedding
+    def _no_projection(self, embedding):
+        return tf.cast(embedding, self._compute_dtype)
 
     def call(self, inputs):
         dtype = tf.keras.backend.dtype(inputs)

@@ -69,7 +69,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
         self.input_spec = [
             tf.keras.layers.InputSpec(min_ndim=2),  # predictions
-            tf.keras.layers.InputSpec(min_ndim=1),  # targets
+            tf.keras.layers.InputSpec(min_ndim=1, dtype=tf.int32),  # targets
         ]
         self.supports_masking = True
         self._supports_ragged_inputs = True
@@ -116,7 +116,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             raise ValueError('Channel dimension of predictions should be defined. Found `None`.')
         self.input_spec = [
             tf.keras.layers.InputSpec(ndim=predictions_rank, axes={-1: num_channels}),
-            tf.keras.layers.InputSpec(ndim=predictions_rank - 1)
+            tf.keras.layers.InputSpec(ndim=predictions_rank - 1, dtype=tf.int32)
         ]
 
         self.head = tf.keras.layers.Dense(
@@ -367,7 +367,7 @@ class SampledSofmax(tf.keras.layers.Layer):
             activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
         self.input_spec = [
             tf.keras.layers.InputSpec(min_ndim=2),  # predictions
-            tf.keras.layers.InputSpec(min_ndim=1),  # targets
+            tf.keras.layers.InputSpec(min_ndim=1, dtype=tf.int32),  # targets
         ]
         self.supports_masking = True
         self._supports_ragged_inputs = True
@@ -409,7 +409,7 @@ class SampledSofmax(tf.keras.layers.Layer):
                 raise ValueError('Channel dimension of predictions should be defined. Found `None`.')
             self.input_spec = [
                 tf.keras.layers.InputSpec(ndim=predictions_rank, axes={-1: self.num_channels}),
-                tf.keras.layers.InputSpec(ndim=predictions_rank - 1)
+                tf.keras.layers.InputSpec(ndim=predictions_rank - 1, dtype=tf.int32)
             ]
 
             self.kernel = self.add_weight(
@@ -451,7 +451,6 @@ class SampledSofmax(tf.keras.layers.Layer):
 
             output_logits = tf.matmul(input_logits, self.kernel)
             output_logits = tf.nn.bias_add(output_logits, self.bias)
-            output_logits = tf.cast(output_logits, tf.float32)
 
             loss = tf_utils.smart_cond(
                 training,
