@@ -61,8 +61,12 @@ class LRFinder(tf.keras.callbacks.Callback):
         self.lrs = []
 
         tf.keras.backend.set_value(self.model.optimizer.lr, self.min_lr)
+        logging.warning('Don\'t forget to set "steps_per_epoch={}" in model.fit() call'.format(self.max_steps))
 
     def on_train_batch_end(self, batch, logs=None):
+        if self.model.stop_training:
+            return
+
         logs = logs or {}
         current_value = logs.get(self.metric)
 
