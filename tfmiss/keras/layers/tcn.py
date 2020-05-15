@@ -39,6 +39,7 @@ class TemporalBlock(tf.keras.layers.Layer):
         super(TemporalBlock, self).__init__(
             activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
+        self.supports_masking = True
 
         if padding not in {'causal', 'same'}:
             raise ValueError('Only "causal" and "same" padding are compatible with this layer.')
@@ -203,6 +204,7 @@ class TemporalConvNet(tf.keras.layers.Layer):
         super(TemporalConvNet, self).__init__(
             activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
+        self.supports_masking = True
         self._supports_ragged_inputs = True
 
         if not isinstance(filters, (list, tuple)) or not len(filters):
