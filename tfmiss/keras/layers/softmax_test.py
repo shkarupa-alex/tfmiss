@@ -40,7 +40,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
                 'dtype': 'float16'
             },
             input_shapes=[(3, 2, 10, 5), (3, 2, 10,)],
-            input_dtypes=['float32', 'int64'],
+            input_dtypes=['float32', 'int32'],
             expected_output_dtypes=['float32']
         )
 
@@ -54,7 +54,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
                 'cutoff': [3],
             },
             input_shapes=[(10, 5), (10,)],
-            input_dtypes=['float16', 'int64'],
+            input_dtypes=['float16', 'int32'],
             expected_output_dtypes=['float32']
         )
         tf.keras.mixed_precision.experimental.set_policy(glob_policy)
@@ -62,7 +62,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
     def test_actual_shape_2d(self):
         layer = AdaptiveSoftmax(units=20, cutoff=[3])
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         result = layer([inputs, targets], training=True)
         self.assertListEqual([10, 20], list(result.shape))
@@ -70,7 +70,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
     def test_actual_shape_3d(self):
         layer = AdaptiveSoftmax(units=20, cutoff=[3, 8])
         inputs = np.random.rand(2, 10, 64)
-        targets = np.arange(20).reshape([2, 10])
+        targets = np.arange(20, dtype=np.int32).reshape([2, 10])
 
         result = layer([inputs, targets], training=True)
         self.assertListEqual([2, 10, 20], list(result.shape))
@@ -78,7 +78,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
     def test_loss_and_output_2d_over_batch(self):
         layer = AdaptiveSoftmax(units=20, cutoff=[3], loss_reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE)
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         train_result = layer([inputs, targets], training=True)
         train_sum = np.sum(train_result, axis=-1)
@@ -95,7 +95,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
     def test_loss_and_output_2d_sum(self):
         layer = AdaptiveSoftmax(units=20, cutoff=[3], loss_reduction=tf.keras.losses.Reduction.SUM)
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         train_result = layer([inputs, targets], training=True)
         train_sum = np.sum(train_result, axis=-1)
@@ -226,7 +226,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
                 'negatives': 2,
             },
             input_shapes=[(3, 2, 10, 5), (3, 2, 10,)],
-            input_dtypes=['float32', 'int64'],
+            input_dtypes=['float32', 'int32'],
             expected_output_dtypes=['float32']
         )
 
@@ -240,7 +240,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
                 'negatives': 2,
             },
             input_shapes=[(10, 5), (10,)],
-            input_dtypes=['float16', 'int64'],
+            input_dtypes=['float16', 'int32'],
             expected_output_dtypes=['float32']
         )
         tf.keras.mixed_precision.experimental.set_policy(glob_policy)
@@ -248,7 +248,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
     def test_actual_shape_2d(self):
         layer = NoiseContrastiveEstimation(units=20, negatives=5)
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         result = layer([inputs, targets], training=True)
         self.assertListEqual([10, 20], list(result.shape))
@@ -256,7 +256,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
     def test_actual_shape_3d(self):
         layer = NoiseContrastiveEstimation(units=20, negatives=5)
         inputs = np.random.rand(2, 10, 64)
-        targets = np.arange(20).reshape([2, 10])
+        targets = np.arange(20, dtype=np.int32).reshape([2, 10])
 
         result = layer([inputs, targets], training=True)
         self.assertListEqual([2, 10, 20], list(result.shape))
@@ -264,7 +264,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
     def test_loss_and_output_2d(self):
         layer = NoiseContrastiveEstimation(units=20, negatives=5)
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         train_result = layer([inputs, targets], training=True)
         train_sum = np.sum(train_result, axis=-1)
@@ -384,7 +384,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
                 'negatives': 2,
             },
             input_shapes=[(3, 2, 10, 5), (3, 2, 10,)],
-            input_dtypes=['float32', 'int64'],
+            input_dtypes=['float32', 'int32'],
             expected_output_dtypes=['float32']
         )
 
@@ -398,7 +398,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
                 'negatives': 2,
             },
             input_shapes=[(10, 5), (10,)],
-            input_dtypes=['float16', 'int64'],
+            input_dtypes=['float16', 'int32'],
             expected_output_dtypes=['float32']
         )
         tf.keras.mixed_precision.experimental.set_policy(glob_policy)
@@ -406,7 +406,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
     def test_actual_shape_2d(self):
         layer = SampledSofmax(units=20, negatives=5)
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         result = layer([inputs, targets], training=True)
         self.assertListEqual([10, 20], list(result.shape))
@@ -414,7 +414,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
     def test_actual_shape_3d(self):
         layer = SampledSofmax(units=20, negatives=5)
         inputs = np.random.rand(2, 10, 64)
-        targets = np.arange(20).reshape([2, 10])
+        targets = np.arange(20, dtype=np.int32).reshape([2, 10])
 
         result = layer([inputs, targets], training=True)
         self.assertListEqual([2, 10, 20], list(result.shape))
@@ -422,7 +422,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
     def test_loss_and_output_2d(self):
         layer = SampledSofmax(units=20, negatives=5)
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         train_result = layer([inputs, targets], training=True)
         train_sum = np.sum(train_result, axis=-1)

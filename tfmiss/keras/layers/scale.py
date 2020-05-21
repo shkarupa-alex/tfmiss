@@ -31,7 +31,7 @@ class L2Scale(tf.keras.layers.Layer):
         else:
             normalized = tf.math.l2_normalize(inputs, axis=-1)
 
-        alpha = tf.cast(self.alpha, self.dtype)
+        alpha = tf.cast(self.alpha, self._compute_dtype)
 
         return normalized * alpha
 
