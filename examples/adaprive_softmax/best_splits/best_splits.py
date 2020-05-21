@@ -32,6 +32,11 @@ if __name__ == "__main__":
         type=int,
         help='Hidden size')
     parser.add_argument(
+        '--factor',
+        type=int,
+        default=4,
+        help='Scale factor for tail projections')
+    parser.add_argument(
         '--classes_vocab',
         type=argparse.FileType('r'),
         default=None,
@@ -46,20 +51,15 @@ if __name__ == "__main__":
         default=Vocabulary.FORMAT_BINARY_PICKLE,
         help='Vocabulary file format')
     parser.add_argument(
-        '--thres_hold',
-        type=float,
-        default=0.,
-        help='Number of classes')
-    parser.add_argument(
         '--num_classes',
         type=int,
         default=0,
         help='Number of classes')
     parser.add_argument(
-        '--factor',
-        type=int,
-        default=4,
-        help='Scale factor for tail projections')
+        '--thres_hold',
+        type=float,
+        default=0.,
+        help='Number of classes')
 
     argv, _ = parser.parse_known_args()
     tf.get_logger().setLevel(logging.INFO)

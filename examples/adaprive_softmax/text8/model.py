@@ -3,12 +3,11 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tfmiss.keras.layers import AdaptiveSoftmax, NoiseContrastiveEstimation, SampledSofmax
+from tfmiss.keras.layers import AdaptiveSoftmax, SampledSofmax
 
 
 class Text8Model(tf.keras.Model):
     OUT_ASM = 'ASS'
-    OUT_NCE = 'NCE'
     OUT_SS = 'SS'
     OUT_SM = 'SM'
 
@@ -21,8 +20,6 @@ class Text8Model(tf.keras.Model):
 
         if self.OUT_ASM == core:
             decoder = AdaptiveSoftmax(vocab_size, cutoff=cutoff)
-        elif self.OUT_NCE == core:
-            decoder = NoiseContrastiveEstimation(vocab_size, negatives=negatives)
         elif self.OUT_SS == core:
             decoder = SampledSofmax(vocab_size, negatives=negatives)
         else:
