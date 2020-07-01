@@ -54,7 +54,7 @@ def load_so():
         global _tfmiss_so
         if not _tfmiss_so:
             _tfmiss_so = tf.load_op_library(_get_ops_path('_tfmiss_ops.so'))
-            if not _tfmiss_so:
-                raise IOError('Could not load _tfmiss_ops.so')
+        if not _tfmiss_so:
+            raise IOError('Could not load _tfmiss_ops.so')
 
     return _tfmiss_so
