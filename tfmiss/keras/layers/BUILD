@@ -10,6 +10,7 @@ py_library(
         "scale.py",
         "softmax.py",
         "tcn.py",
+        "todense.py",
         "wrappers.py",
     ],
     deps = [
@@ -49,6 +50,13 @@ py_test(
 py_test(
     name = "tcn_test",
     srcs = ["tcn_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [":layers"],
+)
+
+py_test(
+    name = "todense_test",
+    srcs = ["todense_test.py"],
     srcs_version = "PY2AND3",
     deps = [":layers"],
 )

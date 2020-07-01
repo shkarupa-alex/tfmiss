@@ -125,7 +125,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             kernel_initializer=self.kernel_initializer,
             kernel_regularizer=self.kernel_regularizer,
             kernel_constraint=self.kernel_constraint,
-            dtype=self.dtype,
             name='head'
         )
 
@@ -151,7 +150,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                     bias_regularizer=self.bias_regularizer,
                     kernel_constraint=self.kernel_constraint,
                     bias_constraint=self.bias_constraint,
-                    dtype=self.dtype,
                     name='tail_proj_{}'.format(i)
                 ),
                 tf.keras.layers.Dropout(self.dropout, name='tail_drop_{}'.format(i)),
@@ -165,7 +163,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                     kernel_regularizer=self.kernel_regularizer,
                     kernel_constraint=self.kernel_constraint,
                     bias_constraint=self.bias_constraint,
-                    dtype=self.dtype,
                     name='tail_scale_{}'.format(i)
                 ),
             ])
@@ -239,11 +236,11 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             target_indices = tf.reshape(target_indices, targets_shape)
             true_indices = tf.boolean_mask(target_indices, true_mask)
             false_indices = tf.boolean_mask(target_indices, false_mask)
-
             target_logprobs = tf.dynamic_stitch(
                 [true_indices, false_indices],
                 [true_logprobs, false_logprobs]
             )
+
             probs_shape = tf.concat([targets_shape, tf.shape(target_logprobs)[-1:]], axis=-1)
             tail_probs = tf.reshape(target_logprobs, probs_shape)
             full_logprobs.append(tail_probs)

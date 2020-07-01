@@ -27,7 +27,8 @@ class WeightNorm(tf.keras.layers.Wrapper):
         super(WeightNorm, self).__init__(layer, **kwargs)
         self.input_spec = layer.input_spec
         self.supports_masking = layer.supports_masking
-        self._supports_ragged_inputs = layer._supports_ragged_inputs
+        if hasattr(layer, '_supports_ragged_inputs'):
+            self._supports_ragged_inputs = layer._supports_ragged_inputs
 
         if not isinstance(layer, tf.keras.layers.Layer):
             raise ValueError(

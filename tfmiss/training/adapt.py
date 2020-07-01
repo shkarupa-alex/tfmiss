@@ -31,7 +31,7 @@ def test_device_matmul(max_batch, max_hidden, max_classes, repeats, device, dtyp
         raise ValueError('Number of classes should be greater then input logits size')
 
     if 'GPU' not in device.upper():
-        tf.get_logger().warn('Device matmul estimation is useful for GPUs. '
+        tf.get_logger().warning('Device matmul estimation is useful for GPUs. '
                              'You ask to measure non-GPU device. Hope you know what you are doing.')
 
     physical_devices = ', '.join([d.name for d in tf.config.experimental.list_physical_devices()])
