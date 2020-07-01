@@ -18,9 +18,8 @@ class LRFInderTest(keras_parameterized.TestCase):
         y = np.mean(x, axis=-1) + np.random.rand(1000) / 10.
         y = np.logical_and(np.less(y, 0.1), np.greater(y, 0.9)).astype(np.int32)
         model.fit(x, y, batch_size=5, callbacks=[lrf_cb])
-        _ = lrf_cb.plot(5)
-        lr = lrf_cb.find()
-        self.assertAlmostEqual(lr, 9.351, places=3)
+        best_lr = lrf_cb.plot()
+        self.assertAlmostEqual(best_lr, 0.033496544, places=7)
 
 
 def _get_model(compile_metrics, out_dim):
