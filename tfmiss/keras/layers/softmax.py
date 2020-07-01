@@ -60,13 +60,12 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                  bias_initializer='zeros',
                  kernel_regularizer=None,
                  bias_regularizer=None,
-                 activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
                  loss_reduction=tf.keras.losses.Reduction.AUTO,
                  **kwargs):
-        super(AdaptiveSoftmax, self).__init__(
-            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
+        kwargs['dtype'] = 'float32'
+        super(AdaptiveSoftmax, self).__init__(**kwargs)
         self.input_spec = [
             tf.keras.layers.InputSpec(min_ndim=2),  # predictions
             tf.keras.layers.InputSpec(min_ndim=1, dtype=tf.int32),  # targets
@@ -125,7 +124,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             use_bias=False,
             kernel_initializer=self.kernel_initializer,
             kernel_regularizer=self.kernel_regularizer,
-            activity_regularizer=self.activity_regularizer,
             kernel_constraint=self.kernel_constraint,
             dtype=self.dtype,
             name='head'
@@ -151,7 +149,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                     bias_initializer=self.bias_initializer,
                     kernel_regularizer=self.kernel_regularizer,
                     bias_regularizer=self.bias_regularizer,
-                    activity_regularizer=self.activity_regularizer,
                     kernel_constraint=self.kernel_constraint,
                     bias_constraint=self.bias_constraint,
                     dtype=self.dtype,
@@ -166,7 +163,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                     bias_initializer=self.bias_initializer,
                     bias_regularizer=self.bias_regularizer,
                     kernel_regularizer=self.kernel_regularizer,
-                    activity_regularizer=self.activity_regularizer,
                     kernel_constraint=self.kernel_constraint,
                     bias_constraint=self.bias_constraint,
                     dtype=self.dtype,
@@ -313,7 +309,6 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
             'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
             'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
-            'activity_regularizer': tf.keras.regularizers.serialize(self.activity_regularizer),
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
             'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
             'loss_reduction': self.loss_reduction,
@@ -357,14 +352,12 @@ class SampledSofmax(tf.keras.layers.Layer):
                  bias_initializer='zeros',
                  kernel_regularizer=None,
                  bias_regularizer=None,
-                 activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
                  loss_reduction=tf.keras.losses.Reduction.AUTO,
                  **kwargs):
         kwargs['dtype'] = 'float32'
-        super(SampledSofmax, self).__init__(
-            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
+        super(SampledSofmax, self).__init__(**kwargs)
         self.input_spec = [
             tf.keras.layers.InputSpec(min_ndim=2),  # predictions
             tf.keras.layers.InputSpec(min_ndim=1, dtype=tf.int32),  # targets
@@ -466,20 +459,26 @@ class SampledSofmax(tf.keras.layers.Layer):
 
             return output_probs
 
-    def _train_loss(self, inputs, targets):
+    def _train_loss(self, logits, targets):
         labels_exp_dim = tf.expand_dims(targets, axis=-1)
 
         return tf.nn.sampled_softmax_loss(
             weights=tf.transpose(self.kernel),
             biases=self.bias,
             labels=labels_exp_dim,
-            inputs=inputs,
+            inputs=logits,
             num_sampled=self.negatives,
             num_classes=self.units,
         )
 
     def _eval_loss(self, logits, targets):
-        return tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=targets)
+        labels_one_hot = tf.one_hot(targets, self.units)
+        loss = tf.nn.softmax_cross_entropy_with_logits(
+            logits=logits,
+            labels=labels_one_hot
+        )
+
+        return loss
 
     @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
@@ -502,7 +501,6 @@ class SampledSofmax(tf.keras.layers.Layer):
             'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
             'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
             'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
-            'activity_regularizer': tf.keras.regularizers.serialize(self.activity_regularizer),
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
             'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
             'loss_reduction': self.loss_reduction,
@@ -524,23 +522,23 @@ class NoiseContrastiveEstimation(SampledSofmax):
     `tf.random.log_uniform_candidate_sampler`.
     """
 
-    def _train_loss(self, input_logits, input_targets):
-        labels_exp_dim = tf.expand_dims(input_targets, axis=-1)
+    def _train_loss(self, logits, targets):
+        labels_exp_dim = tf.expand_dims(targets, axis=-1)
         loss = tf.nn.nce_loss(
             weights=tf.transpose(self.kernel),
             biases=self.bias,
             labels=labels_exp_dim,
-            inputs=input_logits,
+            inputs=logits,
             num_sampled=self.negatives,
             num_classes=self.units,
         )
 
         return loss / tf.cast(1 + self.negatives, tf.float32)
 
-    def _eval_loss(self, output_logits, input_targets):
-        labels_one_hot = tf.one_hot(input_targets, self.units)
+    def _eval_loss(self, logits, targets):
+        labels_one_hot = tf.one_hot(targets, self.units)
         loss = tf.nn.sigmoid_cross_entropy_with_logits(
-            logits=output_logits,
+            logits=logits,
             labels=labels_one_hot
         )
 

@@ -114,13 +114,8 @@ class F1BinaryTest(keras_parameterized.TestCase):
             tf.keras.layers.Dense(1, activation='sigmoid', kernel_initializer='ones')
         ]
         model = testing_utils.get_model_from_layers(layers, input_shape=(4,))
-        model.compile(
-            loss='mae',
-            metrics=[f1_obj],
-            optimizer='rmsprop',
-        )
+        model.compile(loss='mae', metrics=[f1_obj], optimizer='rmsprop', run_eagerly=testing_utils.should_run_eagerly())
         model.run_eagerly = testing_utils.should_run_eagerly()
-        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
         x = np.ones((100, 4))
         y = np.zeros((100, 1), dtype=np.int32)
 
@@ -144,14 +139,10 @@ class F1BinaryTest(keras_parameterized.TestCase):
         ]
         model = testing_utils.get_model_from_layers(layers, input_shape=(4,))
         model.compile(
-            loss='mae',
-            metrics=[f1_obj],
-            optimizer=tf.keras.optimizers.Adam(0.01),
-        )
+            loss='mae', metrics=[f1_obj], optimizer=tf.keras.optimizers.Adam(0.01),
+            run_eagerly=testing_utils.should_run_eagerly())
         model.run_eagerly = True
-        model._experimental_run_tf_function = False
         model.run_eagerly = testing_utils.should_run_eagerly()
-        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
         x = np.random.rand(100, 4)
         y = np.sum(x, axis=-1)
 

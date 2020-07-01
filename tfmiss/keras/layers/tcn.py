@@ -32,12 +32,10 @@ class TemporalBlock(tf.keras.layers.Layer):
                  bias_initializer='zeros',
                  kernel_regularizer=None,
                  bias_regularizer=None,
-                 activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
                  **kwargs):
-        super(TemporalBlock, self).__init__(
-            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
+        super(TemporalBlock, self).__init__(**kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
         self.supports_masking = True
 
@@ -170,7 +168,6 @@ class TemporalBlock(tf.keras.layers.Layer):
             'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
             'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
             'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
-            'activity_regularizer': tf.keras.regularizers.serialize(self.activity_regularizer),
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
             'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
         })
@@ -197,12 +194,10 @@ class TemporalConvNet(tf.keras.layers.Layer):
                  bias_initializer='zeros',
                  kernel_regularizer=None,
                  bias_regularizer=None,
-                 activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
                  **kwargs):
-        super(TemporalConvNet, self).__init__(
-            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
+        super(TemporalConvNet, self).__init__(**kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
         self.supports_masking = True
         self._supports_ragged_inputs = True
@@ -297,7 +292,6 @@ class TemporalConvNet(tf.keras.layers.Layer):
             'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
             'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
             'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
-            'activity_regularizer': tf.keras.regularizers.serialize(self.activity_regularizer),
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
             'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
         })

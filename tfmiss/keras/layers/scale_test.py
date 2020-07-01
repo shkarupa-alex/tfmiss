@@ -36,7 +36,6 @@ class L2ScaleTest(keras_parameterized.TestCase):
         outputs = layer(inputs)
 
         model = tf.keras.Model(inputs=inputs, outputs=outputs)
-        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
         model.run_eagerly = testing_utils.should_run_eagerly()
         predictions = model.predict(logits)
         self.assertAllClose(

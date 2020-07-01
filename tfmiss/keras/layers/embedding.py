@@ -23,7 +23,6 @@ class AdaptiveEmbedding(Embedding):
                  proj0=False,
                  embeddings_initializer='uniform',
                  embeddings_regularizer=None,
-                 activity_regularizer=None,
                  embeddings_constraint=None,
                  kernel_initializer='glorot_uniform',
                  kernel_regularizer=None,
@@ -36,7 +35,6 @@ class AdaptiveEmbedding(Embedding):
             output_dim=output_dim,
             embeddings_initializer=embeddings_initializer,
             embeddings_regularizer=embeddings_regularizer,
-            activity_regularizer=activity_regularizer,
             embeddings_constraint=embeddings_constraint,
             mask_zero=mask_zero,
             input_length=input_length,
@@ -88,7 +86,6 @@ class AdaptiveEmbedding(Embedding):
                     use_bias=False,
                     kernel_initializer=self.kernel_initializer,
                     kernel_regularizer=self.kernel_regularizer,
-                    activity_regularizer=self.activity_regularizer,
                     kernel_constraint=self.kernel_constraint
                 )
                 setattr(self, 'project_{}'.format(i), project)
