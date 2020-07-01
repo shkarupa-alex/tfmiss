@@ -302,7 +302,8 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         return predictions_shape[:-1] + (self.units,)
 
     def get_config(self):
-        config = {
+        config = super(AdaptiveSoftmax, self).get_config()
+        config.update({
             'cutoff': self._cutoff,
             'units': self.units,
             'factor': self.factor,
@@ -316,10 +317,9 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
             'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
             'loss_reduction': self.loss_reduction,
-        }
-        base_config = super(AdaptiveSoftmax, self).get_config()
+        })
 
-        return dict(list(base_config.items()) + list(config.items()))
+        return config
 
 
 @tf.keras.utils.register_keras_serializable(package='Miss')
@@ -494,7 +494,8 @@ class SampledSofmax(tf.keras.layers.Layer):
         return predictions_shape[:-1] + (self.units,)
 
     def get_config(self):
-        config = {
+        config = super(SampledSofmax, self).get_config()
+        config.update({
             'units': self.units,
             'negatives': self.negatives,
             'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
@@ -505,10 +506,9 @@ class SampledSofmax(tf.keras.layers.Layer):
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
             'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
             'loss_reduction': self.loss_reduction,
-        }
-        base_config = super(SampledSofmax, self).get_config()
+        })
 
-        return dict(list(base_config.items()) + list(config.items()))
+        return config
 
 
 @tf.keras.utils.register_keras_serializable(package='Miss')

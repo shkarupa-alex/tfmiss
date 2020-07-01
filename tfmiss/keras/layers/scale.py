@@ -36,7 +36,7 @@ class L2Scale(tf.keras.layers.Layer):
         return normalized * alpha
 
     def get_config(self):
-        config = {'alpha': self.alpha}
-        base_config = super(L2Scale, self).get_config()
+        config = super(L2Scale, self).get_config()
+        config.update({'alpha': self.alpha})
 
-        return dict(list(base_config.items()) + list(config.items()))
+        return config

@@ -48,9 +48,7 @@ class F1Binary(Metric):
         self.recall.reset_states()
 
     def get_config(self):
-        config = {
-            'threshold': self.threshold,
-        }
-        base_config = super(F1Binary, self).get_config()
+        config = super(F1Binary, self).get_config()
+        config.update({'threshold': self.threshold})
 
-        return dict(list(base_config.items()) + list(config.items()))
+        return config

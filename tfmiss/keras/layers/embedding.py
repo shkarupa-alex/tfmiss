@@ -115,14 +115,14 @@ class AdaptiveEmbedding(Embedding):
         return out
 
     def get_config(self):
-        config = {
+        config = super(AdaptiveEmbedding, self).get_config()
+        config.update({
             'cutoff': self._cutoff,
             'factor': self.factor,
             'proj0': self.proj0,
             'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
             'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
-        }
-        base_config = super(AdaptiveEmbedding, self).get_config()
+        })
 
-        return dict(list(base_config.items()) + list(config.items()))
+        return config

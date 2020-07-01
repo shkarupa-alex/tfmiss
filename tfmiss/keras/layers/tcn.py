@@ -157,7 +157,8 @@ class TemporalBlock(tf.keras.layers.Layer):
         return input_shape[:-1] + (self.filters,)
 
     def get_config(self):
-        config = {
+        config = super(TemporalBlock, self).get_config()
+        config.update({
             'filters': self.filters,
             'kernel_size': self.kernel_size,
             'dilation': self.dilation,
@@ -172,10 +173,9 @@ class TemporalBlock(tf.keras.layers.Layer):
             'activity_regularizer': tf.keras.regularizers.serialize(self.activity_regularizer),
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
             'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
-        }
-        base_config = super(TemporalBlock, self).get_config()
+        })
 
-        return dict(list(base_config.items()) + list(config.items()))
+        return config
 
 
 @tf.keras.utils.register_keras_serializable(package='Miss')
@@ -285,7 +285,8 @@ class TemporalConvNet(tf.keras.layers.Layer):
         return input_shape[:-1] + (self.filters[-1],)
 
     def get_config(self):
-        config = {
+        config = super(TemporalConvNet, self).get_config()
+        config.update({
             'filters': self.filters,
             'kernel_size': self.kernel_size,
             'dropout': self.dropout,
@@ -299,7 +300,6 @@ class TemporalConvNet(tf.keras.layers.Layer):
             'activity_regularizer': tf.keras.regularizers.serialize(self.activity_regularizer),
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
             'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
-        }
-        base_config = super(TemporalConvNet, self).get_config()
+        })
 
-        return dict(list(base_config.items()) + list(config.items()))
+        return config
