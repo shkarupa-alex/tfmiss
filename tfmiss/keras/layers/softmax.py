@@ -171,7 +171,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
 
         super(AdaptiveSoftmax, self).build(input_shape)
 
-    def call(self, inputs, training=None):
+    def call(self, inputs, training=None, mask=None):
         if training is None:
             training = tf.keras.backend.learning_phase()
 
@@ -181,10 +181,18 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         input_targets, _ = convert_inputs_if_ragged(input_targets)
         is_ragged_input = (row_lengths is not None)
 
+        loss_weights = tf.ones_like(input_targets, dtype=tf.bool)
+        loss_weights = maybe_convert_to_ragged(is_ragged_input, loss_weights, row_lengths)
+        if is_ragged_input:
+            loss_weights = loss_weights.to_tensor(False)
+        if mask is not None:
+            loss_weights = tf.logical_and(loss_weights, mask)
+        loss_weights = tf.cast(loss_weights, self._compute_dtype)
+
         probs, loss = tf_utils.smart_cond(
             training,
-            lambda: self._train_probs_loss(input_logits, input_targets),
-            lambda: self._eval_probs_loss(input_logits, input_targets)
+            lambda: self._train_probs_loss(input_logits, input_targets, loss_weights),
+            lambda: self._eval_probs_loss(input_logits, input_targets, loss_weights)
         )
         self.add_loss(loss, inputs=True)
 
@@ -192,7 +200,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
 
         return probs
 
-    def _train_probs_loss(self, inputs, targets):
+    def _train_probs_loss(self, inputs, targets, weights):
         root_logits = self.head(inputs)
         root_logits = tf.cast(root_logits, tf.float32)
         root_logprobs = tf.nn.log_softmax(root_logits)
@@ -208,7 +216,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             clust_targets = tf.fill(tf.shape(root_targets), tf.cast(self.cutoff[0] + i, root_targets.dtype))
             root_targets = tf.where(tail_masks[i], clust_targets, root_targets)
         root_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=root_logits, labels=root_targets)
-        root_loss = compute_weighted_loss(root_loss, sample_weight=None, reduction=self.loss_reduction)
+        root_loss = compute_weighted_loss(root_loss, sample_weight=weights, reduction=self.loss_reduction)
 
         full_loss = [root_loss]
         full_logprobs = [head_logprobs]
@@ -246,8 +254,9 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             full_logprobs.append(tail_probs)
 
             true_targets = tf.boolean_mask(tail_targets, tail_masks[i])
+            true_weights = tf.boolean_mask(weights, tail_masks[i])
             true_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=true_logits, labels=true_targets)
-            true_loss = compute_weighted_loss(true_loss, sample_weight=None, reduction=self.loss_reduction)
+            true_loss = compute_weighted_loss(true_loss, sample_weight=true_weights, reduction=self.loss_reduction)
             full_loss.append(true_loss)
 
         loss = tf.reduce_mean(full_loss)
@@ -257,7 +266,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
 
         return probs, loss
 
-    def _eval_probs_loss(self, inputs, targets):
+    def _eval_probs_loss(self, inputs, targets, weights):
         root_logits = self.head(inputs)
         root_logits = tf.cast(root_logits, tf.float32)
         root_logprobs = tf.nn.log_softmax(root_logits)
@@ -276,7 +285,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         full_logprobs = tf.concat(full_logprobs, axis=-1)
 
         loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=full_logprobs, labels=targets)
-        loss = compute_weighted_loss(loss, sample_weight=None, reduction=self.loss_reduction)
+        loss = compute_weighted_loss(loss, sample_weight=weights, reduction=self.loss_reduction)
 
         probs = tf.math.exp(full_logprobs)
 
@@ -423,7 +432,7 @@ class SampledSofmax(tf.keras.layers.Layer):
 
             super(SampledSofmax, self).build(input_shape)
 
-    def call(self, inputs, training=None):
+    def call(self, inputs, training=None, mask=None):
         with tf.device('/CPU:0'):
             if training is None:
                 training = tf.keras.backend.learning_phase()
@@ -434,10 +443,19 @@ class SampledSofmax(tf.keras.layers.Layer):
             input_targets, _ = convert_inputs_if_ragged(input_targets)
             is_ragged_input = (row_lengths is not None)
 
+            loss_weights = tf.ones_like(input_targets, dtype=tf.bool)
+            loss_weights = maybe_convert_to_ragged(is_ragged_input, loss_weights, row_lengths)
+            if is_ragged_input:
+                loss_weights = loss_weights.to_tensor(False)
+            if mask is not None:
+                loss_weights = tf.logical_and(loss_weights, mask)
+            loss_weights = tf.cast(loss_weights, self._compute_dtype)
+
             input_shape = tf.shape(input_logits)
             output_shape = tf.stack(tf.unstack(input_shape)[:-1] + [self.units])
             input_logits = tf.reshape(input_logits, [-1, self.num_channels])
             input_targets = tf.reshape(input_targets, [-1])
+            loss_weights = tf.reshape(loss_weights, [-1])
 
             output_logits = tf.matmul(input_logits, self.kernel)
             output_logits = tf.nn.bias_add(output_logits, self.bias)
@@ -447,7 +465,7 @@ class SampledSofmax(tf.keras.layers.Layer):
                 lambda: self._train_loss(input_logits, input_targets),
                 lambda: self._eval_loss(output_logits, input_targets)
             )
-            loss = compute_weighted_loss(loss, sample_weight=None, reduction=self.loss_reduction)
+            loss = compute_weighted_loss(loss, sample_weight=loss_weights, reduction=self.loss_reduction)
             self.add_loss(loss, inputs=True)
 
             output_probs = tf.nn.softmax(output_logits)
