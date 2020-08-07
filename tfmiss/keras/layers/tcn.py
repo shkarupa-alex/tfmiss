@@ -3,7 +3,6 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.python.keras.backend import convert_inputs_if_ragged, maybe_convert_to_ragged
 from tensorflow.python.keras.utils import tf_utils
 from tfmiss.keras.layers.wrappers import WeightNorm
 
@@ -200,7 +199,6 @@ class TemporalConvNet(tf.keras.layers.Layer):
         super(TemporalConvNet, self).__init__(**kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
         self.supports_masking = True
-        self._supports_ragged_inputs = True
 
         if not isinstance(filters, (list, tuple)) or not len(filters):
             raise ValueError('Number of residual layers could not be zero.')
@@ -233,10 +231,9 @@ class TemporalConvNet(tf.keras.layers.Layer):
 
         self.input_spec = tf.keras.layers.InputSpec(ndim=3, axes={-1: num_channels})
 
-        self.layers = []
-        num_levels = len(self.filters)
-        for i in range(num_levels):
-            temporal_block = TemporalBlock(
+        self.blocks = tf.keras.Sequential()
+        for i in range(len(self.filters)):
+            self.blocks.add(TemporalBlock(
                 filters=self.filters[i],
                 kernel_size=self.kernel_size,
                 dilation=2 ** i,
@@ -251,9 +248,7 @@ class TemporalConvNet(tf.keras.layers.Layer):
                 kernel_constraint=self.kernel_constraint,
                 bias_constraint=self.bias_constraint,
                 dtype=self.dtype,
-            )
-            self.layers.append(temporal_block)
-            setattr(self, 'temporal_block_{}'.format(i), temporal_block)
+            ))
 
         super(TemporalConvNet, self).build(input_shape)
 
@@ -261,16 +256,7 @@ class TemporalConvNet(tf.keras.layers.Layer):
         if training is None:
             training = tf.keras.backend.learning_phase()
 
-        inputs, row_lengths = convert_inputs_if_ragged(inputs)
-        is_ragged_input = (row_lengths is not None)
-
-        outputs = inputs
-        for layer in self.layers:
-            outputs = layer(outputs, training=training)
-
-        outputs = maybe_convert_to_ragged(is_ragged_input, outputs, row_lengths)
-
-        return outputs
+        return self.blocks(inputs, training=training)
 
     @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
