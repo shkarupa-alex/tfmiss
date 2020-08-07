@@ -3,9 +3,56 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.python.keras.backend import convert_inputs_if_ragged, maybe_convert_to_ragged
 from tensorflow.python.keras.utils import generic_utils, tf_utils
-from tensorflow.python.framework import ops
-from tensorflow.python.ops import variables
+
+
+@tf.keras.utils.register_keras_serializable(package='Miss')
+class WithRagged(tf.keras.layers.Wrapper):
+    """ Passes ragged tensor to layer that accepts only dense one.
+
+    Arguments:
+      layer: The `Layer` instance to be wrapped.
+    """
+
+    def __init__(self, layer, **kwargs):
+        super(WithRagged, self).__init__(layer, **kwargs)
+        self.input_spec = layer.input_spec
+        self.supports_masking = layer.supports_masking
+        self._supports_ragged_inputs = True
+
+        if not isinstance(layer, tf.keras.layers.Layer):
+            raise ValueError(
+                'Please initialize `WithRagged` layer with a '
+                '`Layer` instance. You passed: {input}'.format(input=layer))
+
+    def build(self, input_shape=None):
+        if not self.layer.built:
+            self.layer.build(input_shape)
+
+        self.input_spec = self.layer.input_spec
+        self.masking_layer = tf.keras.layers.Masking(mask_value=tf.zeros((), self.layer.dtype))
+
+        super(WithRagged, self).build()
+
+    def call(self, inputs, **kwargs):
+        layer_kwargs = {}
+        for key in kwargs.keys():
+            if generic_utils.has_arg(self.layer.call, key):
+                layer_kwargs[key] = kwargs[key]
+
+        inputs_dense, row_lengths = convert_inputs_if_ragged(inputs)
+        inputs_dense = self.masking_layer(inputs_dense)
+        outputs_dense = self.layer.call(inputs_dense, **layer_kwargs)
+        outputs = maybe_convert_to_ragged(row_lengths is not None, outputs_dense, row_lengths)
+
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        return self.layer.compute_output_shape(input_shape)
+
+    def compute_mask(self, inputs, mask=None):
+        return self.layer.compute_mask(inputs, mask)
 
 
 @tf.keras.utils.register_keras_serializable(package='Miss')
@@ -149,7 +196,6 @@ class WeightNorm(tf.keras.layers.Wrapper):
         with tf.control_dependencies(kernel_updates):
             return self.layer.call(inputs, **layer_kwargs)
 
-    @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
         return self.layer.compute_output_shape(input_shape)
 

@@ -8,7 +8,36 @@ from tensorflow.python.keras import keras_parameterized
 from tensorflow.python.keras import testing_utils
 from tensorflow.python.util import object_identity
 from tensorflow.python.training.tracking import util as trackable_util
-from tfmiss.keras.layers.wrappers import WeightNorm
+from tfmiss.keras.layers.wrappers import WeightNorm, WithRagged
+
+
+@keras_parameterized.run_all_keras_modes
+class WithRaggedTest(keras_parameterized.TestCase):
+    def test_layer(self):
+        inputs = tf.ragged.constant([
+            [[1., 2.], [2., 3.], [2., 5.]],
+            [[0., 9.]],
+            [[1., 1.], [2., 9.]]
+        ], ragged_rank=1)
+        outputs = WithRagged(tf.keras.layers.Dense(4))(inputs)
+        self.assertIsInstance(outputs, tf.RaggedTensor)
+
+        outputs = self.evaluate(outputs)
+        self.assertLen(outputs.shape, 3)
+        self.assertEqual(outputs.shape[-1], 4)
+
+    def test_model(self):
+        logits = tf.ragged.constant([
+            [[1., 2.], [2., 3.], [2., 5.]],
+            [[0., 9.]],
+            [[1., 1.], [2., 9.]]
+        ], ragged_rank=1)
+
+        inputs = tf.keras.layers.Input(shape=(None, 2), dtype=tf.float32, ragged=True)
+        outputs = WithRagged(tf.keras.layers.Dense(3, activation='sigmoid'))(inputs)
+        model = tf.keras.Model(inputs=inputs, outputs=outputs)
+        model.compile(run_eagerly=testing_utils.should_run_eagerly())
+        model.predict(logits)
 
 
 @keras_parameterized.run_all_keras_modes

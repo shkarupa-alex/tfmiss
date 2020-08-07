@@ -7,4 +7,4 @@ from tfmiss.keras.layers.scale import L2Scale
 from tfmiss.keras.layers.softmax import AdaptiveSoftmax, NoiseContrastiveEstimation, SampledSofmax
 from tfmiss.keras.layers.tcn import TemporalConvNet
 from tfmiss.keras.layers.todense import ToDense
-from tfmiss.keras.layers.wrappers import WeightNorm
+from tfmiss.keras.layers.wrappers import WeightNorm, WithRagged
