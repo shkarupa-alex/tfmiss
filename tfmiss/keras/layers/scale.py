@@ -3,6 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from tensorflow.python.keras.utils import tf_utils
 
 
 @tf.keras.utils.register_keras_serializable(package='Miss')
@@ -20,10 +21,24 @@ class L2Scale(tf.keras.layers.Layer):
 
     def __init__(self, alpha=20., **kwargs):
         super(L2Scale, self).__init__(**kwargs)
+        self.input_spec = tf.keras.layers.InputSpec(min_ndim=2)
         self.supports_masking = True
         self._supports_ragged_inputs = True
 
         self.alpha = alpha
+
+    @tf_utils.shape_type_conversion
+    def build(self, input_shape):
+        if len(input_shape) < 2:
+            raise ValueError('Shape {} must have rank >= 2'.format(input_shape))
+
+        num_channels = input_shape[-1]
+        if num_channels is None:
+            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+
+        self.input_spec = tf.keras.layers.InputSpec(ndim=len(input_shape), axes={-1: num_channels})
+
+        super(L2Scale, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
         if isinstance(inputs, tf.RaggedTensor):
@@ -31,9 +46,13 @@ class L2Scale(tf.keras.layers.Layer):
         else:
             normalized = tf.math.l2_normalize(inputs, axis=-1)
 
-        alpha = tf.cast(self.alpha, self._compute_dtype)
+        alpha = tf.cast(self.alpha, inputs.dtype)
 
         return normalized * alpha
+
+    @tf_utils.shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return input_shape
 
     def get_config(self):
         config = super(L2Scale, self).get_config()
