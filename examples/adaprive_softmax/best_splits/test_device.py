@@ -39,7 +39,7 @@ if __name__ == "__main__":
     parser.add_argument(
         '--device',
         type=str,
-        default='GPU:0',
+        default='/GPU:0',
         help='Device name')
     parser.add_argument(
         '--dtype',

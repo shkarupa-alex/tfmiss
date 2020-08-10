@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 from setuptools.command.install import install
 from setuptools.dist import Distribution
 
-__VERSION__ = '0.6.0'
+__VERSION__ = '0.7.0'
 
 
 class InstallPlatlib(install):
@@ -41,8 +41,7 @@ setup(
     author_email='shkarupa.alex@gmail.com',
     packages=find_packages(),
     install_requires=[
-        'tensorflow>=2.2.0',
-        'tensorflow-addons>=0.9.1',
+        'tensorflow>=2.3.0rc0',
         'matplotlib>=3.1.1',
         'tabulate>=0.8.6',
     ],

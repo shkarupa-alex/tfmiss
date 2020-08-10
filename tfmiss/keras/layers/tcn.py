@@ -3,9 +3,8 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-import tensorflow_addons as tfa
-from tensorflow.python.keras.backend import convert_inputs_if_ragged, maybe_convert_to_ragged
 from tensorflow.python.keras.utils import tf_utils
+from tfmiss.keras.layers.wrappers import WeightNorm
 
 
 @tf.keras.utils.register_keras_serializable(package='Miss')
@@ -32,13 +31,12 @@ class TemporalBlock(tf.keras.layers.Layer):
                  bias_initializer='zeros',
                  kernel_regularizer=None,
                  bias_regularizer=None,
-                 activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
                  **kwargs):
-        super(TemporalBlock, self).__init__(
-            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
+        super(TemporalBlock, self).__init__(**kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
+        self.supports_masking = True
 
         if padding not in {'causal', 'same'}:
             raise ValueError('Only "causal" and "same" padding are compatible with this layer.')
@@ -77,7 +75,7 @@ class TemporalBlock(tf.keras.layers.Layer):
 
         self.input_spec = tf.keras.layers.InputSpec(ndim=3, axes={-1: num_channels})
 
-        self.conv1d1 = tfa.layers.WeightNormalization(tf.keras.layers.Conv1D(
+        self.conv1d1 = WeightNorm(tf.keras.layers.Conv1D(
             filters=self.filters,
             kernel_size=self.kernel_size,
             strides=self._STRIDES,
@@ -93,7 +91,7 @@ class TemporalBlock(tf.keras.layers.Layer):
             kernel_constraint=self.kernel_constraint,
             bias_constraint=self.bias_constraint,
         ))
-        self.conv1d2 = tfa.layers.WeightNormalization(tf.keras.layers.Conv1D(
+        self.conv1d2 = WeightNorm(tf.keras.layers.Conv1D(
             filters=self.filters,
             kernel_size=self.kernel_size,
             strides=self._STRIDES,
@@ -156,7 +154,8 @@ class TemporalBlock(tf.keras.layers.Layer):
         return input_shape[:-1] + (self.filters,)
 
     def get_config(self):
-        config = {
+        config = super(TemporalBlock, self).get_config()
+        config.update({
             'filters': self.filters,
             'kernel_size': self.kernel_size,
             'dilation': self.dilation,
@@ -168,13 +167,11 @@ class TemporalBlock(tf.keras.layers.Layer):
             'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
             'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
             'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
-            'activity_regularizer': tf.keras.regularizers.serialize(self.activity_regularizer),
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
             'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
-        }
-        base_config = super(TemporalBlock, self).get_config()
+        })
 
-        return dict(list(base_config.items()) + list(config.items()))
+        return config
 
 
 @tf.keras.utils.register_keras_serializable(package='Miss')
@@ -196,14 +193,12 @@ class TemporalConvNet(tf.keras.layers.Layer):
                  bias_initializer='zeros',
                  kernel_regularizer=None,
                  bias_regularizer=None,
-                 activity_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
                  **kwargs):
-        super(TemporalConvNet, self).__init__(
-            activity_regularizer=tf.keras.regularizers.get(activity_regularizer), **kwargs)
+        super(TemporalConvNet, self).__init__(**kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
-        self._supports_ragged_inputs = True
+        self.supports_masking = True
 
         if not isinstance(filters, (list, tuple)) or not len(filters):
             raise ValueError('Number of residual layers could not be zero.')
@@ -236,10 +231,9 @@ class TemporalConvNet(tf.keras.layers.Layer):
 
         self.input_spec = tf.keras.layers.InputSpec(ndim=3, axes={-1: num_channels})
 
-        self.layers = []
-        num_levels = len(self.filters)
-        for i in range(num_levels):
-            temporal_block = TemporalBlock(
+        self.blocks = tf.keras.Sequential()
+        for i in range(len(self.filters)):
+            self.blocks.add(TemporalBlock(
                 filters=self.filters[i],
                 kernel_size=self.kernel_size,
                 dilation=2 ** i,
@@ -254,9 +248,7 @@ class TemporalConvNet(tf.keras.layers.Layer):
                 kernel_constraint=self.kernel_constraint,
                 bias_constraint=self.bias_constraint,
                 dtype=self.dtype,
-            )
-            self.layers.append(temporal_block)
-            setattr(self, 'temporal_block_{}'.format(i), temporal_block)
+            ))
 
         super(TemporalConvNet, self).build(input_shape)
 
@@ -264,16 +256,7 @@ class TemporalConvNet(tf.keras.layers.Layer):
         if training is None:
             training = tf.keras.backend.learning_phase()
 
-        inputs, row_lengths = convert_inputs_if_ragged(inputs)
-        is_ragged_input = (row_lengths is not None)
-
-        outputs = inputs
-        for layer in self.layers:
-            outputs = layer(outputs, training=training)
-
-        outputs = maybe_convert_to_ragged(is_ragged_input, outputs, row_lengths)
-
-        return outputs
+        return self.blocks(inputs, training=training)
 
     @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
@@ -283,7 +266,8 @@ class TemporalConvNet(tf.keras.layers.Layer):
         return input_shape[:-1] + (self.filters[-1],)
 
     def get_config(self):
-        config = {
+        config = super(TemporalConvNet, self).get_config()
+        config.update({
             'filters': self.filters,
             'kernel_size': self.kernel_size,
             'dropout': self.dropout,
@@ -294,10 +278,8 @@ class TemporalConvNet(tf.keras.layers.Layer):
             'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
             'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
             'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
-            'activity_regularizer': tf.keras.regularizers.serialize(self.activity_regularizer),
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
             'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
-        }
-        base_config = super(TemporalConvNet, self).get_config()
+        })
 
-        return dict(list(base_config.items()) + list(config.items()))
+        return config

@@ -20,7 +20,8 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
             },
             input_shapes=[(10, 5), (10,)],
             input_dtypes=['float32', 'int32'],
-            expected_output_dtypes=['float32']
+            expected_output_dtypes=['float32'],
+            expected_output_shapes=[(None, 20)]
         )
         layer_multi_io_test(
             AdaptiveSoftmax,
@@ -30,7 +31,8 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
             },
             input_shapes=[(2, 10, 5), (2, 10,)],
             input_dtypes=['float16', 'int32'],
-            expected_output_dtypes=['float32']
+            expected_output_dtypes=['float32'],
+            expected_output_shapes=[(None, 10, 20)]
         )
         layer_multi_io_test(
             AdaptiveSoftmax,
@@ -40,8 +42,9 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
                 'dtype': 'float16'
             },
             input_shapes=[(3, 2, 10, 5), (3, 2, 10,)],
-            input_dtypes=['float32', 'int64'],
-            expected_output_dtypes=['float32']
+            input_dtypes=['float32', 'int32'],
+            expected_output_dtypes=['float32'],
+            expected_output_shapes=[(None, 2, 10, 20)]
         )
 
         glob_policy = tf.keras.mixed_precision.experimental.global_policy()
@@ -54,15 +57,16 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
                 'cutoff': [3],
             },
             input_shapes=[(10, 5), (10,)],
-            input_dtypes=['float16', 'int64'],
-            expected_output_dtypes=['float32']
+            input_dtypes=['float16', 'int32'],
+            expected_output_dtypes=['float32'],
+            expected_output_shapes=[(None, 20)]
         )
         tf.keras.mixed_precision.experimental.set_policy(glob_policy)
 
     def test_actual_shape_2d(self):
         layer = AdaptiveSoftmax(units=20, cutoff=[3])
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         result = layer([inputs, targets], training=True)
         self.assertListEqual([10, 20], list(result.shape))
@@ -70,7 +74,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
     def test_actual_shape_3d(self):
         layer = AdaptiveSoftmax(units=20, cutoff=[3, 8])
         inputs = np.random.rand(2, 10, 64)
-        targets = np.arange(20).reshape([2, 10])
+        targets = np.arange(20, dtype=np.int32).reshape([2, 10])
 
         result = layer([inputs, targets], training=True)
         self.assertListEqual([2, 10, 20], list(result.shape))
@@ -78,7 +82,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
     def test_loss_and_output_2d_over_batch(self):
         layer = AdaptiveSoftmax(units=20, cutoff=[3], loss_reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE)
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         train_result = layer([inputs, targets], training=True)
         train_sum = np.sum(train_result, axis=-1)
@@ -95,7 +99,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
     def test_loss_and_output_2d_sum(self):
         layer = AdaptiveSoftmax(units=20, cutoff=[3], loss_reduction=tf.keras.losses.Reduction.SUM)
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         train_result = layer([inputs, targets], training=True)
         train_sum = np.sum(train_result, axis=-1)
@@ -108,6 +112,38 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
         self.assertAllClose(np.ones_like(eval_sum), eval_sum)
 
         self.assertGreater(eval_loss, train_loss)
+
+    def test_loss_mask_3d(self):
+        inputs = tf.ragged.constant([
+            [[1., 2.], [2., 3.], [2., 5.]],
+            [[0., 9.]],
+            [[1., 1.], [2., 9.]]
+        ], ragged_rank=1)
+        targets = tf.cast(tf.reduce_max(inputs, axis=-1), tf.int32)
+        inputs_dense = inputs.to_tensor()
+        mask_dense = tf.keras.layers.Masking().compute_mask(inputs_dense)
+        targets_dense = targets.to_tensor(0)
+        eval_ones = self.evaluate(tf.ones_like(targets).to_tensor())
+
+        layer1 = AdaptiveSoftmax(units=10, cutoff=[3])
+        eval1_result = layer1([inputs, targets], training=False)
+        eval1_sum = self.evaluate(eval1_result.to_tensor())
+        eval1_sum = np.sum(eval1_sum, axis=-1)
+        eval1_loss = np.sum(layer1.losses)
+        self.assertAllClose(eval_ones, eval1_sum)
+
+        layer2 = AdaptiveSoftmax(units=10, cutoff=[3])
+        layer2([inputs_dense, targets_dense], training=False, mask=mask_dense)
+        layer2.set_weights(layer1.get_weights())
+        eval2_result = layer2([inputs_dense, targets_dense], training=False, mask=mask_dense)
+        self.assertIsNotNone(eval2_result._keras_mask)
+        eval2_mask = self.evaluate(eval2_result._keras_mask)
+        eval2_sum = self.evaluate(eval2_result)
+        eval2_sum = np.where(eval2_mask, np.sum(eval2_sum, axis=-1), 0.)
+        eval2_loss = np.sum(layer2.losses)
+        self.assertAllClose(eval_ones, eval2_sum)
+
+        self.assertEqual(eval1_loss, eval2_loss)
 
     def test_model(self):
         num_samples = 10000
@@ -131,12 +167,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
         probs = AdaptiveSoftmax(units=num_classes, cutoff=[3])([logits, targets])
         model = tf.keras.Model(inputs=[ids, targets], outputs=probs)
 
-        model.compile(
-            optimizer='Adam',
-            loss=None,
-            run_eagerly=testing_utils.should_run_eagerly(),
-            experimental_run_tf_function=testing_utils.should_run_tf_function()
-        )
+        model.compile(optimizer='Adam', loss=None, run_eagerly=testing_utils.should_run_eagerly())
         history = model.fit(x=xt, y=None, batch_size=100, epochs=3, validation_data=(xv, None)).history
         predictions = model.predict(x=xp, batch_size=100)
         predictsum = np.sum(predictions, axis=-1)
@@ -150,10 +181,11 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
 
     def test_ragged_input(self):
         layer = AdaptiveSoftmax(units=16, cutoff=[1], factor=2)
+        # TODO: find why this doesn't work with logits channels == 1
         logits_data = tf.ragged.constant([
-            [[1.], [2.], [2.]],
-            [[0.]],
-            [[1.], [2.]]
+            [[1., 1.], [2., 2.], [2., 2.]],
+            [[0., 0.]],
+            [[1., 1.], [2., 2.]]
         ], ragged_rank=1)
         targets_data = tf.ragged.constant([
             [1, 2, 3],
@@ -162,19 +194,18 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
         ], ragged_rank=1)
         layer([logits_data, targets_data])
         layer.set_weights([
-            np.array([[1.] * 2]),
-            np.array([[2.] * 8]),
+            np.array([[1.] * 2] * 2),
+            np.array([[2.] * 8] * 2),
             np.array([3.] * 8),
             np.array([[4.] * 15] * 8),
             np.array([5.] * 15),
         ])
 
-        logit_inputs = tf.keras.layers.Input(shape=(None, 1), dtype=tf.float32, ragged=True)
+        logit_inputs = tf.keras.layers.Input(shape=(None, 2), dtype=tf.float32, ragged=True)
         logit_targets = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, ragged=True)
         outputs = layer([logit_inputs, logit_targets])
 
         model = tf.keras.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
-        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
         model.run_eagerly = testing_utils.should_run_eagerly()
         outputs = model.predict([logits_data, targets_data])
         self.assertAllClose(
@@ -226,7 +257,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
                 'negatives': 2,
             },
             input_shapes=[(3, 2, 10, 5), (3, 2, 10,)],
-            input_dtypes=['float32', 'int64'],
+            input_dtypes=['float32', 'int32'],
             expected_output_dtypes=['float32']
         )
 
@@ -240,7 +271,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
                 'negatives': 2,
             },
             input_shapes=[(10, 5), (10,)],
-            input_dtypes=['float16', 'int64'],
+            input_dtypes=['float16', 'int32'],
             expected_output_dtypes=['float32']
         )
         tf.keras.mixed_precision.experimental.set_policy(glob_policy)
@@ -248,7 +279,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
     def test_actual_shape_2d(self):
         layer = NoiseContrastiveEstimation(units=20, negatives=5)
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         result = layer([inputs, targets], training=True)
         self.assertListEqual([10, 20], list(result.shape))
@@ -256,7 +287,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
     def test_actual_shape_3d(self):
         layer = NoiseContrastiveEstimation(units=20, negatives=5)
         inputs = np.random.rand(2, 10, 64)
-        targets = np.arange(20).reshape([2, 10])
+        targets = np.arange(20, dtype=np.int32).reshape([2, 10])
 
         result = layer([inputs, targets], training=True)
         self.assertListEqual([2, 10, 20], list(result.shape))
@@ -264,7 +295,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
     def test_loss_and_output_2d(self):
         layer = NoiseContrastiveEstimation(units=20, negatives=5)
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         train_result = layer([inputs, targets], training=True)
         train_sum = np.sum(train_result, axis=-1)
@@ -300,18 +331,12 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
         probs = NoiseContrastiveEstimation(units=num_classes, negatives=num_classes // 2)([logits, targets])
         model = tf.keras.Model(inputs=[ids, targets], outputs=probs)
 
-        model.compile(
-            optimizer='Adam',
-            loss=None,
-            run_eagerly=testing_utils.should_run_eagerly(),
-            experimental_run_tf_function=testing_utils.should_run_tf_function()
-        )
+        model.compile(optimizer='Adam', loss=None, run_eagerly=testing_utils.should_run_eagerly())
         history = model.fit(x=xt, y=None, batch_size=100, epochs=3, validation_data=(xv, None)).history
         predictions = model.predict(x=xp, batch_size=100)
         predictsum = np.sum(predictions, axis=-1)
 
-        # Fails with !eager & func
-        # self.assertGreater(history['loss'][0], history['loss'][-1])
+        self.assertGreater(history['loss'][0], history['loss'][-1])
         self.assertGreater(history['val_loss'][0], history['val_loss'][-1])
         self.assertGreater(history['val_loss'][0], history['loss'][0])
         self.assertGreater(history['val_loss'][-1], history['loss'][-1])
@@ -341,7 +366,6 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
         outputs = layer([logit_inputs, logit_targets])
 
         model = tf.keras.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
-        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
         model.run_eagerly = testing_utils.should_run_eagerly()
         outputs = model.predict([logits_data, targets_data])
         self.assertAllClose(
@@ -384,7 +408,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
                 'negatives': 2,
             },
             input_shapes=[(3, 2, 10, 5), (3, 2, 10,)],
-            input_dtypes=['float32', 'int64'],
+            input_dtypes=['float32', 'int32'],
             expected_output_dtypes=['float32']
         )
 
@@ -398,7 +422,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
                 'negatives': 2,
             },
             input_shapes=[(10, 5), (10,)],
-            input_dtypes=['float16', 'int64'],
+            input_dtypes=['float16', 'int32'],
             expected_output_dtypes=['float32']
         )
         tf.keras.mixed_precision.experimental.set_policy(glob_policy)
@@ -406,7 +430,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
     def test_actual_shape_2d(self):
         layer = SampledSofmax(units=20, negatives=5)
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         result = layer([inputs, targets], training=True)
         self.assertListEqual([10, 20], list(result.shape))
@@ -414,7 +438,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
     def test_actual_shape_3d(self):
         layer = SampledSofmax(units=20, negatives=5)
         inputs = np.random.rand(2, 10, 64)
-        targets = np.arange(20).reshape([2, 10])
+        targets = np.arange(20, dtype=np.int32).reshape([2, 10])
 
         result = layer([inputs, targets], training=True)
         self.assertListEqual([2, 10, 20], list(result.shape))
@@ -422,7 +446,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
     def test_loss_and_output_2d(self):
         layer = SampledSofmax(units=20, negatives=5)
         inputs = np.random.rand(10, 5)
-        targets = np.arange(10)
+        targets = np.arange(10, dtype=np.int32)
 
         train_result = layer([inputs, targets], training=True)
         train_sum = np.sum(train_result, axis=-1)
@@ -435,6 +459,38 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
         self.assertAllClose(np.ones_like(eval_sum), eval_sum)
 
         self.assertGreater(eval_loss, train_loss)
+
+    def test_loss_mask_3d(self):
+        inputs = tf.ragged.constant([
+            [[1., 2.], [2., 3.], [2., 5.]],
+            [[0., 9.]],
+            [[1., 1.], [2., 9.]]
+        ], ragged_rank=1)
+        targets = tf.cast(tf.reduce_max(inputs, axis=-1), tf.int32)
+        inputs_dense = inputs.to_tensor()
+        mask_dense = tf.keras.layers.Masking().compute_mask(inputs_dense)
+        targets_dense = targets.to_tensor(0)
+        eval_ones = self.evaluate(tf.ones_like(targets).to_tensor())
+
+        layer1 = SampledSofmax(units=10, negatives=5)
+        eval1_result = layer1([inputs, targets], training=False)
+        eval1_sum = self.evaluate(eval1_result.to_tensor())
+        eval1_sum = np.sum(eval1_sum, axis=-1)
+        eval1_loss = np.sum(layer1.losses)
+        self.assertAllClose(eval_ones, eval1_sum)
+
+        layer2 = SampledSofmax(units=10, negatives=5)
+        layer2([inputs_dense, targets_dense], training=False, mask=mask_dense)
+        layer2.set_weights(layer1.get_weights())
+        eval2_result = layer2([inputs_dense, targets_dense], training=False, mask=mask_dense)
+        self.assertIsNotNone(eval2_result._keras_mask)
+        eval2_mask = self.evaluate(eval2_result._keras_mask)
+        eval2_sum = self.evaluate(eval2_result)
+        eval2_sum = np.where(eval2_mask, np.sum(eval2_sum, axis=-1), 0.)
+        eval2_loss = np.sum(layer2.losses)
+        self.assertAllClose(eval_ones, eval2_sum)
+
+        self.assertEqual(eval1_loss, eval2_loss)
 
     def test_model(self):
         num_samples = 10000
@@ -458,24 +514,17 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
         probs = SampledSofmax(units=num_classes, negatives=num_classes // 2)([logits, targets])
         model = tf.keras.Model(inputs=[ids, targets], outputs=probs)
 
-        model.compile(
-            optimizer='Adam',
-            loss=None,
-            run_eagerly=testing_utils.should_run_eagerly(),
-            experimental_run_tf_function=testing_utils.should_run_tf_function()
-        )
+        model.compile(optimizer='Adam', loss=None, run_eagerly=testing_utils.should_run_eagerly())
         history = model.fit(x=xt, y=None, batch_size=100, epochs=3, validation_data=(xv, None)).history
         predictions = model.predict(x=xp, batch_size=100)
         predictsum = np.sum(predictions, axis=-1)
 
-        # TODO: Fails with !eager & func
-        # print(testing_utils.should_run_eagerly(), testing_utils.should_run_tf_function(), history['loss'][0], history['loss'][-1])
-        # self.assertGreater(history['loss'][0], history['loss'][-1])
-        # self.assertGreater(history['val_loss'][0], history['val_loss'][-1])
+        self.assertGreater(history['loss'][0], history['loss'][-1])
+        self.assertGreater(history['val_loss'][0], history['val_loss'][-1])
         # self.assertGreater(history['val_loss'][0], history['loss'][0])
         # self.assertGreater(history['val_loss'][-1], history['loss'][-1])
-        # self.assertEqual([sample_size // 100, seq_length, num_classes], list(predictions.shape))
-        # self.assertAllClose(np.ones_like(predictsum), predictsum)
+        self.assertEqual([sample_size // 100, seq_length, num_classes], list(predictions.shape))
+        self.assertAllClose(np.ones_like(predictsum), predictsum)
 
     def test_with_ragged_input(self):
         layer = SampledSofmax(units=16, negatives=8)
@@ -500,7 +549,6 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
         outputs = layer([logit_inputs, logit_targets])
 
         model = tf.keras.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
-        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
         model.run_eagerly = testing_utils.should_run_eagerly()
         outputs = model.predict([logits_data, targets_data])
         self.assertAllClose(

@@ -5,7 +5,6 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.python.framework import ops, sparse_tensor, tensor_shape
 from tensorflow.python.ops import embedding_ops, data_flow_ops, resource_variable_ops, sparse_ops, variables
-from tensorflow.python.platform import tf_logging as logging
 
 
 def adaptive_embedding_lookup(params, ids, transforms, max_norm=None, name=None):
@@ -183,7 +182,7 @@ def adaptive_embedding_lookup_sparse(
             output[2, :] = (params[1, :] * 3.0) / 3.0
     """
     if combiner is None:
-        logging.warn('The default value of combiner will change from "mean" to "sqrtn" after 2016/11/01.')
+        tf.get_logger().warning('The default value of combiner will change from "mean" to "sqrtn" after 2016/11/01.')
         combiner = 'mean'
     if combiner not in ('mean', 'sqrtn', 'sum'):
         raise ValueError('combiner must be one of "mean", "sqrtn" or "sum"')

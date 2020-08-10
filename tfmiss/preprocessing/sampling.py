@@ -106,7 +106,7 @@ def sample_probs(freq_vocab, threshold=1e-3):
         threshold: `float`, items occurrence threshold.
 
     Returns:
-        A `dict` of downsampling keys with corresponding keep probabilities and a discard fraction size.
+        A `dict` of downsampling keys with corresponding keep probabilities.
     """
     if not isinstance(freq_vocab, Counter):
         raise ValueError('Frequency vocabulary should be a Counter instance')

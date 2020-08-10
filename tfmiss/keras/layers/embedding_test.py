@@ -89,6 +89,23 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             expected_output_shape=(None, 3, 7, 128)
         )
 
+        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
+        mf16_policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
+        tf.keras.mixed_precision.experimental.set_policy(mf16_policy)
+        testing_utils.layer_test(
+            AdaptiveEmbedding,
+            kwargs={
+                'cutoff': [50, 100],
+                'input_dim': 200,
+                'output_dim': 128,
+            },
+            input_shape=(2, 3),
+            input_dtype='int32',
+            expected_output_dtype='float16',
+            expected_output_shape=(None, 3, 128)
+        )
+        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
+
     def test_embedding_correctness(self):
         layer = AdaptiveEmbedding(cutoff=[1], output_dim=16, input_dim=2, factor=2)
         model = tf.keras.models.Sequential([layer])
@@ -100,7 +117,6 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             np.array([[3] * 16] * 8),
         ])
         model.run_eagerly = testing_utils.should_run_eagerly()
-        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
         outputs = model.predict(np.array([[0, 1, 0]], dtype='int32'))
         self.assertAllClose([[[1] * 16, [48] * 16, [1] * 16]], outputs)
 
@@ -136,7 +152,6 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
         outputs = layer(outputs)
 
         model = tf.keras.Model(inputs, outputs)
-        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
         model.run_eagerly = testing_utils.should_run_eagerly()
         outputs = model.predict(data)
         self.assertAllClose(

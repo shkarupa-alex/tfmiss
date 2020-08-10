@@ -12,22 +12,21 @@ http_archive(
         "https://mirror.bazel.build/github.com/unicode-org/icu/archive/release-64-2.tar.gz",
         "https://github.com/unicode-org/icu/archive/release-64-2.tar.gz",
     ],
-    build_file = "//third_party/icu:BUILD.bazel",
-    patch_args= ["-p1"],
+    build_file = "//third_party/icu:BUILD.bzl",
+    patch_args= ["-p1", "-s"],
     patches = [
         "//third_party/icu:udata.patch",
     ],
 )
 http_archive(
     name = "re2",
-    sha256 = "88864d7f5126bb17daa1aa8f41b05599aa6e3222e7b28a90e372db53c1c49aeb",
-    strip_prefix = "re2-2020-05-01",
+    sha256 = "2ed94072145272012bb5b7054afcbe707447d49dcd79fd6d1689e6f3dc589def",
+    strip_prefix = "re2-2019-04-01",
     urls = [
-        "https://mirror.bazel.build/github.com/google/re2/archive/2020-05-01.tar.gz",
-        "https://github.com/google/re2/archive/2020-05-01.tar.gz"
+        "https://mirror.bazel.build/github.com/google/re2/archive/2019-04-01.tar.gz",
+        "https://github.com/google/re2/archive/2019-04-01.tar.gz"
     ],
 )
-
 http_archive(
     name = "protobuf_archive",
     sha256 = "1c020fafc84acd235ec81c6aac22d73f23e85a700871466052ff231d69c1b17a",
@@ -39,9 +38,8 @@ http_archive(
 )
 http_archive(
     name = "bazel_skylib",
-    sha256 = "bbccf674aa441c266df9894182d80de104cabd19be98be002f6d478aaa31574d",
-    strip_prefix = "bazel-skylib-2169ae1c374aab4a09aa90e65efe1a3aad4e279b",
-    urls = ["https://github.com/bazelbuild/bazel-skylib/archive/2169ae1c374aab4a09aa90e65efe1a3aad4e279b.tar.gz"],
+    sha256 = "2ef429f5d7ce7111263289644d233707dba35e39696377ebab8b0bc701f7818e",
+    urls = ["https://github.com/bazelbuild/bazel-skylib/releases/download/0.8.0/bazel-skylib.0.8.0.tar.gz"],
 )
 http_archive(
     name = "zlib_archive",
@@ -56,11 +54,11 @@ http_archive(
 http_archive(
     name = "six_archive",
     build_file = "//third_party:six.BUILD",
-    sha256 = "d16a0141ec1a18405cd4ce8b4613101da75da0e9a7aec5bdd4fa804d0e0eba73",
-    strip_prefix = "six-1.12.0",
+    sha256 = "105f8d68616f8248e24bf0e9372ef04d3cc10104f1980f54d57b2ce73a5ad56a",
+    strip_prefix = "six-1.10.0",
     urls = [
-        "https://storage.googleapis.com/mirror.tensorflow.org/pypi.python.org/packages/source/s/six/six-1.12.0.tar.gz",
-        "https://pypi.python.org/packages/source/s/six/six-1.12.0.tar.gz",
+        "http://mirror.tensorflow.org/pypi.python.org/packages/source/s/six/six-1.10.0.tar.gz",
+        "https://pypi.python.org/packages/source/s/six/six-1.10.0.tar.gz",
     ],
 )
 bind(

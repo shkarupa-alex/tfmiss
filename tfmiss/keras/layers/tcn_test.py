@@ -60,8 +60,7 @@ class TemporalBlockTest(keras_parameterized.TestCase):
             dropout=0.2,
             input_shape=(3, 4)
         ))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly(),
-                      experimental_run_tf_function=testing_utils.should_run_tf_function())
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
         model.fit(np.random.random((10, 3, 4)), np.random.random((10, 3, 3)), epochs=1, batch_size=10)
 
         # test config
@@ -118,8 +117,7 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
             kernel_size=3,
             dropout=0.2
         ))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly(),
-                      experimental_run_tf_function=testing_utils.should_run_tf_function())
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
         model.fit(np.random.random((10, 3, 4)), np.random.random((10, 3, 3)), epochs=1, batch_size=10)
 
         # test config
@@ -129,33 +127,6 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
         checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
         for v in model.variables:
             self.assertIn(v, checkpointed_objects)
-
-    def test_model_with_ragged_input(self):
-        inputs = tf.keras.layers.Input(shape=(None, 2), dtype=tf.float32, ragged=True)
-        outputs = TemporalConvNet(
-            filters=[5, 4, 3],
-            kernel_size=3,
-            dropout=0.2
-        )(inputs)
-
-        model = tf.keras.Model(inputs, outputs)
-        model._experimental_run_tf_function = testing_utils.should_run_tf_function()
-        model.run_eagerly = testing_utils.should_run_eagerly()
-
-        data = tf.ragged.constant([
-            [[.1, 1.], [.2, 2.], [.3, 3.]],
-            [[.4, 4.]],
-            [[.5, 5.], [.6, 6.]]
-        ], ragged_rank=1)
-        outputs = model.predict(data)
-        self.assertAllClose(
-            outputs,
-            tf.ragged.constant([
-                [[0.0, 0.6933093070983887, 0.0], [0.0, 0.2622586786746979, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0, 0.0]],
-                [[0.03695070743560791, 0.0, 0.0], [0.0, 0.0, 0.0]]
-            ], ragged_rank=1)
-        )
 
 
 if __name__ == "__main__":

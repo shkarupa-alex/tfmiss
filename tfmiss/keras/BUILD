@@ -10,6 +10,7 @@ py_library(
         "//tfmiss/keras/layers",
          "//tfmiss/keras/losses",
          "//tfmiss/keras/metrics",
+         ":testing_utils"
     ],
     srcs_version = "PY2AND3",
 )

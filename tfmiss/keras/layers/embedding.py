@@ -23,7 +23,6 @@ class AdaptiveEmbedding(Embedding):
                  proj0=False,
                  embeddings_initializer='uniform',
                  embeddings_regularizer=None,
-                 activity_regularizer=None,
                  embeddings_constraint=None,
                  kernel_initializer='glorot_uniform',
                  kernel_regularizer=None,
@@ -36,7 +35,6 @@ class AdaptiveEmbedding(Embedding):
             output_dim=output_dim,
             embeddings_initializer=embeddings_initializer,
             embeddings_regularizer=embeddings_regularizer,
-            activity_regularizer=activity_regularizer,
             embeddings_constraint=embeddings_constraint,
             mask_zero=mask_zero,
             input_length=input_length,
@@ -70,7 +68,7 @@ class AdaptiveEmbedding(Embedding):
                                  'decrease `factor` or increase `output_dim`')
             prev_dim = dim
 
-            with tf.device('CPU:0'):
+            with tf.device('/CPU:0'):
                 embed = self.add_weight(
                     shape=(size, dim),
                     initializer=self.embeddings_initializer,
@@ -88,19 +86,21 @@ class AdaptiveEmbedding(Embedding):
                     use_bias=False,
                     kernel_initializer=self.kernel_initializer,
                     kernel_regularizer=self.kernel_regularizer,
-                    activity_regularizer=self.activity_regularizer,
                     kernel_constraint=self.kernel_constraint
                 )
                 setattr(self, 'project_{}'.format(i), project)
             else:
-                project = AdaptiveEmbedding._no_projection
+                project = self._no_projection
             self.projections.append(project)
+
+        # Tail projections will use global policy compute dtype, need to change ours for stitching
+        compute_dtype = tf.keras.mixed_precision.experimental.global_policy().compute_dtype
+        self._dtype_policy._compute_dtype = compute_dtype
 
         self.built = True
 
-    @staticmethod
-    def _no_projection(embedding):
-        return embedding
+    def _no_projection(self, embedding):
+        return tf.cast(embedding, self._compute_dtype)
 
     def call(self, inputs):
         dtype = tf.keras.backend.dtype(inputs)
@@ -112,14 +112,14 @@ class AdaptiveEmbedding(Embedding):
         return out
 
     def get_config(self):
-        config = {
+        config = super(AdaptiveEmbedding, self).get_config()
+        config.update({
             'cutoff': self._cutoff,
             'factor': self.factor,
             'proj0': self.proj0,
             'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
             'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
-        }
-        base_config = super(AdaptiveEmbedding, self).get_config()
+        })
 
-        return dict(list(base_config.items()) + list(config.items()))
+        return config

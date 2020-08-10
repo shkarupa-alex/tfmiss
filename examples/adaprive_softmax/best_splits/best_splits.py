@@ -8,8 +8,8 @@ import logging
 import tensorflow as tf
 from nlpvocab import Vocabulary
 from tabulate import tabulate
+from tfmiss.preprocessing import sample_probs
 from tfmiss.training import build_zipf_vocab, estimate_best_splits
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
@@ -32,6 +32,11 @@ if __name__ == "__main__":
         type=int,
         help='Hidden size')
     parser.add_argument(
+        '--factor',
+        type=int,
+        default=4,
+        help='Scale factor for tail projections')
+    parser.add_argument(
         '--classes_vocab',
         type=argparse.FileType('r'),
         default=None,
@@ -51,10 +56,10 @@ if __name__ == "__main__":
         default=0,
         help='Number of classes')
     parser.add_argument(
-        '--factor',
-        type=int,
-        default=4,
-        help='Scale factor for tail projections')
+        '--thres_hold',
+        type=float,
+        default=0.,
+        help='Number of classes')
 
     argv, _ = parser.parse_known_args()
     tf.get_logger().setLevel(logging.INFO)
@@ -69,6 +74,11 @@ if __name__ == "__main__":
         freq_vocab = Vocabulary.load(vocab_file, format=argv.vocab_format)
     else:
         freq_vocab = build_zipf_vocab(argv.num_classes)
+
+    if argv.thres_hold > 0.:
+        keep_probs = sample_probs(freq_vocab, argv.thres_hold)
+        for key in keep_probs:
+            freq_vocab[key] = round(freq_vocab[key] * keep_probs[key])
 
     batch_sizes, head_sizes, speed_ups, best_splits = estimate_best_splits(
         device_params=device_params,

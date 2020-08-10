@@ -19,8 +19,6 @@ cc_library(
         "icu4c/source/common",
         "icu4c/source/i18n",
     ],
-    deps = [
-    ],
 )
 
 cc_library(
@@ -56,16 +54,13 @@ cc_library(
     copts = [
         "-DU_COMMON_IMPLEMENTATION",
         "-DU_I18N_IMPLEMENTATION",
-        "-DU_HAVE_STD_ATOMICS",
     ] + select({
         ":android": [
             "-fdata-sections",
-            "-DGOOGLE_VENDOR_SRC_BRANCH",
             "-DU_HAVE_NL_LANGINFO_CODESET=0",
             "-Wno-deprecated-declarations",
         ],
         ":apple": [
-            "-DGOOGLE_VENDOR_SRC_BRANCH",
             "-Wno-shorten-64-to-32",
             "-Wno-unused-variable",
         ],
