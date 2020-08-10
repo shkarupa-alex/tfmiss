@@ -128,7 +128,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             name='head'
         )
 
-        self.tails = []
+        self._tails = []
         prev_dim = None
         for i in range(len(self.cutoff) - 1):
             dim = num_channels / (self.factor ** (i + 1))
@@ -139,7 +139,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                                  'Try to shorten `cutoffs` or decrease `factor`')
             prev_dim = dim
 
-            tail = tf.keras.Sequential([
+            self._tails.append([
                 tf.keras.layers.Dense(
                     units=dim,
                     activation=None,
@@ -150,9 +150,9 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                     bias_regularizer=self.bias_regularizer,
                     kernel_constraint=self.kernel_constraint,
                     bias_constraint=self.bias_constraint,
-                    name='tail_proj_{}'.format(i)
+                    name='tail_{}_proj'.format(i)
                 ),
-                tf.keras.layers.Dropout(self.dropout, name='tail_drop_{}'.format(i)),
+                tf.keras.layers.Dropout(self.dropout, name='tail_{}_drop'.format(i)),
                 tf.keras.layers.Dense(
                     units=self.cutoff[i + 1] - self.cutoff[i],
                     activation=None,
@@ -163,13 +163,21 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                     kernel_regularizer=self.kernel_regularizer,
                     kernel_constraint=self.kernel_constraint,
                     bias_constraint=self.bias_constraint,
-                    name='tail_scale_{}'.format(i)
+                    name='tail_{}_scale'.format(i)
                 ),
             ])
-            self.tails.append(tail)
-            setattr(self, 'tail_{}'.format(i), tail)
+            setattr(self, 'tail_{}_proj'.format(i), self._tails[-1][0])
+            setattr(self, 'tail_{}_drop'.format(i), self._tails[-1][1])
+            setattr(self, 'tail_{}_scale'.format(i), self._tails[-1][2])
 
         super(AdaptiveSoftmax, self).build(input_shape)
+
+    def tail(self, index, inputs, training):
+        outputs = inputs
+        for layer in self._tails[index]:
+            outputs = layer(outputs, training=training)
+
+        return outputs
 
     def call(self, inputs, training=None, mask=None):
         if training is None:
@@ -228,7 +236,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
 
             true_mask = tail_masks[i]
             true_inputs = tf.boolean_mask(inputs, true_mask)
-            true_logits = self.tails[i](true_inputs, training=True)
+            true_logits = self.tail(i, true_inputs, training=True)
             true_logits = tf.cast(true_logits, tf.float32)
             true_clust_logprob = tf.boolean_mask(clust_logprob, true_mask)
             true_logprobs = tf.nn.log_softmax(true_logits)
@@ -274,7 +282,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
 
         full_logprobs = [head_logprobs]
         for i in range(len(self.cutoff) - 1):
-            tail_logits = self.tails[i](inputs, training=False)
+            tail_logits = self.tail(i, inputs, training=False)
             tail_logits = tf.cast(tail_logits, tf.float32)
             tail_logprobs = tf.nn.log_softmax(tail_logits)
 
