@@ -5,7 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.python.framework import random_seed
 from tensorflow.python.ops.ragged import ragged_tensor
-from tfmiss.ops import load_so
+from tfmiss.ops import tfmiss_ops
 
 
 def cont_bow(source, window, seed=None, name=None):
@@ -37,7 +37,7 @@ def cont_bow(source, window, seed=None, name=None):
 
         seed1, seed2 = random_seed.get_seed(seed)
 
-        target, context_values, context_splits, context_positions = load_so().miss_cont_bow(
+        target, context_values, context_splits, context_positions = tfmiss_ops.miss_cont_bow(
             source_values=source.values,
             source_splits=source.row_splits,
             window=window,
@@ -78,7 +78,7 @@ def skip_gram(source, window, seed=None, name=None):
 
         seed1, seed2 = random_seed.get_seed(seed)
 
-        target, context = load_so().miss_skip_gram(
+        target, context = tfmiss_ops.miss_skip_gram(
             source_values=source.values,
             source_splits=source.row_splits,
             window=window,
