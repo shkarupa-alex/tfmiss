@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tensorflow.python.ops.ragged import ragged_tensor
-from tfmiss.ops import load_so
+from tfmiss.ops import tfmiss_ops
 
 
 def char_ngrams(source, minn, maxn, itself, skip=None, name=None):
@@ -34,7 +34,7 @@ def char_ngrams(source, minn, maxn, itself, skip=None, name=None):
                 char_ngrams(source.flat_values, minn, maxn, itself, skip)
             )
 
-        result_values, result_splits = load_so().miss_char_ngrams(
+        result_values, result_splits = tfmiss_ops.miss_char_ngrams(
             source=source,
             minn=minn,
             maxn=maxn,
@@ -72,7 +72,7 @@ def split_chars(source, skip=None, name=None):
                 split_chars(source.flat_values, skip)
             )
 
-        result_values, result_splits = load_so().miss_split_chars(
+        result_values, result_splits = tfmiss_ops.miss_split_chars(
             source=source,
             skip=skip or [],
         )
@@ -109,7 +109,7 @@ def split_words(source, extended=False, skip=None, name=None):
                 split_words(source.flat_values, extended, skip)
             )
 
-        result_values, result_splits = load_so().miss_split_words(
+        result_values, result_splits = tfmiss_ops.miss_split_words(
             source=source,
             extended=extended,
             skip=skip or [],

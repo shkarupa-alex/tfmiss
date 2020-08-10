@@ -8,7 +8,7 @@ from collections import Counter
 from tensorflow.python.framework import random_seed
 from tensorflow.python.framework import sparse_tensor
 from tensorflow.python.ops.ragged import ragged_tensor
-from tfmiss.ops import load_so
+from tfmiss.ops import tfmiss_ops
 
 
 def down_sample(source, freq_vocab, replacement='', threshold=1e-3, min_freq=0, seed=None, name=None):
@@ -85,7 +85,7 @@ def sample_mask(source, freq_vocab, threshold=1e-3, min_freq=0, seed=None, name=
 
         keys, freqs = zip(*freq_vocab.most_common())
 
-        return load_so().miss_sample_mask(
+        return tfmiss_ops.miss_sample_mask(
             source=source,
             keys=keys,
             freqs=freqs,

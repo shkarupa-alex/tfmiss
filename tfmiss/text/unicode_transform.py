@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tensorflow.python.ops.ragged import ragged_tensor
-from tfmiss.ops import load_so
+from tfmiss.ops import tfmiss_ops
 
 
 def lower_case(source, skip=None, name=None):
@@ -25,7 +25,7 @@ def lower_case(source, skip=None, name=None):
                 lower_case(source.flat_values, skip)
             )
 
-        return load_so().miss_lower_case(
+        return tfmiss_ops.miss_lower_case(
             source=source,
             skip=skip or [],
         )
@@ -52,7 +52,7 @@ def normalize_unicode(source, form, skip=None, name=None):
                 normalize_unicode(source.flat_values, form, skip)
             )
 
-        return load_so().miss_normalize_unicode(
+        return tfmiss_ops.miss_normalize_unicode(
             source=source,
             form=form,
             skip=skip or [],
@@ -80,7 +80,7 @@ def replace_regex(source, pattern, rewrite, skip=None, name=None):
                 replace_regex(source.flat_values, pattern, rewrite, skip)
             )
 
-        return load_so().miss_replace_regex(
+        return tfmiss_ops.miss_replace_regex(
             source=source,
             pattern=pattern,
             rewrite=rewrite,
@@ -109,7 +109,7 @@ def replace_string(source, needle, haystack, skip=None, name=None):
                 replace_string(source.flat_values, needle, haystack, skip)
             )
 
-        return load_so().miss_replace_string(
+        return tfmiss_ops.miss_replace_string(
             source=source,
             needle=needle,
             haystack=haystack,
@@ -136,7 +136,7 @@ def title_case(source, skip=None, name=None):
                 title_case(source.flat_values, skip)
             )
 
-        return load_so().miss_title_case(
+        return tfmiss_ops.miss_title_case(
             source=source,
             skip=skip or [],
         )
@@ -161,7 +161,7 @@ def upper_case(source, skip=None, name=None):
                 upper_case(source.flat_values, skip)
             )
 
-        return load_so().miss_upper_case(
+        return tfmiss_ops.miss_upper_case(
             source=source,
             skip=skip or [],
         )
@@ -188,7 +188,7 @@ def wrap_with(source, left, right, skip=None, name=None):
                 wrap_with(source.flat_values, left, right, skip)
             )
 
-        return load_so().miss_wrap_with(
+        return tfmiss_ops.miss_wrap_with(
             source=source,
             left=left,
             right=right,
@@ -215,7 +215,7 @@ def zero_digits(source, skip=None, name=None):
                 zero_digits(source.flat_values, skip)
             )
 
-        return load_so().miss_zero_digits(
+        return tfmiss_ops.miss_zero_digits(
             source=source,
             skip=skip or [],
         )
