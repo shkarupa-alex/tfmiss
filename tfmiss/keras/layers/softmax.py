@@ -110,11 +110,11 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             raise ValueError('Targets shape {} rank must be one less than predictions '
                              'shape rank {}'.format(targets_shape, predictions_shape))
 
-        num_channels = predictions_shape[-1]
-        if num_channels is None:
+        self.input_channels = predictions_shape[-1]
+        if self.input_channels is None:
             raise ValueError('Channel dimension of predictions should be defined. Found `None`.')
         self.input_spec = [
-            tf.keras.layers.InputSpec(ndim=predictions_rank, axes={-1: num_channels}),
+            tf.keras.layers.InputSpec(ndim=predictions_rank, axes={-1: self.input_channels}),
             tf.keras.layers.InputSpec(ndim=predictions_rank - 1, dtype=tf.int32)
         ]
 
@@ -128,10 +128,11 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             name='head'
         )
 
-        self._tails = []
+        self.tails = []
+        self.tail_channels = []
         prev_dim = None
         for i in range(len(self.cutoff) - 1):
-            dim = num_channels / (self.factor ** (i + 1))
+            dim = self.input_channels / (self.factor ** (i + 1))
             dim = max(1, round(dim / 8)) * 8
 
             if dim == prev_dim:
@@ -139,7 +140,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                                  'Try to shorten `cutoffs` or decrease `factor`')
             prev_dim = dim
 
-            self._tails.append([
+            tail = tf.keras.Sequential([
                 tf.keras.layers.Dense(
                     units=dim,
                     activation=None,
@@ -150,9 +151,10 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                     bias_regularizer=self.bias_regularizer,
                     kernel_constraint=self.kernel_constraint,
                     bias_constraint=self.bias_constraint,
-                    name='tail_{}_proj'.format(i)
+                    name='tail_proj_{}'.format(i),
+                    input_shape=(self.input_channels,)
                 ),
-                tf.keras.layers.Dropout(self.dropout, name='tail_{}_drop'.format(i)),
+                tf.keras.layers.Dropout(self.dropout, name='tail_drop_{}'.format(i)),
                 tf.keras.layers.Dense(
                     units=self.cutoff[i + 1] - self.cutoff[i],
                     activation=None,
@@ -163,21 +165,14 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                     kernel_regularizer=self.kernel_regularizer,
                     kernel_constraint=self.kernel_constraint,
                     bias_constraint=self.bias_constraint,
-                    name='tail_{}_scale'.format(i)
+                    name='tail_scale_{}'.format(i)
                 ),
             ])
-            setattr(self, 'tail_{}_proj'.format(i), self._tails[-1][0])
-            setattr(self, 'tail_{}_drop'.format(i), self._tails[-1][1])
-            setattr(self, 'tail_{}_scale'.format(i), self._tails[-1][2])
+            self.tails.append(tail)
+            setattr(self, 'tail_{}'.format(i), tail)
+            self.tail_channels.append(self.cutoff[i + 1] - self.cutoff[i])
 
         super(AdaptiveSoftmax, self).build(input_shape)
-
-    def tail(self, index, inputs, training):
-        outputs = inputs
-        for layer in self._tails[index]:
-            outputs = layer(outputs, training=training)
-
-        return outputs
 
     def call(self, inputs, training=None, mask=None):
         if training is None:
@@ -236,7 +231,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
 
             true_mask = tail_masks[i]
             true_inputs = tf.boolean_mask(inputs, true_mask)
-            true_logits = self.tail(i, true_inputs, training=True)
+            true_logits = self.tails[i](true_inputs, training=True)
             true_logits = tf.cast(true_logits, tf.float32)
             true_clust_logprob = tf.boolean_mask(clust_logprob, true_mask)
             true_logprobs = tf.nn.log_softmax(true_logits)
@@ -280,9 +275,15 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         root_logprobs = tf.nn.log_softmax(root_logits)
         head_logprobs = root_logprobs[..., :self.cutoff[0]]
 
+        # required to match tails input shape in train branch
+        flat_inputs = tf.reshape(inputs, [-1, self.input_channels])
+        targets_shape = tf.shape(targets)
+
         full_logprobs = [head_logprobs]
         for i in range(len(self.cutoff) - 1):
-            tail_logits = self.tail(i, inputs, training=False)
+            flat_logits = self.tails[i](flat_inputs, training=False)
+            tail_shape = tf.concat([targets_shape, [self.tail_channels[i]]], axis=-1)
+            tail_logits = tf.reshape(flat_logits, tail_shape)
             tail_logits = tf.cast(tail_logits, tf.float32)
             tail_logprobs = tf.nn.log_softmax(tail_logits)
 
