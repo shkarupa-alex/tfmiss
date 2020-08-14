@@ -6,6 +6,7 @@
 namespace tensorflow {
 namespace miss {
 
+template <typename T>
 class ContBowOp : public OpKernel
 {
 public:
@@ -30,7 +31,7 @@ public:
     OP_REQUIRES_OK(ctx, ctx->input("source_splits", &source_splits_tensor));
     OP_REQUIRES(ctx, TensorShapeUtils::IsVector(source_splits_tensor->shape()),
                 errors::InvalidArgument("Splits must be a vector, got shape: ", source_splits_tensor->shape().DebugString()));
-    const auto source_splits = source_splits_tensor->flat<int64>();
+    const auto source_splits = source_splits_tensor->flat<T>();
 
     // Load window
     const Tensor *window_tensor;
@@ -121,7 +122,7 @@ public:
 
     Tensor *context_splits_tensor;
     OP_REQUIRES_OK(ctx, ctx->allocate_output("context_splits", TensorShape({(int64)cbow_context_splits.size()}), &context_splits_tensor));
-    auto context_splits = context_splits_tensor->vec<int64>();
+    auto context_splits = context_splits_tensor->vec<T>();
 
     Tensor *context_positions_tensor;
     OP_REQUIRES_OK(ctx, ctx->allocate_output("context_positions", TensorShape({(int64)cbow_context_positions.size()}), &context_positions_tensor));
@@ -153,7 +154,17 @@ private:
   GuardedPhiloxRandom _random_generator;
 };
 
-REGISTER_KERNEL_BUILDER(Name("Miss>ContBow").Device(DEVICE_CPU), ContBowOp);
+REGISTER_KERNEL_BUILDER(
+  Name("Miss>ContBow")
+  .Device(DEVICE_CPU)
+  .TypeConstraint<int32>("T"),
+  ContBowOp<int32>);
+
+REGISTER_KERNEL_BUILDER(
+  Name("Miss>ContBow")
+  .Device(DEVICE_CPU)
+  .TypeConstraint<int64>("T"),
+  ContBowOp<int64>);
 
 }  // end namespace miss
 }  // namespace tensorflow

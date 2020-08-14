@@ -6,6 +6,7 @@
 namespace tensorflow {
 namespace miss {
 
+template <typename T>
 class SkipGramOp : public OpKernel
 {
 public:
@@ -30,7 +31,7 @@ public:
     OP_REQUIRES_OK(ctx, ctx->input("source_splits", &splits_tensor));
     OP_REQUIRES(ctx, TensorShapeUtils::IsVector(splits_tensor->shape()),
                 errors::InvalidArgument("Splits must be a vector, got shape: ", splits_tensor->shape().DebugString()));
-    const auto source_splits = splits_tensor->flat<int64>();
+    const auto source_splits = splits_tensor->flat<T>();
 
     // Load window
     const Tensor *window_tensor;
@@ -114,7 +115,17 @@ private:
   GuardedPhiloxRandom _random_generator;
 };
 
-REGISTER_KERNEL_BUILDER(Name("Miss>SkipGram").Device(DEVICE_CPU), SkipGramOp);
+REGISTER_KERNEL_BUILDER(
+  Name("Miss>SkipGram")
+  .Device(DEVICE_CPU)
+  .TypeConstraint<int32>("T"),
+  SkipGramOp<int32>);
+
+REGISTER_KERNEL_BUILDER(
+  Name("Miss>SkipGram")
+  .Device(DEVICE_CPU)
+  .TypeConstraint<int64>("T"),
+  SkipGramOp<int64>);
 
 }  // end namespace miss
 }  // namespace tensorflow
