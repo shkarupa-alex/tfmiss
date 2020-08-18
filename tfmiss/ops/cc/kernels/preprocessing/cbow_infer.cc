@@ -1,24 +1,21 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
-#include "tensorflow/core/util/guarded_philox_random.h"
-#include "tensorflow/core/lib/random/simple_philox.h"
 
 namespace tensorflow {
 namespace miss {
 
 template <typename T>
-class ContBowOp : public OpKernel
+class CbowInferOp : public OpKernel
 {
 public:
-  explicit ContBowOp(OpKernelConstruction *ctx) : OpKernel(ctx)
-  {
+  explicit CbowInferOp(OpKernelConstruction *ctx) : OpKernel(ctx) {
     // Load window
     OP_REQUIRES_OK(ctx, ctx->GetAttr("window", &window_size));
     OP_REQUIRES(ctx, window_size > 0,
                 errors::InvalidArgument("Window must be greater than zero, got ", window_size));
 
-    // Load random seeds
-    OP_REQUIRES_OK(ctx, _random_generator.Init(ctx));
+    // Load value for empty context
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("empty", &empty_context));
   }
 
   void Compute(OpKernelContext *ctx) override
@@ -37,14 +34,7 @@ public:
                 errors::InvalidArgument("Splits must be a vector, got shape: ", source_splits_tensor->shape().DebugString()));
     const auto source_splits = source_splits_tensor->flat<T>();
 
-    // Prepare random generator
-    random::PhiloxRandom philox_rng = _random_generator.ReserveSamples128(source_values.size());
-    random::SimplePhilox simple_philox(&philox_rng);
-
-    // Prepare vectors to store target and context_*
-    std::vector<string> cbow_target;
-    cbow_target.reserve(source_values.size());
-
+    // Prepare vectors to store context_*
     std::vector<string> cbow_context_values;
     std::vector<int32> cbow_context_positions;
     uint64 reserve_context_values = 0;
@@ -72,12 +62,8 @@ public:
 
       for (int64 target = row_start; target < row_stop; target++)
       {
-        if (!source_values(target).size())
-          continue; // target word empty
-
-        int64 window_reduce = simple_philox.Uniform64(window_size);
-        int64 window_start = std::max(row_start, target - window_size + window_reduce);
-        int64 window_stop = std::max((int64)0, std::min(row_stop - 1, target + window_size - window_reduce));
+        int64 window_start = std::max(row_start, target - window_size);
+        int64 window_stop = std::max((int64)0, std::min(row_stop - 1, target + window_size));
         bool empty_row = true;
 
         for (int64 context = window_start; context <= window_stop; context++)
@@ -98,19 +84,18 @@ public:
           empty_row = false;
         }
 
-        if (!empty_row)
-        {
-          cbow_target.push_back(source_values(target));
-          cbow_context_splits.push_back(cbow_context_values.size());
+        if (empty_row) {
+          cbow_context_values.push_back(empty_context);
+          cbow_context_values.push_back(empty_context);
+          cbow_context_positions.push_back(-1);
+          cbow_context_positions.push_back(1);
         }
+
+        cbow_context_splits.push_back(cbow_context_values.size());
       }
     }
 
-    // Create target & context_* outputs
-    Tensor *target_tensor;
-    OP_REQUIRES_OK(ctx, ctx->allocate_output("target", TensorShape({(int64)cbow_target.size()}), &target_tensor));
-    auto target = target_tensor->vec<tstring>();
-
+    // Create context_* outputs
     Tensor *context_values_tensor;
     OP_REQUIRES_OK(ctx, ctx->allocate_output("context_values", TensorShape({(int64)cbow_context_values.size()}), &context_values_tensor));
     auto context_values = context_values_tensor->vec<tstring>();
@@ -124,11 +109,6 @@ public:
     auto context_positions = context_positions_tensor->vec<int32>();
 
     // Fill outputs
-    for (uint64 i = 0; i < cbow_target.size(); i++)
-    {
-      target(i) = cbow_target[i];
-    }
-
     for (uint64 i = 0; i < cbow_context_values.size(); i++)
     {
       context_values(i) = cbow_context_values[i];
@@ -146,21 +126,21 @@ public:
   }
 
 private:
-  GuardedPhiloxRandom _random_generator;
   int64 window_size;
+  string empty_context;
 };
 
 REGISTER_KERNEL_BUILDER(
-  Name("Miss>ContBow")
+  Name("Miss>CbowInfer")
   .Device(DEVICE_CPU)
   .TypeConstraint<int32>("T"),
-  ContBowOp<int32>);
+  CbowInferOp<int32>);
 
 REGISTER_KERNEL_BUILDER(
-  Name("Miss>ContBow")
+  Name("Miss>CbowInfer")
   .Device(DEVICE_CPU)
   .TypeConstraint<int64>("T"),
-  ContBowOp<int64>);
+  CbowInferOp<int64>);
 
 }  // end namespace miss
 }  // namespace tensorflow

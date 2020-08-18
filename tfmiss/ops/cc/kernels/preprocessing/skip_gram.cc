@@ -6,11 +6,16 @@
 namespace tensorflow {
 namespace miss {
 
+template <typename T>
 class SkipGramOp : public OpKernel
 {
 public:
   explicit SkipGramOp(OpKernelConstruction *ctx) : OpKernel(ctx)
   {
+    // Load window
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("window", &window_size));
+    OP_REQUIRES(ctx, window_size > 0,
+                errors::InvalidArgument("Window must be greater than zero, got ", window_size));
 
     // Load random seeds
     OP_REQUIRES_OK(ctx, _random_generator.Init(ctx));
@@ -30,16 +35,7 @@ public:
     OP_REQUIRES_OK(ctx, ctx->input("source_splits", &splits_tensor));
     OP_REQUIRES(ctx, TensorShapeUtils::IsVector(splits_tensor->shape()),
                 errors::InvalidArgument("Splits must be a vector, got shape: ", splits_tensor->shape().DebugString()));
-    const auto source_splits = splits_tensor->flat<int64>();
-
-    // Load window
-    const Tensor *window_tensor;
-    OP_REQUIRES_OK(ctx, ctx->input("window", &window_tensor));
-    OP_REQUIRES(ctx, TensorShapeUtils::IsScalar(window_tensor->shape()),
-                errors::InvalidArgument("Window should be a scalar, got shape: ", window_tensor->shape().DebugString()));
-    int64 window_size = window_tensor->flat<int64>()(0);
-    OP_REQUIRES(ctx, window_size > 0,
-                errors::InvalidArgument("Window must be greater than zero, got ", window_size));
+    const auto source_splits = splits_tensor->flat<T>();
 
     // Prepare random generator
     random::PhiloxRandom philox_rng = _random_generator.ReserveSamples128(source_values.size());
@@ -112,9 +108,20 @@ public:
 
 private:
   GuardedPhiloxRandom _random_generator;
+  int64 window_size;
 };
 
-REGISTER_KERNEL_BUILDER(Name("Miss>SkipGram").Device(DEVICE_CPU), SkipGramOp);
+REGISTER_KERNEL_BUILDER(
+  Name("Miss>SkipGram")
+  .Device(DEVICE_CPU)
+  .TypeConstraint<int32>("T"),
+  SkipGramOp<int32>);
+
+REGISTER_KERNEL_BUILDER(
+  Name("Miss>SkipGram")
+  .Device(DEVICE_CPU)
+  .TypeConstraint<int64>("T"),
+  SkipGramOp<int64>);
 
 }  // end namespace miss
 }  // namespace tensorflow
