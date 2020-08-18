@@ -5,7 +5,103 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from tfmiss.preprocessing.preprocessing import cont_bow, skip_gram
+from tfmiss.preprocessing.preprocessing import cbow_infer, cont_bow, skip_gram
+
+
+@test_util.run_all_in_graph_and_eager_modes
+class CbowInferTest(tf.test.TestCase):
+    def test_empty(self):
+        source = tf.ragged.constant(np.array([]).reshape(0, 2), dtype=tf.string)
+        cbows = cbow_infer(source, 1, '[PAD]')
+        context, position = self.evaluate(cbows)
+
+        self.assertAllEqual([], context.values.tolist())
+        self.assertAllEqual([0], context.row_splits.tolist())
+        self.assertAllEqual([], position.values.tolist())
+
+    # Disabled due to currently accepting target inclusion into context
+    # def test_skip_row(self):
+    #     source = tf.ragged.constant([
+    #         [],
+    #         ['good', 'row'],
+    #         ['bad', 'bad'],
+    #         [],
+    #     ])
+    #     context = cbow_infer(source, 2, seed=1)
+    #     context_values, context_splits = self.evaluate([context.values, context.row_splits])
+    #
+    #     self.assertAllEqual(['row', 'good'], context_values.tolist())
+    #     self.assertAllEqual([0, 1, 2], context_splits.tolist())
+
+    def test_dense(self):
+        source = tf.constant([
+            ['the', 'quick', 'brown', 'fox'],
+            ['jumped', 'over', 'the', 'dog'],
+        ])
+        context, position = cbow_infer(source, 2, '[PAD]')
+        context, positions = self.evaluate([context.to_tensor(''), position.to_tensor(0)])
+
+        self.assertAllEqual([
+            [b'quick', b'brown', b''],
+            [b'the', b'brown', b'fox'],
+            [b'the', b'quick', b'fox'],
+            [b'quick', b'brown', b''],
+            [b'over', b'the', b''],
+            [b'jumped', b'the', b'dog'],
+            [b'jumped', b'over', b'dog'],
+            [b'over', b'the', b'']
+        ], context.tolist())
+        self.assertAllEqual([
+            [1, 2, 0],
+            [-1, 1, 2],
+            [-2, -1, 1],
+            [-2, -1, 0],
+            [1, 2, 0],
+            [-1, 1, 2],
+            [-2, -1, 1],
+            [-2, -1, 0]
+        ], positions.tolist())
+
+    def test_ragged(self):
+        source = tf.ragged.constant([
+            ['', '', ''],
+            ['the', 'quick', 'brown', 'fox', 'jumped', 'over', 'the', 'lazy', 'dog'],
+            [],
+            ['tensorflow'],
+        ])
+        context, position = cbow_infer(source, 2, '[PAD]')
+        context, positions = self.evaluate([context.to_tensor(''), position.to_tensor(0)])
+
+        self.assertAllEqual([
+            [b'[PAD]', b'[PAD]', b'', b''],
+            [b'[PAD]', b'[PAD]', b'', b''],
+            [b'[PAD]', b'[PAD]', b'', b''],
+            [b'quick', b'brown', b'', b''],
+            [b'the', b'brown', b'fox', b''],
+            [b'the', b'quick', b'fox', b'jumped'],
+            [b'quick', b'brown', b'jumped', b'over'],
+            [b'brown', b'fox', b'over', b'the'],
+            [b'fox', b'jumped', b'the', b'lazy'],
+            [b'jumped', b'over', b'lazy', b'dog'],
+            [b'over', b'the', b'dog', b''],
+            [b'the', b'lazy', b'', b''],
+            [b'[PAD]', b'[PAD]', b'', b'']
+        ], context.tolist())
+        self.assertAllEqual([
+            [-1, 1, 0, 0],
+            [-1, 1, 0, 0],
+            [-1, 1, 0, 0],
+            [1, 2, 0, 0],
+            [-1, 1, 2, 0],
+            [-2, -1, 1, 2],
+            [-2, -1, 1, 2],
+            [-2, -1, 1, 2],
+            [-2, -1, 1, 2],
+            [-2, -1, 1, 2],
+            [-2, -1, 1, 0],
+            [-2, -1, 0, 0],
+            [-1, 1, 0, 0]
+        ], positions.tolist())
 
 
 @test_util.run_all_in_graph_and_eager_modes

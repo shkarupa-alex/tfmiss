@@ -8,6 +8,43 @@ from tensorflow.python.ops.ragged import ragged_tensor
 from tfmiss.ops import tfmiss_ops
 
 
+def cbow_infer(source, window, empty, name=None):
+    """Generates `Continuous bag-of-words` contexts for inference from batched list of tokens.
+
+    Args:
+        source: `2-D` string `Tensor` or `RaggedTensor`, batched lists of tokens [sentences, tokens].
+        window: `int`, size of context before and after target token, must be > 0.
+        name: `string`, a name for the operation (optional).
+
+    Returns:
+        `2-D` string `RaggedTensor`: context tokens.
+        `2-D` int32 `RaggedTensor`: context positions.
+    """
+    with tf.name_scope(name or 'cbow_infer'):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source')
+
+        if source.shape.rank != 2:
+            raise ValueError('Rank of `source` must equals 2')
+
+        if not ragged_tensor.is_ragged(source):
+            source = ragged_tensor.RaggedTensor.from_tensor(source, ragged_rank=1)
+
+        if source.ragged_rank != 1:
+            raise ValueError('Ragged rank of `source` must equals 1')
+
+        context_values, context_splits, context_positions = tfmiss_ops.miss_cbow_infer(
+            source_values=source.values,
+            source_splits=source.row_splits,
+            window=window,
+            empty=empty
+        )
+
+        context = tf.RaggedTensor.from_row_splits(context_values, context_splits)
+        position = tf.RaggedTensor.from_row_splits(context_positions, context_splits)
+
+        return context, position
+
+
 def cont_bow(source, window, seed=None, name=None):
     """Generates `Continuous bag-of-words` target and context pairs from batched list of tokens.
 
