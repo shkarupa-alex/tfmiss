@@ -55,9 +55,8 @@ def down_sample(source, freq_vocab, replacement='', threshold=1e-3, min_freq=0, 
             min_freq=min_freq,
             seed=seed,
         )
-        defaults = tf.fill(tf.shape(source), replacement)
 
-        return tf.where(keep, source, defaults)
+        return tf.where(keep, source, replacement)
 
 
 def sample_mask(source, freq_vocab, threshold=1e-3, min_freq=0, seed=None, name=None):
