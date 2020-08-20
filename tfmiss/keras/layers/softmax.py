@@ -421,7 +421,7 @@ class SampledSofmax(tf.keras.layers.Layer):
             ]
 
             self.kernel = self.add_weight(
-                shape=(self.num_channels, self.units),
+                shape=(self.units, self.num_channels),
                 initializer=self.kernel_initializer,
                 regularizer=self.kernel_regularizer,
                 constraint=self.kernel_constraint,
@@ -466,7 +466,7 @@ class SampledSofmax(tf.keras.layers.Layer):
             input_targets = tf.reshape(input_targets, [-1])
             loss_weights = tf.reshape(loss_weights, [-1])
 
-            output_logits = tf.matmul(input_logits, self.kernel)
+            output_logits = tf.matmul(input_logits, self.kernel, transpose_b=True)
             output_logits = tf.nn.bias_add(output_logits, self.bias)
 
             loss = tf_utils.smart_cond(
@@ -487,7 +487,7 @@ class SampledSofmax(tf.keras.layers.Layer):
         labels_exp_dim = tf.expand_dims(targets, axis=-1)
 
         return tf.nn.sampled_softmax_loss(
-            weights=tf.transpose(self.kernel),
+            weights=self.kernel,
             biases=self.bias,
             labels=labels_exp_dim,
             inputs=logits,
@@ -549,7 +549,7 @@ class NoiseContrastiveEstimation(SampledSofmax):
     def _train_loss(self, logits, targets):
         labels_exp_dim = tf.expand_dims(targets, axis=-1)
         loss = tf.nn.nce_loss(
-            weights=tf.transpose(self.kernel),
+            weights=self.kernel,
             biases=self.bias,
             labels=labels_exp_dim,
             inputs=logits,

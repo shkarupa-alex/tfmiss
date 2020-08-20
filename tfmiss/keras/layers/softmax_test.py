@@ -357,7 +357,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
         ], ragged_rank=1)
         layer([logits_data, targets_data])
         layer.set_weights([
-            np.array([[1.] * 16]),
+            np.array([[1.]] * 16),
             np.array([2.] * 16),
         ])
 
@@ -540,7 +540,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
         ], ragged_rank=1)
         layer([logits_data, targets_data])
         layer.set_weights([
-            np.array([[1.] * 16]),
+            np.array([[1.]] * 16),
             np.array([2.] * 16),
         ])
 
