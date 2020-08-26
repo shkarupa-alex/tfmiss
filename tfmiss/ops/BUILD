@@ -19,8 +19,8 @@ cc_binary(
         # TODO: https://github.com/JonathanRaiman/tensorflow_qrnn/blob/master/qrnn.py
 
         # preprocessing
-        "cc/kernels/preprocessing/cbow_infer.cc",
-        "cc/ops/preprocessing/cbow_infer.cc",
+        "cc/kernels/preprocessing/cbow_context.cc",
+        "cc/ops/preprocessing/cbow_context.cc",
 
         "cc/kernels/preprocessing/cont_bow.cc",
         "cc/ops/preprocessing/cont_bow.cc",

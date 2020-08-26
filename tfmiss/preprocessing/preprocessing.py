@@ -8,7 +8,7 @@ from tensorflow.python.ops.ragged import ragged_tensor
 from tfmiss.ops import tfmiss_ops
 
 
-def cbow_infer(source, window, empty, name=None):
+def cbow_context(source, window, empty, name=None):
     """Generates `Continuous bag-of-words` contexts for inference from batched list of tokens.
 
     Args:
@@ -20,7 +20,7 @@ def cbow_infer(source, window, empty, name=None):
         `2-D` string `RaggedTensor`: context tokens.
         `2-D` int32 `RaggedTensor`: context positions.
     """
-    with tf.name_scope(name or 'cbow_infer'):
+    with tf.name_scope(name or 'cbow_context'):
         source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source')
 
         if source.shape.rank != 2:
@@ -32,7 +32,7 @@ def cbow_infer(source, window, empty, name=None):
         if source.ragged_rank != 1:
             raise ValueError('Ragged rank of `source` must equals 1')
 
-        context_values, context_splits, context_positions = tfmiss_ops.miss_cbow_infer(
+        context_values, context_splits, context_positions = tfmiss_ops.miss_cbow_context(
             source_values=source.values,
             source_splits=source.row_splits,
             window=window,

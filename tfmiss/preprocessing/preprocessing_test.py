@@ -5,14 +5,14 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from tfmiss.preprocessing.preprocessing import cbow_infer, cont_bow, skip_gram
+from tfmiss.preprocessing.preprocessing import cbow_context, cont_bow, skip_gram
 
 
 @test_util.run_all_in_graph_and_eager_modes
-class CbowInferTest(tf.test.TestCase):
+class CbowContextTest(tf.test.TestCase):
     def test_empty(self):
         source = tf.ragged.constant(np.array([]).reshape(0, 2), dtype=tf.string)
-        cbows = cbow_infer(source, 1, '[PAD]')
+        cbows = cbow_context(source, 1, '[PAD]')
         context, position = self.evaluate(cbows)
 
         self.assertAllEqual([], context.values.tolist())
@@ -27,7 +27,7 @@ class CbowInferTest(tf.test.TestCase):
     #         ['bad', 'bad'],
     #         [],
     #     ])
-    #     context = cbow_infer(source, 2, seed=1)
+    #     context = cbow_context(source, 2, seed=1)
     #     context_values, context_splits = self.evaluate([context.values, context.row_splits])
     #
     #     self.assertAllEqual(['row', 'good'], context_values.tolist())
@@ -38,7 +38,7 @@ class CbowInferTest(tf.test.TestCase):
             ['the', 'quick', 'brown', 'fox'],
             ['jumped', 'over', 'the', 'dog'],
         ])
-        context, position = cbow_infer(source, 2, '[PAD]')
+        context, position = cbow_context(source, 2, '[PAD]')
         context, positions = self.evaluate([context.to_tensor(''), position.to_tensor(0)])
 
         self.assertAllEqual([
@@ -69,7 +69,7 @@ class CbowInferTest(tf.test.TestCase):
             [],
             ['tensorflow'],
         ])
-        context, position = cbow_infer(source, 2, '[PAD]')
+        context, position = cbow_context(source, 2, '[PAD]')
         context, positions = self.evaluate([context.to_tensor(''), position.to_tensor(0)])
 
         self.assertAllEqual([

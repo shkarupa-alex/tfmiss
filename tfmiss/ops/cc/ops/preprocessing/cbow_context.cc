@@ -6,7 +6,7 @@ namespace tensorflow
 namespace miss
 {
 
-REGISTER_OP("Miss>CbowInfer")
+REGISTER_OP("Miss>CbowContext")
     .Input("source_values: string")
     .Input("source_splits: T")
     .Attr("window: int")
