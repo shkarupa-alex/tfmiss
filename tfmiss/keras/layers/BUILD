@@ -4,17 +4,19 @@ py_library(
     name = "layers",
     srcs = [
         # TODO: https://mlwhiz.com/blog/2018/12/17/text_classification/
-        # TODO: https://github.com/CyberZHG/keras-self-attention/
         "__init__.py",
+        "preprocessing.py",
         "embedding.py",
         "scale.py",
         "softmax.py",
         "tcn.py",
+        "temp.py",
         "todense.py",
         "wrappers.py",
     ],
     deps = [
         "//tfmiss/nn",
+        "//tfmiss/text"
     ],
     srcs_version = "PY2AND3",
 )
@@ -22,6 +24,15 @@ py_library(
 py_test(
     name = "embedding_test",
     srcs = ["embedding_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":layers"
+    ],
+)
+
+py_test(
+    name = "preprocessing_test",
+    srcs = ["preprocessing_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":layers"
@@ -50,6 +61,13 @@ py_test(
 py_test(
     name = "tcn_test",
     srcs = ["tcn_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [":layers"],
+)
+
+py_test(
+    name = "temp_test",
+    srcs = ["temp_test.py"],
     srcs_version = "PY2AND3",
     deps = [":layers"],
 )

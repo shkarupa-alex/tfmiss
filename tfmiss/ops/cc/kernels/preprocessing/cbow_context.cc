@@ -5,10 +5,10 @@ namespace tensorflow {
 namespace miss {
 
 template <typename T>
-class CbowInferOp : public OpKernel
+class CbowContextOp : public OpKernel
 {
 public:
-  explicit CbowInferOp(OpKernelConstruction *ctx) : OpKernel(ctx) {
+  explicit CbowContextOp(OpKernelConstruction *ctx) : OpKernel(ctx) {
     // Load window
     OP_REQUIRES_OK(ctx, ctx->GetAttr("window", &window_size));
     OP_REQUIRES(ctx, window_size > 0,
@@ -131,16 +131,16 @@ private:
 };
 
 REGISTER_KERNEL_BUILDER(
-  Name("Miss>CbowInfer")
+  Name("Miss>CbowContext")
   .Device(DEVICE_CPU)
   .TypeConstraint<int32>("T"),
-  CbowInferOp<int32>);
+  CbowContextOp<int32>);
 
 REGISTER_KERNEL_BUILDER(
-  Name("Miss>CbowInfer")
+  Name("Miss>CbowContext")
   .Device(DEVICE_CPU)
   .TypeConstraint<int64>("T"),
-  CbowInferOp<int64>);
+  CbowContextOp<int64>);
 
 }  // end namespace miss
 }  // namespace tensorflow
