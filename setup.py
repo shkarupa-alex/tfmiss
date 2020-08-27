@@ -6,7 +6,7 @@ from setuptools import setup, find_packages
 from setuptools.command.install import install
 from setuptools.dist import Distribution
 
-__VERSION__ = '0.7.4'
+__VERSION__ = '0.8.0'
 
 
 class InstallPlatlib(install):
