@@ -54,18 +54,21 @@ class WordShape(tf.keras.layers.Layer):
     SHAPE_MIXED_CASE = 16
     SHAPE_ALL_CASES = SHAPE_HAS_CASE | SHAPE_LOWER_CASE | SHAPE_UPPER_CASE | SHAPE_TITLE_CASE | SHAPE_MIXED_CASE
 
-    _LENGTH_MEAN = 3.29
-    _LENGTH_STD = 3.17
+    # Mean and std length from Universal Dependencies and large russian POS corporas
+    # Tokens (split_words): 3.057 and 3.118
+    # Words: 4.756 and 3.453
     SHAPE_LENGTH_NORM = 32
 
     SHAPE_ALL = SHAPE_ALL_CASES | SHAPE_LENGTH_NORM
 
-    def __init__(self, options, *args, **kwargs):
+    def __init__(self, options, mean_len=3.906, std_len=3.285, *args, **kwargs):
         super(WordShape, self).__init__(*args, **kwargs)
         self.input_spec = tf.keras.layers.InputSpec(dtype='string')
         self._supports_ragged_inputs = True
 
         self.options = options
+        self.mean_len = mean_len
+        self.std_len = std_len
 
     # def build(self, input_shape):
     #     pass
@@ -114,7 +117,7 @@ class WordShape(tf.keras.layers.Layer):
 
         if self.options & self.SHAPE_LENGTH_NORM:
             length_norm = tf.strings.length(inputs, unit='UTF8_CHAR')
-            length_norm = (tf.cast(length_norm, self._compute_dtype) - self._LENGTH_MEAN) / self._LENGTH_STD
+            length_norm = (tf.cast(length_norm, self._compute_dtype) - self.mean_len) / self.std_len
             outputs.append(length_norm)
 
         outputs = [tf.cast(o, self._compute_dtype) for o in outputs]
@@ -136,6 +139,10 @@ class WordShape(tf.keras.layers.Layer):
 
     def get_config(self):
         config = super().get_config()
-        config.update({'options': self.options})
+        config.update({
+            'options': self.options,
+            'mean_len': self.mean_len,
+            'std_len': self.std_len
+        })
 
         return config
