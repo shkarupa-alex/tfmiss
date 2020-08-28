@@ -117,8 +117,9 @@ class WordShapeTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=(None, 1)
         )
+        print(outputs)
         self.assertAllClose([
-            [1.170347], [-0.09148263], [-0.40694004], [0.53943217], [-0.09148263], [0.22397476]
+            [0.941857], [-0.27579907], [-0.58021307], [0.33302894], [-0.27579907], [0.02861495]
         ], outputs)
 
     def test_all(self):
