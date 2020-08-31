@@ -31,7 +31,9 @@ class WithRagged(tf.keras.layers.Wrapper):
             self.layer.build(input_shape)
 
         self.input_spec = self.layer.input_spec
-        self.masking_layer = tf.keras.layers.Masking(mask_value=tf.zeros((), self.layer.dtype))
+
+        zero = '' if self.layer.dtype == tf.string else 0
+        self.masking_layer = tf.keras.layers.Masking(mask_value=zero)
 
         super(WithRagged, self).build()
 
