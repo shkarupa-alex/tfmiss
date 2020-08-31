@@ -42,7 +42,8 @@ class ToDense(tf.keras.layers.Layer):
         self.mask = mask
 
     def build(self, input_shape):
-        self.masking_layer = tf.keras.layers.Masking(mask_value=self.pad_value)
+        if self.mask:
+            self.masking_layer = tf.keras.layers.Masking(mask_value=self.pad_value)
 
     def call(self, inputs, **kwargs):
         if isinstance(inputs, tf.RaggedTensor):
