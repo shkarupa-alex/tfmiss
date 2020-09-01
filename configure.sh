@@ -15,7 +15,7 @@ function write_action_env_to_bazelrc() {
 function generate_shared_lib_name() {
   if [[ $(uname) == "Darwin" ]]; then
     local namespec="$1"
-    echo "lib"${namespec:2}".dylib"
+    echo "lib${namespec:2}.dylib"
   else
     local namespec="$1"
     echo ${namespec:3}
@@ -46,10 +46,10 @@ TF_CXX11_ABI_FLAG=( $(${PYTHON_VERSION} -c 'import tensorflow as tf; print(tf.sy
 TF_SHARED_LIBRARY_DIR=${TF_LFLAGS[0]:2}
 TF_SHARED_LIBRARY_NAME=$(generate_shared_lib_name ${TF_LFLAGS[1]})
 
-write_action_env_to_bazelrc "TF_HEADER_DIR" ${TF_CFLAGS:2}
-write_action_env_to_bazelrc "TF_SHARED_LIBRARY_DIR" ${TF_SHARED_LIBRARY_DIR}
-write_action_env_to_bazelrc "TF_SHARED_LIBRARY_NAME" ${TF_SHARED_LIBRARY_NAME}
-write_action_env_to_bazelrc "TF_CXX11_ABI_FLAG" ${TF_CXX11_ABI_FLAG}
+write_action_env_to_bazelrc "TF_HEADER_DIR" "${TF_CFLAGS:2}"
+write_action_env_to_bazelrc "TF_SHARED_LIBRARY_DIR" "${TF_SHARED_LIBRARY_DIR}"
+write_action_env_to_bazelrc "TF_SHARED_LIBRARY_NAME" "${TF_SHARED_LIBRARY_NAME}"
+write_action_env_to_bazelrc "TF_CXX11_ABI_FLAG" "${TF_CXX11_ABI_FLAG}"
 
 
 # Store common flags
