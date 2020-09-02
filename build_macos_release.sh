@@ -15,7 +15,7 @@ curl -sSOL https://bootstrap.pypa.io/get-pip.py
 
 for version in ${PYTHON_VERSIONS}; do
     export PYENV_VERSION=${version}
-    pyenv install -s $PYENV_VERSION
+    pyenv install -s "${PYENV_VERSION}"
 
     python get-pip.py -q
     python -m pip --version

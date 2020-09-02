@@ -14,7 +14,7 @@ curl -sSOL https://bootstrap.pypa.io/get-pip.py
 
 for VERSION in ${PYTHON_VERSIONS}; do
     export PYTHON_VERSION=${VERSION}
-    apt-get -y -q install ${PYTHON_VERSION}
+    apt-get -y -q install "${PYTHON_VERSION}"
 
     # Required env var for building package
     export PYTHON_BIN_PATH=`which ${PYTHON_VERSION}`

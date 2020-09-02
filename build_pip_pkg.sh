@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
 set -e -x
 
-PLATFORM="$(uname -s | tr 'A-Z' 'a-z')"
 PIP_FILE_PREFIX="bazel-bin/build_pip_pkg.runfiles/__main__/"
 
 function main() {
@@ -11,7 +10,7 @@ function main() {
     exit 1
   fi
 
-  mkdir -p ${DEST}
+  mkdir -p "${DEST}"
   DEST="$(realpath "${DEST}")"
   echo "=== destination directory: ${DEST}"
 
@@ -26,7 +25,7 @@ function main() {
   cp ${PIP_FILE_PREFIX}LICENSE "${TMPDIR}"
   rsync -avm -L --exclude='*_test.py' ${PIP_FILE_PREFIX}tfmiss "${TMPDIR}"
 
-  pushd ${TMPDIR}
+  pushd "${TMPDIR}"
   echo $(date) : "=== Building wheel"
   PY_BIN=${PYTHON_BIN_PATH:-`which python`}
   $PY_BIN setup.py bdist_wheel > /dev/null
@@ -48,9 +47,9 @@ function main() {
     AUDIT_WHEEL_PATH=$(python3 -c 'import auditwheel as aw; import os; print(os.path.dirname(aw.__file__))')
     POLICY_JSON="${AUDIT_WHEEL_PATH}/policy/policy.json"
     if [[ ! -f ${POLICY_JSON}.bak ]]; then
-      cp -f ${POLICY_JSON} ${POLICY_JSON}.bak
+      cp -f "${POLICY_JSON}" "${POLICY_JSON}".bak
     fi
-    cp -f ${POLICY_JSON}.bak ${POLICY_JSON}
+    cp -f "${POLICY_JSON}".bak "${POLICY_JSON}"
     TF_SHARED_LIBRARY_NAME=$(grep -r TF_SHARED_LIBRARY_NAME .bazelrc | head -n 1 | awk -F= '{print$2}')
     sed -i "s/libresolv.so.2\"/libresolv.so.2\", ${TF_SHARED_LIBRARY_NAME}/g" ${POLICY_JSON}
 
@@ -61,7 +60,7 @@ function main() {
   mkdir -p repaired
   for WHL in dist/*.whl
   do
-    ${REPAIR_CMD} ${WHL}
+    ${REPAIR_CMD} "${WHL}"
   done
 
   # Move wheels to destination
@@ -71,7 +70,7 @@ function main() {
   # Cleanup
   rm -rf repaired/*.whl
   popd
-  rm -rf ${TMPDIR}
+  rm -rf "${TMPDIR}"
 }
 
 main "$@"

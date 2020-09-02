@@ -11,6 +11,7 @@ from __future__ import print_function
 
 import functools
 import tensorflow as tf
+from tensorflow.python.framework import ops
 from tensorflow.python.keras.losses import LossFunctionWrapper
 
 
@@ -393,14 +394,96 @@ def sparse_bi_tempered_logistic_loss(labels, activations, t1, t2, num_iters=5):
         return loss_values
 
 
+def bi_tempered_binary_logistic(y_true, y_pred, t1, t2, label_smoothing=0.0, num_iters=5, from_logits=False):
+    if from_logits:
+        return bi_tempered_binary_logistic_loss(
+            y_true, y_pred, t1=t1, t2=t2, label_smoothing=label_smoothing, num_iters=num_iters)
+
+    y_pred = tf.convert_to_tensor(y_pred)
+    if not isinstance(y_pred, (ops.EagerTensor, tf.Variable)) \
+            and y_pred.op.type == 'Sigmoid' and not hasattr(y_pred, '_keras_history'):
+        # When sigmoid activation function is used for output operation, we
+        # use logits from the sigmoid function directly to compute loss in order
+        # to prevent collapsing zero when training.
+        assert len(y_pred.op.inputs) == 1
+        y_pred = y_pred.op.inputs[0]
+    else:
+        # Otherwise trying to revert sigmoid
+        tf.get_logger().warning(
+            'Unable to obtain original logits for bi_tempered_binary_logistic loss. '
+            'Logits will be estimated from probabilities, but this can be numerical unstable.')
+        epsilon_ = tf.constant(tf.keras.backend.epsilon(), y_pred.dtype)
+        y_pred = tf.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
+        y_pred = -tf.math.log((1. - y_pred) / y_pred)
+
+    return bi_tempered_binary_logistic_loss(
+        y_true, y_pred, t1=t1, t2=t2, label_smoothing=label_smoothing, num_iters=num_iters)
+
+
+def bi_tempered_logistic(y_true, y_pred, t1, t2, label_smoothing=0.0, num_iters=5, from_logits=False):
+    if from_logits:
+        return bi_tempered_logistic_loss(
+            y_true, y_pred, t1=t1, t2=t2, label_smoothing=label_smoothing, num_iters=num_iters)
+
+    y_pred = tf.convert_to_tensor(y_pred)
+    if not isinstance(y_pred, (ops.EagerTensor, tf.Variable)) \
+            and y_pred.op.type == 'Softmax' and not hasattr(y_pred, '_keras_history'):
+        # When softmax activation function is used for output operation, we
+        # use logits from the softmax function directly to compute loss in order
+        # to prevent collapsing zero when training.
+        # See b/117284466
+        assert len(y_pred.op.inputs) == 1
+        y_pred = y_pred.op.inputs[0]
+    else:
+        # Otherwise trying to revert softmax
+        tf.get_logger().warning(
+            'Unable to obtain original logits for bi_tempered_logistic loss. '
+            'Logits will be estimated from probabilities, but this can be numerical unstable.')
+        epsilon_ = tf.constant(tf.keras.backend.epsilon(), y_pred.dtype)
+        y_pred = tf.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
+        y_pred = tf.math.log(y_pred)
+        y_pred, log_norm = tf.split(y_pred, num_or_size_splits=[-1, 1], axis=-1)
+        y_pred = y_pred - log_norm
+
+    return bi_tempered_logistic_loss(
+        y_true, y_pred, t1=t1, t2=t2, label_smoothing=label_smoothing, num_iters=num_iters)
+
+
+def sparse_bi_tempered_logistic(y_true, y_pred, t1, t2, num_iters=5, from_logits=False):
+    if from_logits:
+        return sparse_bi_tempered_logistic_loss(
+            y_true, y_pred, t1=t1, t2=t2, num_iters=num_iters)
+
+    y_pred = tf.convert_to_tensor(y_pred)
+    if not isinstance(y_pred, (ops.EagerTensor, tf.Variable)) \
+            and y_pred.op.type == 'Softmax' and not hasattr(y_pred, '_keras_history'):
+        # When softmax activation function is used for output operation, we
+        # use logits from the softmax function directly to compute loss in order
+        # to prevent collapsing zero when training.
+        # See b/117284466
+        assert len(y_pred.op.inputs) == 1
+        y_pred = y_pred.op.inputs[0]
+    else:
+        # Otherwise trying to revert softmax
+        tf.get_logger().warning(
+            'Unable to obtain original logits for sparse_bi_tempered_logistic loss. '
+            'Logits will be estimated from probabilities, but this can be numerical unstable.')
+        epsilon_ = tf.constant(tf.keras.backend.epsilon(), y_pred.dtype)
+        y_pred = tf.clip_by_value(y_pred, epsilon_, 1. - epsilon_)
+        y_pred = tf.math.log(y_pred)
+
+    return sparse_bi_tempered_logistic_loss(
+        y_true, y_pred, t1=t1, t2=t2, num_iters=num_iters)
+
+
 @tf.keras.utils.register_keras_serializable(package='Miss')
 class BiTemperedBinaryLogistic(LossFunctionWrapper):
     """Computes Bi-Tempered Binary Logistic Loss."""
 
-    def __init__(self, t1, t2, label_smoothing=0.0, num_iters=5,
+    def __init__(self, t1, t2, label_smoothing=0.0, num_iters=5, from_logits=False,
                  reduction=tf.keras.losses.Reduction.AUTO, name='bi_tempered_binary_logistic'):
         super(BiTemperedBinaryLogistic, self).__init__(
-            bi_tempered_binary_logistic_loss, name=name, reduction=reduction,
+            bi_tempered_binary_logistic, name=name, reduction=reduction, from_logits=from_logits,
             t1=t1, t2=t2, label_smoothing=label_smoothing, num_iters=num_iters)
 
 
@@ -408,10 +491,10 @@ class BiTemperedBinaryLogistic(LossFunctionWrapper):
 class BiTemperedLogistic(LossFunctionWrapper):
     """Computes Bi-Tempered Logistic Loss."""
 
-    def __init__(self, t1, t2, label_smoothing=0.0, num_iters=5,
+    def __init__(self, t1, t2, label_smoothing=0.0, num_iters=5, from_logits=False,
                  reduction=tf.keras.losses.Reduction.AUTO, name='bi_tempered_logistic'):
         super(BiTemperedLogistic, self).__init__(
-            bi_tempered_logistic_loss, name=name, reduction=reduction,
+            bi_tempered_logistic, name=name, reduction=reduction, from_logits=from_logits,
             t1=t1, t2=t2, label_smoothing=label_smoothing, num_iters=num_iters)
 
 
@@ -419,8 +502,8 @@ class BiTemperedLogistic(LossFunctionWrapper):
 class SparseBiTemperedLogistic(LossFunctionWrapper):
     """Computes Sparse Bi-Tempered Logistic Loss."""
 
-    def __init__(self, t1, t2, num_iters=5,
+    def __init__(self, t1, t2, num_iters=5, from_logits=False,
                  reduction=tf.keras.losses.Reduction.AUTO, name='sparse_bi_tempered_logistic'):
         super(SparseBiTemperedLogistic, self).__init__(
-            sparse_bi_tempered_logistic_loss, name=name, reduction=reduction,
+            sparse_bi_tempered_logistic, name=name, reduction=reduction, from_logits=from_logits,
             t1=t1, t2=t2, num_iters=num_iters)
