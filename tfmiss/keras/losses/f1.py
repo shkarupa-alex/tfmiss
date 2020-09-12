@@ -16,9 +16,10 @@ def macro_soft_f1(y_true, y_pred, from_logits=False, double=True):
     if from_logits:
         y_pred = tf.nn.sigmoid(y_pred)
 
-    tp = tf.reduce_sum(y_pred * y_true, axis=0)
-    fp = tf.reduce_sum(y_pred * (1. - y_true), axis=0)
-    fn = tf.reduce_sum((1. - y_pred) * y_true, axis=0)
+    axis_ = tuple(range(y_true.shape.rank - 1))
+    tp = tf.reduce_sum(y_pred * y_true, axis=axis_)
+    fp = tf.reduce_sum(y_pred * (1. - y_true), axis=axis_)
+    fn = tf.reduce_sum((1. - y_pred) * y_true, axis=axis_)
     epsilon_ = tf.constant(tf.keras.backend.epsilon(), y_pred.dtype.base_dtype)
 
     loss = 2 * tp / (2 * tp + fn + fp + epsilon_)
@@ -26,7 +27,7 @@ def macro_soft_f1(y_true, y_pred, from_logits=False, double=True):
 
     if double:
         # reduce inverted class (0 -> 1) loss
-        tn = tf.reduce_sum((1. - y_pred) * (1. - y_true), axis=0)
+        tn = tf.reduce_sum((1. - y_pred) * (1. - y_true), axis=axis_)
         loss_ = 2 * tn / (2 * tn + fn + fp + 1e-16)
         loss_ = 1 - loss_
         loss = (loss + loss_) / 2
