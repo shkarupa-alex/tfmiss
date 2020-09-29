@@ -25,8 +25,7 @@ REGISTER_OP("Miss>CbowContext")
       c->set_output(2, c->Vector(shape_inference::InferenceContext::kUnknownDim));
 
       return Status::OK();
-    })
-    .SetIsStateful();
+    });
 
 } // end namespace miss
 } // namespace tensorflow

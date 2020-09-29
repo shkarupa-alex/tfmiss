@@ -16,8 +16,7 @@ REGISTER_OP("Miss>SampleMask")
     .Attr("seed: int = 0")
     .Attr("seed2: int = 0")
     .Output("mask: bool")
-    .SetShapeFn(shape_inference::UnchangedShape)
-    .SetIsStateful();
+    .SetShapeFn(shape_inference::UnchangedShape);
 
 } // end namespace miss
 } // namespace tensorflow

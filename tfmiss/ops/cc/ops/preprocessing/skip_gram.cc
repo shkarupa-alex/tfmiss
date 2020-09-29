@@ -24,8 +24,7 @@ REGISTER_OP("Miss>SkipGram")
       c->set_output(1, c->Vector(shape_inference::InferenceContext::kUnknownDim));
 
       return Status::OK();
-    })
-    .SetIsStateful();
+    });
 
 } // end namespace miss
 } // namespace tensorflow
