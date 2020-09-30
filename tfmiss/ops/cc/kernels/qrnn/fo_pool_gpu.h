@@ -141,6 +141,18 @@ public:
 
 REGISTER_KERNEL_BUILDER(
   Name("Miss>TimeMajorFoPool")
+  .TypeConstraint<Eigen::half>("FT")
+  .Device(tensorflow::DEVICE_GPU),
+  FoPool<GPUDevice, Eigen::half, true>);
+
+REGISTER_KERNEL_BUILDER(
+  Name("Miss>TimeMajorBwdFoPool")
+  .TypeConstraint<Eigen::half>("FT")
+  .Device(tensorflow::DEVICE_GPU),
+  BwdFoPool<GPUDevice, Eigen::half, true>);
+
+REGISTER_KERNEL_BUILDER(
+  Name("Miss>TimeMajorFoPool")
   .TypeConstraint<float>("FT")
   .Device(tensorflow::DEVICE_GPU),
   FoPool<GPUDevice, float, true>);
@@ -162,6 +174,18 @@ REGISTER_KERNEL_BUILDER(
   .TypeConstraint<double>("FT")
   .Device(tensorflow::DEVICE_GPU),
   BwdFoPool<GPUDevice, double, true>);
+
+REGISTER_KERNEL_BUILDER(
+  Name("Miss>BatchMajorFoPool")
+  .TypeConstraint<Eigen::half>("FT")
+  .Device(tensorflow::DEVICE_GPU),
+  FoPool<GPUDevice, Eigen::half, false>);
+
+REGISTER_KERNEL_BUILDER(
+  Name("Miss>BatchMajorBwdFoPool")
+  .TypeConstraint<Eigen::half>("FT")
+  .Device(tensorflow::DEVICE_GPU),
+  BwdFoPool<GPUDevice, Eigen::half, false>);
 
 REGISTER_KERNEL_BUILDER(
   Name("Miss>BatchMajorFoPool")

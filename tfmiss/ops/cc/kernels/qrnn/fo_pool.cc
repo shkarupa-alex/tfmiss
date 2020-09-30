@@ -1,6 +1,6 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
-//#include "tensorflow/core/util/work_sharder.h"
+//#include "tensorflow/core/util/work_sharder.h" // TODO
 #include "tensorflow/core/framework/types.h"
 #include "fo_pool.h"
 #include "thread_pool.h"
@@ -44,7 +44,7 @@ void time_major_fo_pool(OpKernelContext *context, FT *dst, const FT *x, const FT
             int dst_i = (ts - 0) * HIDDEN * batch_size + batch_id * HIDDEN + hid;
             int dst_iminus1 = (ts - 1) * HIDDEN * batch_size + batch_id * HIDDEN + hid;
             dst[dst_i] = f[i] * x[i];
-            dst[dst_i] += (1 - f[i]) * dst[dst_iminus1];
+            dst[dst_i] += ((FT)1 - f[i]) * dst[dst_iminus1];
           }
         }
       }
@@ -81,7 +81,7 @@ void batch_major_fo_pool(OpKernelContext *context, FT *dst, const FT *x, const F
             int dst_i = (ts - 0) * HIDDEN + batch_id * HIDDEN * (SEQ + 1) + hid;
             int dst_iminus1 = (ts - 1) * HIDDEN + batch_id * HIDDEN * (SEQ + 1) + hid;
             dst[dst_i] = f[i] * x[i];
-            dst[dst_i] += (1 - f[i]) * dst[dst_iminus1];
+            dst[dst_i] += ((FT)1 - f[i]) * dst[dst_iminus1];
           }
         }
       }
@@ -104,7 +104,7 @@ void time_major_bwd_fo_pool(OpKernelContext *context, const FT *h, const FT *x, 
       {
         for (int hid = 0; hid < HIDDEN; hid++)
         {
-          double running_f = 0;
+          FT running_f = (FT)0;
           for (int ts = SEQ - 1 + 1; ts >= 0 + 1; ts--)
           {
             int i = (ts - 1) * HIDDEN * batch_size + batch_id * HIDDEN + hid;
@@ -140,7 +140,7 @@ This means dst array has a separate index than that of f or x
       {
         for (int hid = 0; hid < HIDDEN; hid++)
         {
-          double running_f = 0;
+          FT running_f = (FT)0;
           for (int ts = SEQ - 1 + 1; ts >= 0 + 1; ts--)
           {
             int i = (ts - 1) * HIDDEN + batch_id * HIDDEN * SEQ + hid;
@@ -260,6 +260,12 @@ public:
 
 REGISTER_KERNEL_BUILDER(
     Name("Miss>TimeMajorFoPool")
+    .TypeConstraint<Eigen::half>("FT")
+    .Device(DEVICE_CPU),
+    FoPool<CPUDevice, Eigen::half, true>);
+
+REGISTER_KERNEL_BUILDER(
+    Name("Miss>TimeMajorFoPool")
     .TypeConstraint<float>("FT")
     .Device(DEVICE_CPU),
     FoPool<CPUDevice, float, true>);
@@ -269,6 +275,12 @@ REGISTER_KERNEL_BUILDER(
     .TypeConstraint<double>("FT")
     .Device(DEVICE_CPU),
     FoPool<CPUDevice, double, true>);
+
+REGISTER_KERNEL_BUILDER(
+    Name("Miss>BatchMajorFoPool")
+    .TypeConstraint<Eigen::half>("FT")
+    .Device(DEVICE_CPU),
+    FoPool<CPUDevice, Eigen::half, false>);
 
 REGISTER_KERNEL_BUILDER(
     Name("Miss>BatchMajorFoPool")
@@ -284,6 +296,12 @@ REGISTER_KERNEL_BUILDER(
 
 REGISTER_KERNEL_BUILDER(
     Name("Miss>TimeMajorBwdFoPool")
+    .TypeConstraint<Eigen::half>("FT")
+    .Device(DEVICE_CPU),
+    BwdFoPool<CPUDevice, Eigen::half, true>);
+
+REGISTER_KERNEL_BUILDER(
+    Name("Miss>TimeMajorBwdFoPool")
     .TypeConstraint<float>("FT")
     .Device(DEVICE_CPU),
     BwdFoPool<CPUDevice, float, true>);
@@ -293,6 +311,12 @@ REGISTER_KERNEL_BUILDER(
     .TypeConstraint<double>("FT")
     .Device(DEVICE_CPU),
     BwdFoPool<CPUDevice, double, true>);
+
+REGISTER_KERNEL_BUILDER(
+    Name("Miss>BatchMajorBwdFoPool")
+    .TypeConstraint<Eigen::half>("FT")
+    .Device(DEVICE_CPU),
+    BwdFoPool<CPUDevice, Eigen::half, false>);
 
 REGISTER_KERNEL_BUILDER(
     Name("Miss>BatchMajorBwdFoPool")

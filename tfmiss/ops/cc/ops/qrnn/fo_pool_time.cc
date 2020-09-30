@@ -11,7 +11,7 @@ REGISTER_OP("Miss>TimeMajorFoPool")
   .Input("x: FT")
   .Input("forget: FT")
   .Input("initial_state: FT")
-  .Attr("FT: {float, double} = DT_FLOAT")
+  .Attr("FT: {float16, float32, float64} = DT_FLOAT")
   .Output("output: FT")
   .SetShapeFn([](shape_inference::InferenceContext *c) {
     shape_inference::ShapeHandle input;
