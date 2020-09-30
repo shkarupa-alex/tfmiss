@@ -140,49 +140,49 @@ public:
 };
 
 REGISTER_KERNEL_BUILDER(
-  Name("TimeMajorFoPool")
+  Name("Miss>TimeMajorFoPool")
   .TypeConstraint<float>("FT")
   .Device(tensorflow::DEVICE_GPU),
   FoPool<GPUDevice, float, true>);
 
 REGISTER_KERNEL_BUILDER(
-  Name("TimeMajorBwdFoPool")
+  Name("Miss>TimeMajorBwdFoPool")
   .TypeConstraint<float>("FT")
   .Device(tensorflow::DEVICE_GPU),
   BwdFoPool<GPUDevice, float, true>);
 
 REGISTER_KERNEL_BUILDER(
-  Name("TimeMajorFoPool")
+  Name("Miss>TimeMajorFoPool")
   .TypeConstraint<double>("FT")
   .Device(tensorflow::DEVICE_GPU),
   FoPool<GPUDevice, double, true>);
 
 REGISTER_KERNEL_BUILDER(
-  Name("TimeMajorBwdFoPool")
+  Name("Miss>TimeMajorBwdFoPool")
   .TypeConstraint<double>("FT")
   .Device(tensorflow::DEVICE_GPU),
   BwdFoPool<GPUDevice, double, true>);
 
 REGISTER_KERNEL_BUILDER(
-  Name("BatchMajorFoPool")
+  Name("Miss>BatchMajorFoPool")
   .TypeConstraint<float>("FT")
   .Device(tensorflow::DEVICE_GPU),
   FoPool<GPUDevice, float, false>);
 
 REGISTER_KERNEL_BUILDER(
-  Name("BatchMajorBwdFoPool")
+  Name("Miss>BatchMajorBwdFoPool")
   .TypeConstraint<float>("FT")
   .Device(tensorflow::DEVICE_GPU),
   BwdFoPool<GPUDevice, float, false>);
 
 REGISTER_KERNEL_BUILDER(
-  Name("BatchMajorFoPool")
+  Name("Miss>BatchMajorFoPool")
   .TypeConstraint<double>("FT")
   .Device(tensorflow::DEVICE_GPU),
   FoPool<GPUDevice, double, false>);
 
 REGISTER_KERNEL_BUILDER(
-  Name("BatchMajorBwdFoPool")
+  Name("Miss>BatchMajorBwdFoPool")
   .TypeConstraint<double>("FT")
   .Device(tensorflow::DEVICE_GPU),
   BwdFoPool<GPUDevice, double, false>);
