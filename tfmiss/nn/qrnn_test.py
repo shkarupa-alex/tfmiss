@@ -26,7 +26,7 @@ def np_fo_pooling(x, forget, initial_state, time_major):
 class FoPoolTest(tf.test.TestCase):
     def setUp(self):
         # Obtain a list of GPU device specifications ['/gpu:0', '/gpu:1', ...]
-        self.gpu_devs = [d.name for d in tf.config.list_physical_devices() if d.device_type == 'GPU']
+        self.gpu_devs = [d.name.replace('physical_device:', '') for d in tf.config.list_physical_devices() if d.device_type == 'GPU']
         super(FoPoolTest, self).setUp()
 
     def test_fo_pool(self):
@@ -93,7 +93,7 @@ class FoPoolTest(tf.test.TestCase):
         def test_func(*args):
             return tf.reduce_sum(tfmiss_ops.miss_time_major_fo_pool(*args))
 
-        for d in ['cpu'] + self.gpu_devs:
+        for d in ['/cpu:0'] + self.gpu_devs:
             err = 0
             with tf.device(d):
                 theoretical, numerical = tf.test.compute_gradient(test_func, tf_args)
@@ -120,7 +120,7 @@ class FoPoolTest(tf.test.TestCase):
         def test_func(*args):
             return tf.reduce_sum(tfmiss_ops.miss_batch_major_fo_pool(*args))
 
-        for d in ['cpu'] + self.gpu_devs:
+        for d in ['/cpu:0'] + self.gpu_devs:
             err = 0
             with tf.device(d):
                 theoretical, numerical = tf.test.compute_gradient(test_func, tf_args)

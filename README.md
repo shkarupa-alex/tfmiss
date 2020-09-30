@@ -18,6 +18,8 @@ export TF_CUDNN_VERSION="7"
 export CUDA_TOOLKIT_PATH="/usr/local/cuda"
 export CUDNN_INSTALL_PATH="/usr/lib/x86_64-linux-gnu"
 
+# Set this to proper GCC v8 compiller path if using GPU
+export GCC_HOST_COMPILER_PATH=`which gcc-8`
 
 # Set these to target another python interpreter
 export PYTHON_BIN_PATH=`which python`

@@ -9,7 +9,6 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
 #include "fo_pool.h"
-#include "fo_pool_kernel.h"
 
 /* TIME MAJOR */
 void TimeMajorFoPoolLauncher(float *dst, const float *x, const float *f, const float *initial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream);
