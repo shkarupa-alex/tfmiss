@@ -11,12 +11,16 @@
 #include "fo_pool.h"
 
 /* TIME MAJOR */
+void TimeMajorFoPoolLauncher(Eigen::half *dst, const Eigen::half *x, const Eigen::half *f, const Eigen::half *initial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream);
+void TimeMajorBwdFoPoolLauncher(const Eigen::half *h, const Eigen::half *x, const Eigen::half *f, const Eigen::half *gh, Eigen::half *gx, Eigen::half *gf, Eigen::half *ginitial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream);
 void TimeMajorFoPoolLauncher(float *dst, const float *x, const float *f, const float *initial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream);
 void TimeMajorBwdFoPoolLauncher(const float *h, const float *x, const float *f, const float *gh, float *gx, float *gf, float *ginitial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream);
 void TimeMajorFoPoolLauncher(double *dst, const double *x, const double *f, const double *initial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream);
 void TimeMajorBwdFoPoolLauncher(const double *h, const double *x, const double *f, const double *gh, double *gx, double *gf, double *ginitial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream);
 
 /* BATCH MAJOR */
+void BatchMajorFoPoolLauncher(Eigen::half *dst, const Eigen::half *x, const Eigen::half *f, const Eigen::half *initial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream);
+void BatchMajorBwdFoPoolLauncher(const Eigen::half *h, const Eigen::half *x, const Eigen::half *f, const Eigen::half *gh, Eigen::half *gx, Eigen::half *gf, Eigen::half *ginitial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream);
 void BatchMajorFoPoolLauncher(float *dst, const float *x, const float *f, const float *initial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream);
 void BatchMajorBwdFoPoolLauncher(const float *h, const float *x, const float *f, const float *gh, float *gx, float *gf, float *ginitial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream);
 void BatchMajorFoPoolLauncher(double *dst, const double *x, const double *f, const double *initial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream);

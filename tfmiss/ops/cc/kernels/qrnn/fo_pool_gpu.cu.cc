@@ -37,7 +37,7 @@ __global__ void time_major_fo_pool(FT *dst, const FT *x, const FT *f, const FT *
     int dst_i = (ts - 0) * HIDDEN * batch_size + batch_id * HIDDEN + hid;
     int dst_iminus1 = (ts - 1) * HIDDEN * batch_size + batch_id * HIDDEN + hid;
     dst[dst_i] = f[i] * x[i];
-    dst[dst_i] += (1 - f[i]) * dst[dst_iminus1];
+    dst[dst_i] += ((FT)1 - f[i]) * dst[dst_iminus1];
   }
 }
 
@@ -53,7 +53,7 @@ __global__ void time_major_bwd_fo_pool(const FT *h, const FT *x, const FT *f, co
   if (hid >= HIDDEN || batch_id >= batch_size)
     return;
   //
-  double running_f = 0;
+  FT running_f = (FT)0;
   for (int ts = SEQ - 1 + 1; ts >= 0 + 1; ts--)
   {
     int i = (ts - 1) * HIDDEN * batch_size + batch_id * HIDDEN + hid;
@@ -71,6 +71,11 @@ __global__ void time_major_bwd_fo_pool(const FT *h, const FT *x, const FT *f, co
   ginitial_state[batch_id * HIDDEN + hid] = running_f + gh[batch_id * HIDDEN + hid];
 }
 
+void TimeMajorFoPoolLauncher(Eigen::half *dst, const Eigen::half *x, const Eigen::half *f, const Eigen::half *initial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream)
+{
+  KernelParams l(HIDDEN, batch_size);
+  time_major_fo_pool<<<l.grid, l.blocks, 0, stream>>>(dst, x, f, initial_state, SEQ, batch_size, HIDDEN);
+}
 void TimeMajorFoPoolLauncher(float *dst, const float *x, const float *f, const float *initial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream)
 {
   KernelParams l(HIDDEN, batch_size);
@@ -80,6 +85,11 @@ void TimeMajorFoPoolLauncher(double *dst, const double *x, const double *f, cons
 {
   KernelParams l(HIDDEN, batch_size);
   time_major_fo_pool<<<l.grid, l.blocks, 0, stream>>>(dst, x, f, initial_state, SEQ, batch_size, HIDDEN);
+}
+void TimeMajorBwdFoPoolLauncher(const Eigen::half *h, const Eigen::half *x, const Eigen::half *f, const Eigen::half *gh, Eigen::half *gx, Eigen::half *gf, Eigen::half *ginitial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream)
+{
+  KernelParams l(HIDDEN, batch_size);
+  time_major_bwd_fo_pool<<<l.grid, l.blocks, 0, stream>>>(h, x, f, gh, gx, gf, ginitial_state, SEQ, batch_size, HIDDEN);
 }
 void TimeMajorBwdFoPoolLauncher(const float *h, const float *x, const float *f, const float *gh, float *gx, float *gf, float *ginitial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream)
 {
@@ -120,7 +130,7 @@ __global__ void batch_major_fo_pool(FT *dst, const FT *x, const FT *f, const FT 
     int dst_i = (ts - 0) * HIDDEN + batch_id * HIDDEN * (SEQ + 1) + hid;
     int dst_iminus1 = (ts - 1) * HIDDEN + batch_id * HIDDEN * (SEQ + 1) + hid;
     dst[dst_i] = f[i] * x[i];
-    dst[dst_i] += (1 - f[i]) * dst[dst_iminus1];
+    dst[dst_i] += ((FT)1 - f[i]) * dst[dst_iminus1];
   }
 }
 
@@ -136,7 +146,7 @@ __global__ void batch_major_bwd_fo_pool(const FT *h, const FT *x, const FT *f, c
   if (hid >= HIDDEN || batch_id >= batch_size)
     return;
   //
-  double running_f = 0;
+  FT running_f = (FT)0;
   for (int ts = SEQ - 1 + 1; ts >= 0 + 1; ts--)
   {
     int i = (ts - 1) * HIDDEN + batch_id * HIDDEN * SEQ + hid;
@@ -154,6 +164,11 @@ __global__ void batch_major_bwd_fo_pool(const FT *h, const FT *x, const FT *f, c
   ginitial_state[batch_id * HIDDEN + hid] = running_f + gh[batch_id * HIDDEN * (SEQ + 1) + hid];
 }
 
+void BatchMajorFoPoolLauncher(Eigen::half *dst, const Eigen::half *x, const Eigen::half *f, const Eigen::half *initial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream)
+{
+  KernelParams l(HIDDEN, batch_size);
+  batch_major_fo_pool<<<l.grid, l.blocks, 0, stream>>>(dst, x, f, initial_state, SEQ, batch_size, HIDDEN);
+}
 void BatchMajorFoPoolLauncher(float *dst, const float *x, const float *f, const float *initial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream)
 {
   KernelParams l(HIDDEN, batch_size);
@@ -163,6 +178,11 @@ void BatchMajorFoPoolLauncher(double *dst, const double *x, const double *f, con
 {
   KernelParams l(HIDDEN, batch_size);
   batch_major_fo_pool<<<l.grid, l.blocks, 0, stream>>>(dst, x, f, initial_state, SEQ, batch_size, HIDDEN);
+}
+void BatchMajorBwdFoPoolLauncher(const Eigen::half *h, const Eigen::half *x, const Eigen::half *f, const Eigen::half *gh, Eigen::half *gx, Eigen::half *gf, Eigen::half *ginitial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream)
+{
+  KernelParams l(HIDDEN, batch_size);
+  batch_major_bwd_fo_pool<<<l.grid, l.blocks, 0, stream>>>(h, x, f, gh, gx, gf, ginitial_state, SEQ, batch_size, HIDDEN);
 }
 void BatchMajorBwdFoPoolLauncher(const float *h, const float *x, const float *f, const float *gh, float *gx, float *gf, float *ginitial_state, int SEQ, int batch_size, int HIDDEN, cudaStream_t stream)
 {
