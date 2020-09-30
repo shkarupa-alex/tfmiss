@@ -89,8 +89,7 @@ custom_op_library(
     ],
     cuda_srcs = [
         "cc/kernels/qrnn/fo_pool.h",
-        "cc/kernels/qrnn/fo_pool_gpu.h",
-        "cc/kernels/qrnn/fo_pool_gpu.cu.cc",
+        "cc/kernels/qrnn/fo_pool.cu.cc",
     ],
     deps = [
         "//third_party/icu/data:custom_data",
