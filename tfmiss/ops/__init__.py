@@ -12,6 +12,18 @@ tf.no_gradient('Miss>SampleMask')
 tf.no_gradient('Miss>SkipGram')
 tf.no_gradient('Miss>ContBow')
 
+
+# qrnn
+@tf.RegisterGradient('Miss>TimeMajorFoPool')
+def _fo_pool_time_grad(op, grad):
+    return tfmiss_ops.miss_time_major_bwd_fo_pool(h=op.outputs[0], x=op.inputs[0], forget=op.inputs[1], gh=grad)
+
+
+@tf.RegisterGradient('Miss>BatchMajorFoPool')
+def _fo_pool_batch_grad(op, grad):
+    return tfmiss_ops.miss_batch_major_bwd_fo_pool(h=op.outputs[0], x=op.inputs[0], forget=op.inputs[1], gh=grad)
+
+
 # unicode transform
 tf.no_gradient('Miss>LowerCase')
 tf.no_gradient('Miss>NormalizeUnicode')

@@ -1,6 +1,9 @@
 load("//third_party/tf:tf_configure.bzl", "tf_configure")
 tf_configure(name = "local_config_tf")
 
+load("//third_party/gpu:cuda_configure.bzl", "cuda_configure")
+cuda_configure(name = "local_config_cuda")
+
 load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # curl -L https://github.com/.../.../archive/<git hash>.tar.gz | [g]sha256sum
 

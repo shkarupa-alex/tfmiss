@@ -9,8 +9,19 @@ Do not use `pyenv` on MacOS X, otherwise tests mostly likely will fail.
 ### Build PIP package manually
 You can build the pip package with Bazel v0.25.3:
 ```bash
-export PYTHON_BIN_PATH=`which python3`
-$PYTHON_BIN_PATH -m pip install -U tensorflow  # Only if you did not install it yet
+# GPU support
+export TF_NEED_CUDA="1"
+
+# Set these if the below defaults are different on your system
+export TF_CUDA_VERSION="10.1"
+export TF_CUDNN_VERSION="7"
+export CUDA_TOOLKIT_PATH="/usr/local/cuda"
+export CUDNN_INSTALL_PATH="/usr/lib/x86_64-linux-gnu"
+
+
+# Set these to target another python interpreter
+export PYTHON_BIN_PATH=`which python`
+
 ./configure.sh
 bazel clean --expunge
 bazel test --test_output=errors //tfmiss/...
