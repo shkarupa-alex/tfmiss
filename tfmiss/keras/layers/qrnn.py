@@ -26,7 +26,6 @@ class QRNN(tf.keras.layers.Layer):
                  output_gate=True,
                  activation='tanh',
                  gate_activation='sigmoid',
-                 time_major=False,
                  use_bias=True,
                  kernel_initializer='glorot_uniform',
                  bias_initializer='zeros',
@@ -34,6 +33,10 @@ class QRNN(tf.keras.layers.Layer):
                  bias_regularizer=None,
                  kernel_constraint=None,
                  bias_constraint=None,
+                 return_sequences=False,
+                 return_state=False,
+                 go_backwards=False,
+                 time_major=False,
                  **kwargs):
         super(QRNN, self).__init__(**kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
@@ -45,7 +48,6 @@ class QRNN(tf.keras.layers.Layer):
         self.output_gate = output_gate
         self.activation = tf.keras.activations.get(activation)
         self.gate_activation = tf.keras.activations.get(gate_activation)
-        self.time_major = time_major
 
         self.use_bias = use_bias
         self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
@@ -54,6 +56,11 @@ class QRNN(tf.keras.layers.Layer):
         self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
         self.kernel_constraint = tf.keras.constraints.get(kernel_constraint)
         self.bias_constraint = tf.keras.constraints.get(bias_constraint)
+
+        self.return_sequences = return_sequences
+        self.return_state = return_state
+        self.go_backwards = go_backwards
+        self.time_major = time_major
 
     @tf_utils.shape_type_conversion
     def build(self, input_shape):
@@ -87,15 +94,18 @@ class QRNN(tf.keras.layers.Layer):
 
         super(QRNN, self).build(input_shape)
 
-    def call(self, inputs, training=None):
+    def call(self, inputs, training=None, initial_state=None):
         if training is None:
             training = tf.keras.backend.learning_phase()
+
+        reverse_sim = [0] if self.time_major else [1]
+        if self.go_backwards:
+            inputs = tf.reverse(inputs, reverse_sim)
 
         inputs_batch_major = inputs
         if self.time_major:
             # go to batch_major for convolution if needed
             inputs_batch_major = tf.transpose(inputs, (1, 0, 2), name='to_batch_major')
-
         gate_values = self.conv1d(inputs_batch_major)
         if self.time_major:
             # return to time_major if needed
@@ -118,14 +128,39 @@ class QRNN(tf.keras.layers.Layer):
                 lambda: tf.identity(forget)
             )
 
-        c = fo_pool(x, forget, time_major=self.time_major)
+        c = fo_pool(x, forget, initial_state=initial_state, time_major=self.time_major)
         h = self.gate_act(output) * c if self.output_gate else c
+
+        if not self.return_sequences:
+            h = h[:, -1, :] if not self.time_major else h[-1, :, :]
+        elif self.go_backwards:
+            h = tf.reverse(h, reverse_sim)
+
+        if self.return_state:
+            last_state = c[:, -1, :] if not self.time_major else c[-1, :, :]
+
+            return h, last_state
 
         return h
 
     @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return input_shape[:-1] + (self.units,)
+        h_shape = input_shape[:-1] + (self.units,)
+        c_shape = (h_shape[0], h_shape[2]) if not self.time_major else (h_shape[1], h_shape[2])
+
+        if not self.return_sequences:
+            h_shape = c_shape
+
+        if self.return_state:
+            return h_shape, c_shape
+        else:
+            return h_shape
+
+    def compute_mask(self, inputs, mask=None):
+        if not self.return_sequences:
+            return None
+
+        return mask
 
     def get_config(self):
         config = super(QRNN, self).get_config()
@@ -136,7 +171,6 @@ class QRNN(tf.keras.layers.Layer):
             'output_gate': self.output_gate,
             'activation': tf.keras.activations.serialize(self.activation),
             'gate_activation': tf.keras.activations.serialize(self.gate_activation),
-            'time_major': self.time_major,
             'use_bias': self.use_bias,
             'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
             'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
@@ -144,6 +178,10 @@ class QRNN(tf.keras.layers.Layer):
             'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
             'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
             'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
+            'return_sequences': self.return_sequences,
+            'return_state': self.return_state,
+            'go_backwards': self.go_backwards,
+            'time_major': self.time_major,
         })
 
         return config

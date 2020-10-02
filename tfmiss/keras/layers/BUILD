@@ -45,6 +45,7 @@ py_test(
     srcs = ["qrnn_test.py"],
     srcs_version = "PY2AND3",
     deps = [
+        "//tfmiss/keras:testing_utils",
         ":layers"
     ],
 )
