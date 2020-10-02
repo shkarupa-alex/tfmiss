@@ -16,7 +16,7 @@ if __name__ == "__main__":
     parser.add_argument('--batch_size', type=int, default=24, help='Batch size')
     parser.add_argument('--dropout', type=float, default=0.1, help='Dropout applied to layers')
     parser.add_argument('--embed_dropout', type=float, default=0.1, help='Dropout applied to the embedded layer')
-    parser.add_argument('--epochs', type=int, default=2, help='Upper epoch limit')
+    parser.add_argument('--epochs', type=int, default=15, help='Upper epoch limit')
     parser.add_argument('--lr', type=float, default=0.001, help='Initial learning rate')
     parser.add_argument('--embed_size', type=int, default=300, help='Dimension of character embeddings')
     parser.add_argument('--seed', type=int, default=1111, help='Random seed')
