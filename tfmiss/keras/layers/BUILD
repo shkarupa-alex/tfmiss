@@ -5,8 +5,9 @@ py_library(
     srcs = [
         # TODO: https://mlwhiz.com/blog/2018/12/17/text_classification/
         "__init__.py",
-        "preprocessing.py",
         "embedding.py",
+        "preprocessing.py",
+        "qrnn.py",
         "scale.py",
         "softmax.py",
         "tcn.py",
@@ -35,6 +36,16 @@ py_test(
     srcs = ["preprocessing_test.py"],
     srcs_version = "PY2AND3",
     deps = [
+        ":layers"
+    ],
+)
+
+py_test(
+    name = "qrnn_test",
+    srcs = ["qrnn_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        "//tfmiss/keras:testing_utils",
         ":layers"
     ],
 )
