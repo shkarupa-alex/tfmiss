@@ -40,7 +40,7 @@ class QRNN(tf.keras.layers.Layer):
                  **kwargs):
         super(QRNN, self).__init__(**kwargs)
         self.input_spec = tf.keras.layers.InputSpec(ndim=3)
-        self.supports_masking = True
+        self.supports_masking = return_sequences
 
         self.units = units
         self.window = window
