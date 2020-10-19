@@ -34,7 +34,7 @@ def test_device_matmul(max_batch, max_hidden, max_classes, repeats, device, dtyp
         tf.get_logger().warning('Device matmul estimation is useful for GPUs. '
                              'You ask to measure non-GPU device. Hope you know what you are doing.')
 
-    physical_devices = ', '.join([d.name for d in tf.config.experimental.list_physical_devices()])
+    physical_devices = ', '.join([d.name.replace('physical_device:', '') for d in tf.config.experimental.list_physical_devices()])
     if device.upper() not in physical_devices:
         raise SystemError('Requested device {} is not available: {}'.format(device, physical_devices))
 
