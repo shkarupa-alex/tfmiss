@@ -26,7 +26,7 @@ def char_ngrams(source, minn, maxn, itself, skip=None, name=None):
         if source.shape.rank is None:
             raise ValueError('Rank of `source` must be statically known.')
 
-        if isinstance(source, tf.Tensor) and source.shape.rank > 1:
+        if tf.is_tensor(source) and source.shape.rank > 1:
             source = ragged_tensor.RaggedTensor.from_tensor(source, ragged_rank=source.shape.rank - 1)
 
         if isinstance(source, tf.RaggedTensor):
@@ -64,7 +64,7 @@ def split_chars(source, skip=None, name=None):
         if source.shape.rank is None:
             raise ValueError('Rank of `source` must be statically known.')
 
-        if isinstance(source, tf.Tensor) and source.shape.rank > 1:
+        if tf.is_tensor(source) and source.shape.rank > 1:
             source = ragged_tensor.RaggedTensor.from_tensor(source, ragged_rank=source.shape.rank - 1)
 
         if isinstance(source, tf.RaggedTensor):
@@ -101,7 +101,7 @@ def split_words(source, extended=False, skip=None, name=None):
         if source.shape.rank is None:
             raise ValueError('Rank of `source` must be statically known.')
 
-        if isinstance(source, tf.Tensor) and source.shape.rank > 1:
+        if tf.is_tensor(source) and source.shape.rank > 1:
             source = ragged_tensor.RaggedTensor.from_tensor(source, ragged_rank=source.shape.rank - 1)
 
         if isinstance(source, tf.RaggedTensor):
