@@ -41,7 +41,8 @@ class LRFinder(tf.keras.callbacks.Callback):
         self.lrs = []
 
         tf.keras.backend.set_value(self.model.optimizer.lr, self.min_lr)
-        tf.get_logger().warning('Don\'t forget to set "steps_per_epoch={}" in model.fit() call'.format(self.max_steps))
+        tf.get_logger().warning('Don\'t forget to set "epochs=1" and "steps_per_epoch={}" '
+                                'in model.fit() call'.format(self.max_steps))
 
     def on_train_batch_end(self, batch, logs=None):
         if self.stop_training:
@@ -54,7 +55,8 @@ class LRFinder(tf.keras.callbacks.Callback):
         if current_loss is None:
             self.stop_training = True
             self.model.stop_training = True
-            tf.get_logger().error('LRFinder conditioned on "loss" which is not available. Training will be stopped.')
+            tf.get_logger().error('LRFinder conditioned on "loss" which is not available. '
+                                  'Training will be stopped.')
             return
         if np.isnan(current_loss) or np.isinf(current_loss):
             self.stop_training = True
@@ -124,9 +126,9 @@ class LRFinder(tf.keras.callbacks.Callback):
 
         with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp:
             plt.savefig(tmp, format='png')
-            print('Graph saved to {}'.format(tmp.name))
+            tf.get_logger().info('Graph saved to {}'.format(tmp.name))
 
-        return lrs[min_grad]
+            return lrs[min_grad], tmp.name
 
     def get_config(self):
         config = super(LRFinder, self).get_config()
