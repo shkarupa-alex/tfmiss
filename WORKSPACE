@@ -9,7 +9,7 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 
 http_archive(
     name = "icu",
-    sha256 = "524960ac99d086cdb6988d2a92fc163436fd3c6ec0a84c475c6382fbf989be05",
+    sha256 = "65271a83fa81783d1272553f4564965ac2e32535a58b0b8141e9f4003afb0e3a",
     strip_prefix = "icu-release-64-2",
     urls = [
         "https://mirror.bazel.build/github.com/unicode-org/icu/archive/release-64-2.tar.gz",
