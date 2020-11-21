@@ -10,26 +10,28 @@ class ImdbModel(keras.Model):
     CORE_LSTM = 'LSTM'
     CORE_QRNN = 'QRNN'
 
-    def __init__(self, vocab_size, embed_size, core, units, dropout, embed_dropout):
+    def __init__(self, vocab_size, embed_size, core, layers, units, dropout, embed_dropout):
         inputs = keras.layers.Input(shape=(None,), ragged=True)
+        outputs = ToDense(mask=True)(inputs)
+
+        encoder = keras.layers.Embedding(vocab_size, embed_size)
+        outputs = encoder(outputs)
 
         drop = keras.layers.Dropout(embed_dropout)
-        encoder = keras.layers.Embedding(vocab_size, embed_size)
+        outputs = drop(outputs)
 
-        if self.CORE_LSTM == core:
-            sequence = keras.layers.LSTM(units=units, dropout=dropout)
-        else:
-            if not self.CORE_QRNN == core:
-                raise ValueError('Wrong "core" value')
-            sequence = QRNN(units=units, window=2, zoneout=dropout)
-        sequence = keras.layers.Bidirectional(sequence)
+        for i in range(layers):
+            not_last = i != layers - 1
+            if self.CORE_LSTM == core:
+                sequence = keras.layers.LSTM(units=units, dropout=dropout, return_sequences=not_last)
+            else:
+                if not self.CORE_QRNN == core:
+                    raise ValueError('Wrong "core" value')
+                sequence = QRNN(units=units, window=2, zoneout=dropout, return_sequences=not_last)
+            sequence = keras.layers.Bidirectional(sequence)
+            outputs = sequence(outputs)
 
         decoder = keras.layers.Dense(1, activation='sigmoid')
-
-        outputs = ToDense(mask=True)(inputs)
-        outputs = encoder(outputs)
-        outputs = drop(outputs)
-        outputs = sequence(outputs)
         outputs = decoder(outputs)
 
         super(ImdbModel, self).__init__(inputs=inputs, outputs=outputs)

@@ -77,7 +77,7 @@ class QRNN(tf.keras.layers.Layer):
         self.conv1d = tf.keras.layers.Conv1D(
             filters=conv1d_channels,
             kernel_size=self.window,
-            padding='same',
+            padding='causal',
             use_bias=self.use_bias,
             kernel_initializer=self.kernel_initializer,
             bias_initializer=self.bias_initializer,
@@ -113,11 +113,11 @@ class QRNN(tf.keras.layers.Layer):
 
         gate_values = tf.split(gate_values, 3 if self.output_gate else 2, axis=-1)
         if self.output_gate:
-            x, forget, output = gate_values
+            hidden, forget, output = gate_values
         else:
-            x, forget = gate_values
+            hidden, forget = gate_values
 
-        x = self.act(x)
+        hidden = self.act(hidden)
         forget = self.gate_act(forget)
 
         if self.zoneout > 0.:
@@ -128,7 +128,7 @@ class QRNN(tf.keras.layers.Layer):
                 lambda: tf.identity(forget)
             )
 
-        c = fo_pool(x, forget, initial_state=initial_state, time_major=self.time_major)
+        c = fo_pool(hidden, forget, initial_state=initial_state, time_major=self.time_major)
         h = self.gate_act(output) * c if self.output_gate else c
 
         if not self.return_sequences:

@@ -31,6 +31,6 @@ def fo_pool(inputs, forget, initial_state=None, time_major=False, name=None):
             initial_state = tf.convert_to_tensor(initial_state, dtype=inputs.dtype)
 
         if time_major:
-            return tfmiss_ops.miss_time_major_fo_pool(inputs, forget, initial_state)[1:]
+            return tfmiss_ops.miss_time_major_fo_pool(x=inputs, forget=forget, initial_state=initial_state)[1:]
         else:
-            return tfmiss_ops.miss_batch_major_fo_pool(inputs, forget, initial_state)[:, 1:]
+            return tfmiss_ops.miss_batch_major_fo_pool(x=inputs, forget=forget, initial_state=initial_state)[:, 1:]
