@@ -257,7 +257,7 @@ def layer_multi_io_test(
     actual_output_dtypes = [ao.dtype for ao in actual_outputs]
 
     try:
-        _assert_shape(computed_output_shapes, actual_output_shapes)
+        _assert_shapes(computed_output_shapes, actual_output_shapes)
     except AssertionError:
         raise AssertionError(
             'When testing layer {}, for inputs {}, found output_shapes={} '
@@ -266,7 +266,7 @@ def layer_multi_io_test(
                 computed_output_shapes, kwargs))
 
     try:
-        _assert_shape(computed_output_signature_shapes, actual_output_shapes)
+        _assert_shapes(computed_output_signature_shapes, actual_output_shapes)
     except AssertionError:
         raise AssertionError(
             'When testing layer {}, for inputs {}, found output_shapes={} '

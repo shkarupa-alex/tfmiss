@@ -54,7 +54,6 @@ class WarmHoldCoolAnnihilateScheduler(tf.keras.optimizers.schedules.LearningRate
                 # Cool down from max_lr to min_lr
                 ((hold_stop < step) & (step <= cool_stop),
                  lambda: self.cool_down(min_lr, max_lr, step - hold_stop, cool_stop - hold_stop)),
-                #  max_lr - (max_lr - min_lr) * (step - hold_stop) / (cool_stop - hold_stop)
 
                 # Annihilate from min_lr to min_lr * annih_factor
                 ((cool_stop < step) & (step <= annih_stop),
