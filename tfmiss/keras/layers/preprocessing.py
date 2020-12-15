@@ -31,6 +31,11 @@ class CharNgams(tf.keras.layers.Layer):
     def compute_output_shape(self, input_shape):
         return input_shape + (None,)
 
+    def compute_output_signature(self, input_signature):
+        outptut_signature = super().compute_output_signature(input_signature)
+
+        return tf.TensorSpec(dtype='string', shape=outptut_signature.shape)
+
     def get_config(self):
         config = super().get_config()
         config.update({
@@ -59,7 +64,13 @@ class WordShape(tf.keras.layers.Layer):
     # Words: 4.756 and 3.453
     SHAPE_LENGTH_NORM = 32
 
-    SHAPE_ALL = SHAPE_ALL_CASES | SHAPE_LENGTH_NORM
+    # SHAPE_LEFT_SAME = 64
+    # SHAPE_RIGHT_SAME = 128
+    # SHAPE_LEFT2_SAME = 256
+    # SHAPE_RIGHT2_SAME = 512
+    # SHAPE_ALL_SAME = SHAPE_LEFT_SAME | SHAPE_RIGHT_SAME | SHAPE_LEFT2_SAME | SHAPE_RIGHT2_SAME
+
+    SHAPE_ALL = SHAPE_ALL_CASES | SHAPE_LENGTH_NORM # | SHAPE_ALL_SAME
 
     def __init__(self, options, mean_len=3.906, std_len=3.285, *args, **kwargs):
         super(WordShape, self).__init__(*args, **kwargs)
@@ -69,9 +80,6 @@ class WordShape(tf.keras.layers.Layer):
         self.options = options
         self.mean_len = mean_len
         self.std_len = std_len
-
-    # def build(self, input_shape):
-    #     pass
 
     def call(self, inputs, **kwargs):
         outputs = []

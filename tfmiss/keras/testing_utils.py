@@ -158,7 +158,6 @@ def layer_multi_io_test(
         for input_data, input_shape in zip(input_datas, input_shapes):
             if len(input_data.shape) != len(input_shape) or \
                     not np.all(np.equal(input_data.shape, input_shape)):
-                print(input_data.shape, input_shape)
                 raise ValueError(
                     'Shapes of "input_datas" and values in "input_shapes" '
                     'should be equal if both provided')

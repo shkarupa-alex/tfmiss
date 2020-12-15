@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.python.keras.utils import tf_utils
+from tensorflow.python.keras.utils import control_flow_util, tf_utils
 from tfmiss.nn import fo_pool
 
 
@@ -106,6 +106,7 @@ class QRNN(tf.keras.layers.Layer):
         if self.time_major:
             # go to batch_major for convolution if needed
             inputs_batch_major = tf.transpose(inputs, (1, 0, 2), name='to_batch_major')
+
         gate_values = self.conv1d(inputs_batch_major)
         if self.time_major:
             # return to time_major if needed
@@ -121,7 +122,7 @@ class QRNN(tf.keras.layers.Layer):
         forget = self.gate_act(forget)
 
         if self.zoneout > 0.:
-            forget = tf_utils.smart_cond(
+            forget = control_flow_util.smart_cond(
                 training,
                 # multiply by (1. - self.zoneout) due to dropout scales preserved items
                 lambda: 1. - self.drop(1. - forget) * (1. - self.zoneout),
@@ -130,6 +131,8 @@ class QRNN(tf.keras.layers.Layer):
 
         c = fo_pool(hidden, forget, initial_state=initial_state, time_major=self.time_major)
         h = self.gate_act(output) * c if self.output_gate else c
+        # TODO: https://github.com/JonathanRaiman/tensorflow_qrnn/blob/master/qrnn.py#L161
+        # h = gate_activation_fn(c) if output_gate else c
 
         if not self.return_sequences:
             h = h[:, -1, :] if not self.time_major else h[-1, :, :]

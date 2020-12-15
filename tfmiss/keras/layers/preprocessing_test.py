@@ -10,22 +10,20 @@ from tfmiss.keras.layers.preprocessing import CharNgams, WordShape
 
 @keras_parameterized.run_all_keras_modes
 class CharNgamsTest(keras_parameterized.TestCase):
-    def test_layer(self):
-        # Fails within model.predict
-        # testing_utils.layer_test(
-        #     CharNgams,
-        #     kwargs={'minn': 2, 'maxn': 4, 'itself': 'alone'},
-        #     input_data=np.array([
-        #         ['abc', 'defg', 'hi'],
-        #         ['a', 'bcdef', 'ghi'],
-        #         ['abc', 'defg', 'hi'],
-        #         ['a', 'bcdef', 'ghi'],
-        #     ]).astype('str'),
-        #     input_shape=(4, 3),
-        #     expected_output_dtype='string',
-        #     # expected_output_shape=(None, 3, None)
-        # )
-        pass
+    # TODO: can't test ragged output
+    # def test_layer(self):
+    #     testing_utils.layer_test(
+    #         CharNgams,
+    #         kwargs={'minn': 2, 'maxn': 4, 'itself': 'alone'},
+    #         input_data=np.array([
+    #             ['abc', 'defg', 'hi'],
+    #             ['a', 'bcdef', 'ghi'],
+    #             ['abc', 'defg', 'hi'],
+    #             ['a', 'bcdef', 'ghi'],
+    #         ]).astype('str'),
+    #         expected_output_dtype='string',
+    #         expected_output_shape=(None, None, None)
+    #     )
 
     def test_output(self):
         inputs = tf.constant([
@@ -117,7 +115,6 @@ class WordShapeTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=(None, 1)
         )
-        print(outputs)
         self.assertAllClose([
             [0.941857], [-0.27579907], [-0.58021307], [0.33302894], [-0.27579907], [0.02861495]
         ], outputs)
