@@ -28,7 +28,7 @@ def macro_soft_f1(y_true, y_pred, from_logits=False, double=True):
     if double:
         # reduce inverted class (0 -> 1) loss
         tn = tf.reduce_sum((1. - y_pred) * (1. - y_true), axis=axis_)
-        loss_ = 2 * tn / (2 * tn + fn + fp + 1e-16)
+        loss_ = 2 * tn / (2 * tn + fn + fp + epsilon_)
         loss_ = 1 - loss_
         loss = (loss + loss_) / 2
 
