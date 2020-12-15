@@ -31,9 +31,6 @@ custom_op_library(
 
 
         # qrnn
-        "cc/kernels/qrnn/thread_pool.h",
-        "cc/kernels/qrnn/thread_pool.cc",
-
         "cc/kernels/qrnn/fo_pool.h",
         "cc/kernels/qrnn/fo_pool.cc",
 

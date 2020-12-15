@@ -1,9 +1,8 @@
 #include "tensorflow/core/framework/op.h"
 #include "tensorflow/core/framework/op_kernel.h"
-//#include "tensorflow/core/util/work_sharder.h" // TODO
+#include "tensorflow/core/util/work_sharder.h"
 #include "tensorflow/core/framework/types.h"
 #include "fo_pool.h"
-#include "thread_pool.h"
 
 // Required in order for Eigen::ThreadPoolDevice to be an actual type
 #define EIGEN_USE_THREADS
@@ -22,9 +21,9 @@ void time_major_fo_pool(OpKernelContext *context, FT *dst, const FT *x, const FT
   Note: destination is assumed to be one timestep longer than f or x where dst[0] = h_{-1}
   This means dst array has a separate index than that of f or x
   */
-  auto worker_threads = *(context->device()->tensorflow_cpu_worker_threads());
+  auto thread_pool = context->device()->tensorflow_cpu_worker_threads()->workers;
   const int64 cost = SEQ * HIDDEN * 1000;
-  Shard(worker_threads.num_threads, worker_threads.num_threads, batch_size, cost,
+  thread_pool->ParallelFor(batch_size, cost,
     [&batch_size, x, f, initial_state, dst, &HIDDEN, &SEQ](const int start, const int limit) {
       for (int batch_id = start; batch_id < limit; ++batch_id)
       {
@@ -59,9 +58,9 @@ void batch_major_fo_pool(OpKernelContext *context, FT *dst, const FT *x, const F
   Note: destination is assumed to be one timestep longer than f or x where dst[0] = h_{-1}
   This means dst array has a separate index than that of f or x
   */
-  auto worker_threads = *(context->device()->tensorflow_cpu_worker_threads());
+  auto thread_pool = context->device()->tensorflow_cpu_worker_threads()->workers;
   const int64 cost = SEQ * HIDDEN * 1000;
-  Shard(worker_threads.num_threads, worker_threads.num_threads, batch_size, cost,
+  thread_pool->ParallelFor(batch_size, cost,
     [x, f, initial_state, dst, &HIDDEN, &SEQ](const int start, const int limit) {
       for (int batch_id = start; batch_id < limit; ++batch_id)
       {
@@ -96,9 +95,9 @@ void time_major_bwd_fo_pool(OpKernelContext *context, const FT *h, const FT *x, 
   Note: h is assumed to be one timestep longer than f, x, gf, gx, or gh where dst[0] = h_{-1}
   This means dst array has a separate index than that of f or x
   */
-  auto worker_threads = *(context->device()->tensorflow_cpu_worker_threads());
+  auto thread_pool = context->device()->tensorflow_cpu_worker_threads()->workers;
   const int64 cost = SEQ * HIDDEN * 1000;
-  Shard(worker_threads.num_threads, worker_threads.num_threads, batch_size, cost,
+  thread_pool->ParallelFor(batch_size, cost,
     [&batch_size, h, f, x, gh, gf, gx, ginitial_state, &HIDDEN, &SEQ](const int start, const int limit) {
       for (int batch_id = start; batch_id < limit; ++batch_id)
       {
@@ -132,9 +131,9 @@ void batch_major_bwd_fo_pool(OpKernelContext *context, const FT *h, const FT *x,
 Note: h is assumed to be one timestep longer than f, x, gf, gx, or gh where dst[0] = h_{-1}
 This means dst array has a separate index than that of f or x
 */
-  auto worker_threads = *(context->device()->tensorflow_cpu_worker_threads());
+  auto thread_pool = context->device()->tensorflow_cpu_worker_threads()->workers;
   const int64 cost = SEQ * HIDDEN * 1000;
-  Shard(worker_threads.num_threads, worker_threads.num_threads, batch_size, cost,
+  thread_pool->ParallelFor(batch_size, cost,
     [h, f, x, gh, gf, gx, ginitial_state, &HIDDEN, &SEQ](const int start, const int limit) {
       for (int batch_id = start; batch_id < limit; ++batch_id)
       {

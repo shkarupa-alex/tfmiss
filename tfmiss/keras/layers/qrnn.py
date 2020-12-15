@@ -114,25 +114,23 @@ class QRNN(tf.keras.layers.Layer):
 
         gate_values = tf.split(gate_values, 3 if self.output_gate else 2, axis=-1)
         if self.output_gate:
-            hidden, forget, output = gate_values
+            z, f, o = gate_values
         else:
-            hidden, forget = gate_values
+            z, f = gate_values
 
-        hidden = self.act(hidden)
-        forget = self.gate_act(forget)
+        z = self.act(z)
+        f = self.gate_act(f)
 
         if self.zoneout > 0.:
-            forget = control_flow_util.smart_cond(
+            f = control_flow_util.smart_cond(
                 training,
                 # multiply by (1. - self.zoneout) due to dropout scales preserved items
-                lambda: 1. - self.drop(1. - forget) * (1. - self.zoneout),
-                lambda: tf.identity(forget)
+                lambda: self.drop(f) * (1. - self.zoneout),
+                lambda: f * (1. - self.zoneout)
             )
 
-        c = fo_pool(hidden, forget, initial_state=initial_state, time_major=self.time_major)
-        h = self.gate_act(output) * c if self.output_gate else c
-        # TODO: https://github.com/JonathanRaiman/tensorflow_qrnn/blob/master/qrnn.py#L161
-        # h = gate_activation_fn(c) if output_gate else c
+        c = fo_pool(z, f, initial_state=initial_state, time_major=self.time_major)
+        h = self.gate_act(o) * c if self.output_gate else c
 
         if not self.return_sequences:
             h = h[:, -1, :] if not self.time_major else h[-1, :, :]
