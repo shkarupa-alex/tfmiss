@@ -10,22 +10,20 @@ from tfmiss.keras.layers.preprocessing import CharNgams, WordShape
 
 @keras_parameterized.run_all_keras_modes
 class CharNgamsTest(keras_parameterized.TestCase):
-    def test_layer(self):
-        # Fails within model.predict
-        # testing_utils.layer_test(
-        #     CharNgams,
-        #     kwargs={'minn': 2, 'maxn': 4, 'itself': 'alone'},
-        #     input_data=np.array([
-        #         ['abc', 'defg', 'hi'],
-        #         ['a', 'bcdef', 'ghi'],
-        #         ['abc', 'defg', 'hi'],
-        #         ['a', 'bcdef', 'ghi'],
-        #     ]).astype('str'),
-        #     input_shape=(4, 3),
-        #     expected_output_dtype='string',
-        #     # expected_output_shape=(None, 3, None)
-        # )
-        pass
+    # TODO: can't test ragged output
+    # def test_layer(self):
+    #     testing_utils.layer_test(
+    #         CharNgams,
+    #         kwargs={'minn': 2, 'maxn': 4, 'itself': 'alone'},
+    #         input_data=np.array([
+    #             ['abc', 'defg', 'hi'],
+    #             ['a', 'bcdef', 'ghi'],
+    #             ['abc', 'defg', 'hi'],
+    #             ['a', 'bcdef', 'ghi'],
+    #         ]).astype('str'),
+    #         expected_output_dtype='string',
+    #         expected_output_shape=(None, None, None)
+    #     )
 
     def test_output(self):
         inputs = tf.constant([
@@ -48,6 +46,8 @@ class WordShapeTest(keras_parameterized.TestCase):
     def setUp(self):
         super(WordShapeTest, self).setUp()
         self.data = np.array(['1234567', 'low', 'UP', 'Title', 'MiX', '27km']).astype('str')
+        self.same = np.array(['1', '2', '2', '2', '3', '4']).astype('str')
+        self.ccat = np.array(['1', 'z', ' ', '\n', '💥', '❤️']).astype('str')
 
     def test_has_case(self):
         outputs = testing_utils.layer_test(
@@ -109,6 +109,100 @@ class WordShapeTest(keras_parameterized.TestCase):
             [0.], [0.], [0.], [0.], [1.], [0.]
         ], outputs)
 
+    def test_same_left(self):
+        outputs = testing_utils.layer_test(
+            WordShape,
+            kwargs={'options': WordShape.SHAPE_LEFT_SAME},
+            input_data=self.same,
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 1)
+        )
+        self.assertAllEqual([
+            [0.], [0.], [1.], [1.], [0.], [0.]
+        ], outputs)
+
+    def test_same_right(self):
+        outputs = testing_utils.layer_test(
+            WordShape,
+            kwargs={'options': WordShape.SHAPE_RIGHT_SAME},
+            input_data=self.same,
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 1)
+        )
+        self.assertAllEqual([
+            [0.], [1.], [1.], [0.], [0.], [0.]
+        ], outputs)
+
+    def test_same_left2(self):
+        outputs = testing_utils.layer_test(
+            WordShape,
+            kwargs={'options': WordShape.SHAPE_LEFT2_SAME},
+            input_data=self.same,
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 1)
+        )
+        self.assertAllEqual([
+            [0.], [0.], [0.], [1.], [0.], [0.]
+        ], outputs)
+
+    def test_same_right2(self):
+        outputs = testing_utils.layer_test(
+            WordShape,
+            kwargs={'options': WordShape.SHAPE_RIGHT2_SAME},
+            input_data=self.same,
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 1)
+        )
+        self.assertAllEqual([
+            [0.], [1.], [0.], [0.], [0.], [0.]
+        ], outputs)
+
+    def test_char_cat_first(self):
+        outputs = testing_utils.layer_test(
+            WordShape,
+            kwargs={'options': WordShape.SHAPE_CHAR_CAT_FIRST},
+            input_data=self.ccat,
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 30)
+        )
+        self.assertAllEqual([
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+             1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0]
+        ], outputs)
+
+    def test_char_cat_last(self):
+        outputs = testing_utils.layer_test(
+            WordShape,
+            kwargs={'options': WordShape.SHAPE_CHAR_CAT_LAST},
+            input_data=self.ccat,
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 30)
+        )
+        self.assertAllEqual([
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+             1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        ], outputs)
+
     def test_length_norm(self):
         outputs = testing_utils.layer_test(
             WordShape,
@@ -117,7 +211,6 @@ class WordShapeTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=(None, 1)
         )
-        print(outputs)
         self.assertAllClose([
             [0.941857], [-0.27579907], [-0.58021307], [0.33302894], [-0.27579907], [0.02861495]
         ], outputs)
@@ -128,7 +221,7 @@ class WordShapeTest(keras_parameterized.TestCase):
             kwargs={'options': WordShape.SHAPE_ALL},
             input_data=self.data,
             expected_output_dtype='float32',
-            expected_output_shape=(None, 6)
+            expected_output_shape=(None, 70)
         )
 
 

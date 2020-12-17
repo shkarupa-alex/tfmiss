@@ -31,6 +31,18 @@ py_binary(
 )
 
 py_binary(
+    name = "qrnn/imdb/imdb_test",
+    srcs = [
+        "qrnn/imdb/imdb_test.py",
+        "qrnn/imdb/model.py",
+        "qrnn/imdb/utils.py",
+    ],
+    deps = [
+        "//tfmiss",
+    ],
+)
+
+py_binary(
     name = "tcn/adding_problem/add_test",
     srcs = [
         "tcn/adding_problem/add_test.py",

@@ -5,23 +5,23 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.python.distribute import distribution_strategy_context
 from tensorflow.python.keras.backend import convert_inputs_if_ragged, maybe_convert_to_ragged
-from tensorflow.python.keras.utils import losses_utils, tf_utils
+from tensorflow.python.keras.utils import control_flow_util, losses_utils, tf_utils
 
 
 def compute_weighted_loss(losses, sample_weight=None, reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE):
     if distribution_strategy_context.has_strategy() and \
             reduction in {tf.keras.losses.Reduction.AUTO, tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE}:
         raise ValueError(
-            'Please use `tf.keras.losses.Reduction.SUM` or `tf.keras.losses.Reduction.NONE` for loss reduction '
-            'when losses are used with `tf.distribute.Strategy` outside of the built-in training loops. You can '
-            'implement `tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE` using global batch size like:\n'
+            'Please use `tf.keras.losses.Reduction.SUM` or  `tf.keras.losses.Reduction.NONE` for loss reduction when '
+            'losses are used with `tf.distribute.Strategy` outside of the built-in training loops. You can implement '
+            '`tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE` using global batch size like:\n'
             '```\n'
             'with strategy.scope():\n'
-            '    loss_obj = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.reduction.NONE)\n'
+            '    loss_obj = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)\n'
             '....\n'
             '    loss = tf.reduce_sum(loss_obj(labels, predictions)) * (1. / global_batch_size)\n'
             '```\n'
-            'Please see https://www.tensorflow.org/alpha/tutorials/distribute/training_loops for more details.')
+            'Please see https://www.tensorflow.org/tutorials/distribute/custom_training for more details.')
 
     return losses_utils.compute_weighted_loss(losses, sample_weight=sample_weight, reduction=reduction)
 
@@ -51,24 +51,15 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         with shapes `(batch_size, input_dim)` and `(batch_size,)`, the output would have shape `(batch_size, units)`.
     """
 
-    def __init__(self,
-                 units, cutoff,
-                 factor=4,
-                 dropout=0.,
-                 use_bias=True,
-                 kernel_initializer='glorot_uniform',
-                 bias_initializer='zeros',
-                 kernel_regularizer=None,
-                 bias_regularizer=None,
-                 kernel_constraint=None,
-                 bias_constraint=None,
-                 loss_reduction=tf.keras.losses.Reduction.AUTO,
-                 **kwargs):
-        kwargs['dtype'] = 'float32'
+    def __init__(
+            self, units, cutoff, factor=4, dropout=0., use_bias=True, kernel_initializer='glorot_uniform',
+            bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, kernel_constraint=None,
+            bias_constraint=None, loss_reduction=tf.keras.losses.Reduction.AUTO, **kwargs):
+        kwargs['autocast'] = False
         super(AdaptiveSoftmax, self).__init__(**kwargs)
         self.input_spec = [
             tf.keras.layers.InputSpec(min_ndim=2),  # predictions
-            tf.keras.layers.InputSpec(min_ndim=1, dtype=tf.int32),  # targets
+            tf.keras.layers.InputSpec(min_ndim=1, dtype='int32'),  # targets
         ]
         self.supports_masking = True
         self._supports_ragged_inputs = True
@@ -78,8 +69,8 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         units = int(units)
         tf.keras.losses.Reduction.validate(loss_reduction)
 
-        self.cutoff = cutoff + [units] if units > cutoff[-1] else cutoff
-        self._cutoff = cutoff
+        self.cutoff = cutoff
+        self._cutoff = cutoff + [units] if units > cutoff[-1] else cutoff
         self.units = units
         self.factor = factor
         self.dropout = dropout
@@ -98,14 +89,8 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         if not (dtype.is_floating or dtype.is_complex):
             raise TypeError('Unable to build `AdaptiveSoftmax` layer with non-floating point dtype {}'.format(dtype))
 
-        if not isinstance(input_shape, (tuple, list)) or len(input_shape) != 2:
-            raise ValueError('An `AdaptiveSoftmax` layer should be called on exactly 2 inputs: '
-                             '`predictions` and `targets`'.format(self.__class__.__name__))
-
         predictions_shape, targets_shape = input_shape
         predictions_rank = len(predictions_shape)
-        if predictions_rank < 2:
-            raise ValueError('Predictions shape {} must have rank >= 2'.format(predictions_shape))
         if len(targets_shape) + 1 != predictions_rank:
             raise ValueError('Targets shape {} rank must be one less than predictions '
                              'shape rank {}'.format(targets_shape, predictions_shape))
@@ -119,7 +104,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         ]
 
         self.head = tf.keras.layers.Dense(
-            units=self.cutoff[0] + len(self.cutoff) - 1,
+            units=self._cutoff[0] + len(self._cutoff) - 1,
             activation=None,
             use_bias=False,
             kernel_initializer=self.kernel_initializer,
@@ -131,7 +116,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         self.tails = []
         self.tail_channels = []
         prev_dim = None
-        for i in range(len(self.cutoff) - 1):
+        for i in range(len(self._cutoff) - 1):
             dim = self.input_channels / (self.factor ** (i + 1))
             dim = max(1, round(dim / 8)) * 8
 
@@ -156,7 +141,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                 ),
                 tf.keras.layers.Dropout(self.dropout, name='tail_drop_{}'.format(i)),
                 tf.keras.layers.Dense(
-                    units=self.cutoff[i + 1] - self.cutoff[i],
+                    units=self._cutoff[i + 1] - self._cutoff[i],
                     activation=None,
                     use_bias=self.use_bias,
                     kernel_initializer=self.kernel_initializer,
@@ -169,8 +154,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                 ),
             ])
             self.tails.append(tail)
-            setattr(self, 'tail_{}'.format(i), tail)
-            self.tail_channels.append(self.cutoff[i + 1] - self.cutoff[i])
+            self.tail_channels.append(self._cutoff[i + 1] - self._cutoff[i])
 
         super(AdaptiveSoftmax, self).build(input_shape)
 
@@ -179,6 +163,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             training = tf.keras.backend.learning_phase()
 
         input_logits, input_targets = inputs
+        input_logits = tf.cast(input_logits, self._compute_dtype)
 
         input_logits, row_lengths = convert_inputs_if_ragged(input_logits)
         input_targets, _ = convert_inputs_if_ragged(input_targets)
@@ -192,7 +177,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             loss_weights = tf.logical_and(loss_weights, mask)
         loss_weights = tf.cast(loss_weights, self._compute_dtype)
 
-        probs, loss = tf_utils.smart_cond(
+        probs, loss = control_flow_util.smart_cond(
             training,
             lambda: self._train_probs_loss(input_logits, input_targets, loss_weights),
             lambda: self._eval_probs_loss(input_logits, input_targets, loss_weights)
@@ -205,18 +190,18 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
 
     def _train_probs_loss(self, inputs, targets, weights):
         root_logits = self.head(inputs)
-        root_logits = tf.cast(root_logits, tf.float32)
+        root_logits = tf.cast(root_logits, 'float32')
         root_logprobs = tf.nn.log_softmax(root_logits)
-        head_logprobs = root_logprobs[..., :self.cutoff[0]]
+        head_logprobs = root_logprobs[..., :self._cutoff[0]]
 
         tail_masks = []
         root_targets = targets
-        for i in range(len(self.cutoff) - 1):
+        for i in range(len(self._cutoff) - 1):
             tail_masks.append(tf.logical_and(
-                tf.greater_equal(targets, self.cutoff[i]),
-                tf.less(targets, self.cutoff[i + 1])
+                tf.greater_equal(targets, self._cutoff[i]),
+                tf.less(targets, self._cutoff[i + 1])
             ))
-            clust_targets = tf.fill(tf.shape(root_targets), tf.cast(self.cutoff[0] + i, root_targets.dtype))
+            clust_targets = tf.fill(tf.shape(root_targets), tf.cast(self._cutoff[0] + i, root_targets.dtype))
             root_targets = tf.where(tail_masks[i], clust_targets, root_targets)
         root_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=root_logits, labels=root_targets)
         root_loss = compute_weighted_loss(root_loss, sample_weight=weights, reduction=self.loss_reduction)
@@ -224,22 +209,22 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         full_loss = [root_loss]
         full_logprobs = [head_logprobs]
         targets_shape = tf.shape(targets)
-        for i in range(len(self.cutoff) - 1):
-            clust_start = self.cutoff[0] + i
+        for i in range(len(self._cutoff) - 1):
+            clust_start = self._cutoff[0] + i
             clust_logprob = root_logprobs[..., clust_start:clust_start + 1]
-            tail_targets = targets - self.cutoff[i]
+            tail_targets = targets - self._cutoff[i]
 
             true_mask = tail_masks[i]
             true_inputs = tf.boolean_mask(inputs, true_mask)
             true_logits = self.tails[i](true_inputs, training=True)
-            true_logits = tf.cast(true_logits, tf.float32)
+            true_logits = tf.cast(true_logits, 'float32')
             true_clust_logprob = tf.boolean_mask(clust_logprob, true_mask)
             true_logprobs = tf.nn.log_softmax(true_logits)
             true_logprobs = tf.math.add(true_logprobs, true_clust_logprob)
 
             false_mask = tf.logical_not(true_mask)
             false_clust_logprob = tf.boolean_mask(clust_logprob, false_mask)
-            clust_size = tf.cast(self.cutoff[i + 1] - self.cutoff[i], false_clust_logprob.dtype)
+            clust_size = tf.cast(self._cutoff[i + 1] - self._cutoff[i], false_clust_logprob.dtype)
             false_logprobs = false_clust_logprob - tf.math.log(clust_size)
             false_logprobs = tf.tile(false_logprobs, [1, clust_size])
 
@@ -271,23 +256,22 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
 
     def _eval_probs_loss(self, inputs, targets, weights):
         root_logits = self.head(inputs)
-        root_logits = tf.cast(root_logits, tf.float32)
+        root_logits = tf.cast(root_logits, 'float32')
         root_logprobs = tf.nn.log_softmax(root_logits)
-        head_logprobs = root_logprobs[..., :self.cutoff[0]]
+        head_logprobs = root_logprobs[..., :self._cutoff[0]]
 
         # required to match tails input shape in train branch
         flat_inputs = tf.reshape(inputs, [-1, self.input_channels])
-        targets_shape = tf.shape(targets)
-
         full_logprobs = [head_logprobs]
-        for i in range(len(self.cutoff) - 1):
+        targets_shape = tf.shape(targets)
+        for i in range(len(self._cutoff) - 1):
             flat_logits = self.tails[i](flat_inputs, training=False)
             tail_shape = tf.concat([targets_shape, [self.tail_channels[i]]], axis=-1)
             tail_logits = tf.reshape(flat_logits, tail_shape)
-            tail_logits = tf.cast(tail_logits, tf.float32)
+            tail_logits = tf.cast(tail_logits, 'float32')
             tail_logprobs = tf.nn.log_softmax(tail_logits)
 
-            clust_start = self.cutoff[0] + i
+            clust_start = self._cutoff[0] + i
             clust_logprob = root_logprobs[..., clust_start:clust_start + 1]
             tail_logprobs = tf.math.add(tail_logprobs, clust_logprob)
             full_logprobs.append(tail_logprobs)
@@ -302,20 +286,19 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
 
     @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
-        if not isinstance(input_shape, (tuple, list)) or len(input_shape) != 2:
-            raise ValueError('An `AdaptiveSoftmax` layer should be called on exactly 2 inputs: '
-                             '`predictions` and `targets`'.format(self.__class__.__name__))
         predictions_shape, _ = input_shape
 
-        if len(predictions_shape) < 2:
-            raise ValueError('Predictions shape {} must have rank => 2'.format(predictions_shape))
-
         return predictions_shape[:-1] + (self.units,)
+
+    def compute_output_signature(self, input_signature):
+        outptut_signature = super().compute_output_signature(input_signature)
+
+        return tf.TensorSpec(dtype='float32', shape=outptut_signature.shape)
 
     def get_config(self):
         config = super(AdaptiveSoftmax, self).get_config()
         config.update({
-            'cutoff': self._cutoff,
+            'cutoff': self.cutoff,
             'units': self.units,
             'factor': self.factor,
             'dropout': self.dropout,
@@ -360,18 +343,12 @@ class SampledSofmax(tf.keras.layers.Layer):
         `(batch_size, input_dim)`, the output would have shape `(batch_size, units)`.
     """
 
-    def __init__(self,
-                 units,
-                 negatives,
-                 kernel_initializer='zeros',
-                 bias_initializer='zeros',
-                 kernel_regularizer=None,
-                 bias_regularizer=None,
-                 kernel_constraint=None,
-                 bias_constraint=None,
-                 loss_reduction=tf.keras.losses.Reduction.AUTO,
-                 **kwargs):
+    def __init__(
+            self, units, negatives, kernel_initializer='zeros', bias_initializer='zeros', kernel_regularizer=None,
+            bias_regularizer=None, kernel_constraint=None, bias_constraint=None,
+            loss_reduction=tf.keras.losses.Reduction.AUTO, **kwargs):
         kwargs['dtype'] = 'float32'
+        kwargs['autocast'] = False
         super(SampledSofmax, self).__init__(**kwargs)
         self.input_spec = [
             tf.keras.layers.InputSpec(min_ndim=2),  # predictions
@@ -394,32 +371,26 @@ class SampledSofmax(tf.keras.layers.Layer):
 
     @tf_utils.shape_type_conversion
     def build(self, input_shape):
-        with tf.device('/CPU:0'):
-            dtype = tf.dtypes.as_dtype(self.dtype or tf.keras.backend.floatx())
-            if not (dtype.is_floating or dtype.is_complex):
-                raise TypeError('Unable to build `{}` layer with non-floating '
-                                'point dtype {}'.format(self.__class__.__name__, dtype))
+        dtype = tf.dtypes.as_dtype(self.dtype or tf.keras.backend.floatx())
+        if not (dtype.is_floating or dtype.is_complex):
+            raise TypeError(
+                'Unable to build `{}` layer with non-floating point dtype {}'.format(self.__class__.__name__, dtype))
 
-            if not isinstance(input_shape, (tuple, list)) or len(input_shape) != 2:
-                raise ValueError('A `{}` layer should be called on exactly 2 inputs: '
-                                 '`predictions` and `targets`'.format(self.__class__.__name__))
+        predictions_shape, targets_shape = input_shape
+        predictions_rank = len(predictions_shape)
+        if len(targets_shape) + 1 != predictions_rank:
+            raise ValueError('Targets shape {} rank must be one less than predictions '
+                             'shape rank {}'.format(targets_shape, predictions_shape))
 
-            predictions_shape, targets_shape = input_shape
-            predictions_rank = len(predictions_shape)
-            if predictions_rank < 2:
-                raise ValueError('Predictions shape {} must have rank >= 2'.format(predictions_shape))
-            if len(targets_shape) + 1 != predictions_rank:
-                raise ValueError('Targets shape {} rank must be one less than predictions '
-                                 'shape rank {}'.format(targets_shape, predictions_shape))
+        self.num_channels = predictions_shape[-1]
+        if self.num_channels is None:
+            raise ValueError('Channel dimension of predictions should be defined. Found `None`.')
+        self.input_spec = [
+            tf.keras.layers.InputSpec(ndim=predictions_rank, axes={-1: self.num_channels}),
+            tf.keras.layers.InputSpec(ndim=predictions_rank - 1, dtype=tf.int32)
+        ]
 
-            self.num_channels = predictions_shape[-1]
-            if self.num_channels is None:
-                raise ValueError('Channel dimension of predictions should be defined. Found `None`.')
-            self.input_spec = [
-                tf.keras.layers.InputSpec(ndim=predictions_rank, axes={-1: self.num_channels}),
-                tf.keras.layers.InputSpec(ndim=predictions_rank - 1, dtype=tf.int32)
-            ]
-
+        with tf.device('cpu:0'):
             self.kernel = self.add_weight(
                 shape=(self.units, self.num_channels),
                 initializer=self.kernel_initializer,
@@ -439,10 +410,10 @@ class SampledSofmax(tf.keras.layers.Layer):
                 trainable=True
             )
 
-            super(SampledSofmax, self).build(input_shape)
+        super(SampledSofmax, self).build(input_shape)
 
     def call(self, inputs, training=None, mask=None):
-        with tf.device('/CPU:0'):
+        with tf.device('cpu:0'):
             if training is None:
                 training = tf.keras.backend.learning_phase()
 
@@ -469,7 +440,7 @@ class SampledSofmax(tf.keras.layers.Layer):
             output_logits = tf.matmul(input_logits, self.kernel, transpose_b=True)
             output_logits = tf.nn.bias_add(output_logits, self.bias)
 
-            loss = tf_utils.smart_cond(
+            loss = control_flow_util.smart_cond(
                 training,
                 lambda: self._train_loss(input_logits, input_targets),
                 lambda: self._eval_loss(output_logits, input_targets)
@@ -506,13 +477,7 @@ class SampledSofmax(tf.keras.layers.Layer):
 
     @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
-        if not isinstance(input_shape, (tuple, list)) or len(input_shape) != 2:
-            raise ValueError('A `{}` layer should be called on exactly 2 inputs: '
-                             '`predictions` and `targets`'.format(self.__class__.__name__))
         predictions_shape, _ = input_shape
-
-        if len(predictions_shape) < 2:
-            raise ValueError('Predictions shape {} must have rank => 2'.format(predictions_shape))
 
         return predictions_shape[:-1] + (self.units,)
 
@@ -557,7 +522,7 @@ class NoiseContrastiveEstimation(SampledSofmax):
             num_classes=self.units,
         )
 
-        return loss / tf.cast(1 + self.negatives, tf.float32)
+        return loss / tf.cast(1 + self.negatives, 'float32')
 
     def _eval_loss(self, logits, targets):
         labels_one_hot = tf.one_hot(targets, self.units)

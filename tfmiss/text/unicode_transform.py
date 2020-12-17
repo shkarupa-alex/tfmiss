@@ -7,6 +7,32 @@ from tensorflow.python.ops.ragged import ragged_tensor
 from tfmiss.ops import tfmiss_ops
 
 
+def char_category(source, first=True, skip=None, name=None):
+    """Get first/last character category in unicode strings.
+
+    Args:
+        source: `Tensor` or `RaggedTensor` of any shape, strings to make lower.
+        first: boolean flag indicating which character should be tested: first or last.
+        skip: list of strings to pass without changes or None.
+        name: A name for the operation (optional).
+    Returns:
+        `Tensor` or `RaggedTensor` of same shape as input.
+    """
+    with tf.name_scope(name or 'char_category'):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
+
+        if isinstance(source, tf.RaggedTensor):
+            return source.with_flat_values(
+                char_category(source.flat_values, first, skip)
+            )
+
+        return tfmiss_ops.miss_char_category(
+            source=source,
+            first=first,
+            skip=skip or [],
+        )
+
+
 def lower_case(source, skip=None, name=None):
     """Lowercases unicode strings.
 

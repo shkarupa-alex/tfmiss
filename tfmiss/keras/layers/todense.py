@@ -52,7 +52,7 @@ class ToDense(tf.keras.layers.Layer):
         elif isinstance(inputs, tf.SparseTensor):
             # Fill in the missing value in the sparse_tensor
             outputs = tf.sparse.to_dense(inputs, default_value=self.pad_value)
-        elif isinstance(inputs, tf.Tensor):
+        elif tf.is_tensor(inputs):
             outputs = inputs
         else:
             raise TypeError('Unexpected tensor type {}'.format(type(inputs).__name__))

@@ -5,8 +5,77 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from tfmiss.text.unicode_transform import lower_case, normalize_unicode, replace_regex, replace_string
-from tfmiss.text.unicode_transform import title_case, upper_case, wrap_with, zero_digits
+from tfmiss.text.unicode_transform import char_category, lower_case, normalize_unicode, replace_regex
+from tfmiss.text.unicode_transform import replace_string, title_case, upper_case, wrap_with, zero_digits
+
+
+@test_util.run_all_in_graph_and_eager_modes
+class CharCategoryTest(tf.test.TestCase):
+    def test_inference_shape(self):
+        source = [
+            ['1', 'z', ' '],
+            ['❤️', 'я', '-'],
+        ]
+        result = char_category(source)
+
+        self.assertAllEqual([2, 3], result.shape.as_list())
+
+    def test_actual_shape(self):
+        source = [
+            ['1', 'z', ' '],
+            ['❤️', 'я', '-'],
+        ]
+        result = char_category(source)
+        result = tf.shape(result)
+
+        result = self.evaluate(result)
+        self.assertAllEqual([2, 3], result.tolist())
+
+    def test_empty(self):
+        result = char_category('')
+
+        result = self.evaluate(result)
+        self.assertAllEqual(b'Cn', result)
+
+    def test_0d(self):
+        result = char_category('X')
+
+        result = self.evaluate(result)
+        self.assertAllEqual(b'Lu', result)
+
+    def test_1d(self):
+        result = char_category(['X'])
+
+        result = self.evaluate(result)
+        self.assertAllEqual([b'Lu'], result)
+
+    def test_2d(self):
+        result = char_category([['X']])
+
+        result = self.evaluate(result)
+        self.assertAllEqual([[b'Lu']], result)
+
+    def test_ragged(self):
+        source = tf.ragged.constant([['1', 'z'], [' ', '\n', '💥', '❤️']])
+        expected = tf.constant([['Nd', 'Ll', '', ''], ['Zs', 'Cc', 'Cs', 'So']])
+        result = char_category(source).to_tensor(default_value='')
+
+        expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
+
+    def test_ragged_last(self):
+        source = tf.ragged.constant([['1', 'z'], [' ', '\n', '💥', '❤️']])
+        expected = tf.constant([['Nd', 'Ll', '', ''], ['Zs', 'Cc', 'Cs', 'Mn']])
+        result = char_category(source, first=False).to_tensor(default_value='')
+
+        expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
+
+    def test_skip(self):
+        result = char_category([['X', '-Y-', 'z']], skip=['-Y-'])
+
+        result = self.evaluate(result)
+        self.assertAllEqual([[b'Lu', b'-Y-', b'Ll']], result)
 
 
 @test_util.run_all_in_graph_and_eager_modes

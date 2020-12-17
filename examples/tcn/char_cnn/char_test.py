@@ -82,6 +82,3 @@ if __name__ == "__main__":
     pyplot.legend()
     pyplot.savefig('loss_{}.png'.format(argv.dataset))
     pyplot.close()
-
-    for (core, m), color in zip(histories.items(), colors):
-        pyplot.plot(interval, np.exp(m['loss']), color=color, label=core)

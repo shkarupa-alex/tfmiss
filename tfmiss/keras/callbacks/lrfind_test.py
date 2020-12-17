@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import os
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.keras import keras_parameterized, testing_utils
@@ -23,9 +24,10 @@ class LRFInderTest(keras_parameterized.TestCase):
         y = np.logical_and(np.less(y, 0.1), np.greater(y, 0.9)).astype(np.int32)
         lrf_cb = LRFinder(200, min_lr=1e-2, max_lr=10.)
         model.fit(x, y, batch_size=5, callbacks=[lrf_cb])
-        best_lr = lrf_cb.plot()
+        best_lr, loss_graph = lrf_cb.plot()
 
         self.assertAlmostEqual(best_lr, 0.033496544, places=7)
+        self.assertTrue(os.path.exists(loss_graph))
 
 
 if __name__ == "__main__":

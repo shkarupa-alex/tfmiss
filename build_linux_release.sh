@@ -31,11 +31,11 @@ for VERSION in ${PYTHON_VERSIONS}; do
     # Test & build package
     bazel clean  # --expunge
     #bazel test \
-    #  --crosstool_top=//third_party/gcc7_manylinux2010-nvcc-cuda10.0:toolchain \
+    #  --crosstool_top=//third_party/gcc7_manylinux2010-nvcc-cuda10.1:toolchain \
     #  --test_output=errors \
     #  //tfmiss/...
     bazel build \
-      --crosstool_top=//third_party/gcc7_manylinux2010-nvcc-cuda10.0:toolchain \
+      --crosstool_top=//third_party/gcc7_manylinux2010-nvcc-cuda10.1:toolchain \
       build_pip_pkg
 
     # Build wheel

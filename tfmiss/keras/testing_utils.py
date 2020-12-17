@@ -158,7 +158,6 @@ def layer_multi_io_test(
         for input_data, input_shape in zip(input_datas, input_shapes):
             if len(input_data.shape) != len(input_shape) or \
                     not np.all(np.equal(input_data.shape, input_shape)):
-                print(input_data.shape, input_shape)
                 raise ValueError(
                     'Shapes of "input_datas" and values in "input_shapes" '
                     'should be equal if both provided')
@@ -257,7 +256,7 @@ def layer_multi_io_test(
     actual_output_dtypes = [ao.dtype for ao in actual_outputs]
 
     try:
-        _assert_shape(computed_output_shapes, actual_output_shapes)
+        _assert_shapes(computed_output_shapes, actual_output_shapes)
     except AssertionError:
         raise AssertionError(
             'When testing layer {}, for inputs {}, found output_shapes={} '
@@ -266,7 +265,7 @@ def layer_multi_io_test(
                 computed_output_shapes, kwargs))
 
     try:
-        _assert_shape(computed_output_signature_shapes, actual_output_shapes)
+        _assert_shapes(computed_output_signature_shapes, actual_output_shapes)
     except AssertionError:
         raise AssertionError(
             'When testing layer {}, for inputs {}, found output_shapes={} '

@@ -1,6 +1,6 @@
 package(default_visibility = ["//visibility:public"])
 
-load("@local_config_tf//:build_defs.bzl", "D_GLIBCXX_USE_CXX11_ABI")
+load("//tfmiss:tfmiss.bzl", "custom_op_library")
 
 py_library(
     name = "ops",
@@ -13,11 +13,9 @@ py_library(
     srcs_version = "PY2AND3",
 )
 
-cc_binary(
+custom_op_library(
     name = "_tfmiss_ops.so",
     srcs = [
-        # TODO: https://github.com/JonathanRaiman/tensorflow_qrnn/blob/master/qrnn.py
-
         # preprocessing
         "cc/kernels/preprocessing/cbow_context.cc",
         "cc/ops/preprocessing/cbow_context.cc",
@@ -32,61 +30,70 @@ cc_binary(
         "cc/ops/preprocessing/skip_gram.cc",
 
 
+        # qrnn
+        "cc/kernels/qrnn/fo_pool.h",
+        "cc/kernels/qrnn/fo_pool.cc",
+
+        "cc/ops/qrnn/fo_pool_batch_bwd.cc",
+        "cc/ops/qrnn/fo_pool_time_bwd.cc",
+        "cc/ops/qrnn/fo_pool_batch.cc",
+        "cc/ops/qrnn/fo_pool_time.cc",
+
+
         # unicode expand
-       "cc/kernels/unicode/expand/unicode_expand.h",
-       "cc/kernels/unicode/expand/unicode_expand.cc",
-       "cc/ops/unicode/expand/expand_shape.h",
-       "cc/ops/unicode/expand/expand_shape.cc",
+        "cc/kernels/unicode/expand/unicode_expand.h",
+        "cc/kernels/unicode/expand/unicode_expand.cc",
+        "cc/ops/unicode/expand/expand_shape.h",
+        "cc/ops/unicode/expand/expand_shape.cc",
 
-       "cc/kernels/unicode/expand/char_ngrams.cc",
-       "cc/ops/unicode/expand/char_ngrams.cc",
+        "cc/kernels/unicode/expand/char_ngrams.cc",
+        "cc/ops/unicode/expand/char_ngrams.cc",
 
-       "cc/kernels/unicode/expand/split_chars.cc",
-       "cc/ops/unicode/expand/split_chars.cc",
+        "cc/kernels/unicode/expand/split_chars.cc",
+        "cc/ops/unicode/expand/split_chars.cc",
 
-       "cc/kernels/unicode/expand/split_words.cc",
-       "cc/ops/unicode/expand/split_words.cc",
+        "cc/kernels/unicode/expand/split_words.cc",
+        "cc/ops/unicode/expand/split_words.cc",
 
 
         # unicode transform
-       "cc/kernels/unicode/transform/unicode_transform.h",
-       "cc/kernels/unicode/transform/unicode_transform.cc",
+        "cc/kernels/unicode/transform/unicode_transform.h",
+        "cc/kernels/unicode/transform/unicode_transform.cc",
 
-       "cc/kernels/unicode/transform/lower_case.cc",
-       "cc/ops/unicode/transform/lower_case.cc",
+        "cc/kernels/unicode/transform/char_category.cc",
+        "cc/ops/unicode/transform/char_category.cc",
 
-       "cc/kernels/unicode/transform/normalize_unicode.cc",
-       "cc/ops/unicode/transform/normalize_unicode.cc",
+        "cc/kernels/unicode/transform/lower_case.cc",
+        "cc/ops/unicode/transform/lower_case.cc",
 
-       "cc/kernels/unicode/transform/replace_regex.cc",
-       "cc/ops/unicode/transform/replace_regex.cc",
+        "cc/kernels/unicode/transform/normalize_unicode.cc",
+        "cc/ops/unicode/transform/normalize_unicode.cc",
 
-       "cc/kernels/unicode/transform/replace_string.cc",
-       "cc/ops/unicode/transform/replace_string.cc",
+        "cc/kernels/unicode/transform/replace_regex.cc",
+        "cc/ops/unicode/transform/replace_regex.cc",
 
-       "cc/kernels/unicode/transform/title_case.cc",
-       "cc/ops/unicode/transform/title_case.cc",
+        "cc/kernels/unicode/transform/replace_string.cc",
+        "cc/ops/unicode/transform/replace_string.cc",
 
-       "cc/kernels/unicode/transform/upper_case.cc",
-       "cc/ops/unicode/transform/upper_case.cc",
+        "cc/kernels/unicode/transform/title_case.cc",
+        "cc/ops/unicode/transform/title_case.cc",
 
-       "cc/kernels/unicode/transform/wrap_with.cc",
-       "cc/ops/unicode/transform/wrap_with.cc",
+        "cc/kernels/unicode/transform/upper_case.cc",
+        "cc/ops/unicode/transform/upper_case.cc",
 
-       "cc/kernels/unicode/transform/zero_digits.cc",
-       "cc/ops/unicode/transform/zero_digits.cc",
+        "cc/kernels/unicode/transform/wrap_with.cc",
+        "cc/ops/unicode/transform/wrap_with.cc",
+
+        "cc/kernels/unicode/transform/zero_digits.cc",
+        "cc/ops/unicode/transform/zero_digits.cc",
     ],
-    linkshared = 1,
+    cuda_srcs = [
+        "cc/kernels/qrnn/fo_pool.h",
+        "cc/kernels/qrnn/fo_pool.cu.cc",
+    ],
     deps = [
         "//third_party/icu/data:custom_data",
         "@icu//:common",
         "@re2//:re2",
-        "@local_config_tf//:libtensorflow_framework",
-        "@local_config_tf//:tf_header_lib",
-    ],
-    copts = [
-        "-pthread",
-        "-std=c++11",
-        D_GLIBCXX_USE_CXX11_ABI,
-    ],
+    ]
 )

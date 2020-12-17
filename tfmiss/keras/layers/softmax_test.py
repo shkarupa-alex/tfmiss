@@ -11,6 +11,15 @@ from tfmiss.keras.testing_utils import layer_multi_io_test
 
 @keras_parameterized.run_all_keras_modes
 class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
+    def setUp(self):
+        super(AdaptiveSoftmaxTest, self).setUp()
+        self.default_policy = tf.keras.mixed_precision.global_policy()
+        self.mf16_policy = tf.keras.mixed_precision.Policy('mixed_float16')
+
+    def tearDown(self):
+        super(AdaptiveSoftmaxTest, self).tearDown()
+        tf.keras.mixed_precision.set_global_policy(self.default_policy)
+
     def test_layer(self):
         layer_multi_io_test(
             AdaptiveSoftmax,
@@ -47,9 +56,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
             expected_output_shapes=[(None, 2, 10, 20)]
         )
 
-        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
-        mf16_policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
-        tf.keras.mixed_precision.experimental.set_policy(mf16_policy)
+        tf.keras.mixed_precision.set_global_policy(self.mf16_policy)
         layer_multi_io_test(
             AdaptiveSoftmax,
             kwargs={
@@ -61,7 +68,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
             expected_output_dtypes=['float32'],
             expected_output_shapes=[(None, 20)]
         )
-        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
+        tf.keras.mixed_precision.set_global_policy(self.default_policy)
 
     def test_actual_shape_2d(self):
         layer = AdaptiveSoftmax(units=20, cutoff=[3])
@@ -229,6 +236,15 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
 
 @keras_parameterized.run_all_keras_modes
 class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
+    def setUp(self):
+        super(NoiseContrastiveEstimationTest, self).setUp()
+        self.default_policy = tf.keras.mixed_precision.global_policy()
+        self.mf16_policy = tf.keras.mixed_precision.Policy('mixed_float16')
+
+    def tearDown(self):
+        super(NoiseContrastiveEstimationTest, self).tearDown()
+        tf.keras.mixed_precision.set_global_policy(self.default_policy)
+
     def test_layer(self):
         layer_multi_io_test(
             NoiseContrastiveEstimation,
@@ -261,9 +277,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
             expected_output_dtypes=['float32']
         )
 
-        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
-        mf16_policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
-        tf.keras.mixed_precision.experimental.set_policy(mf16_policy)
+        tf.keras.mixed_precision.set_global_policy(self.mf16_policy)
         layer_multi_io_test(
             NoiseContrastiveEstimation,
             kwargs={
@@ -274,7 +288,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
             input_dtypes=['float16', 'int32'],
             expected_output_dtypes=['float32']
         )
-        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
+        tf.keras.mixed_precision.set_global_policy(self.default_policy)
 
     def test_actual_shape_2d(self):
         layer = NoiseContrastiveEstimation(units=20, negatives=5)
@@ -380,6 +394,15 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
 
 @keras_parameterized.run_all_keras_modes
 class SampledSofmaxTest(keras_parameterized.TestCase):
+    def setUp(self):
+        super(SampledSofmaxTest, self).setUp()
+        self.default_policy = tf.keras.mixed_precision.global_policy()
+        self.mf16_policy = tf.keras.mixed_precision.Policy('mixed_float16')
+
+    def tearDown(self):
+        super(SampledSofmaxTest, self).tearDown()
+        tf.keras.mixed_precision.set_global_policy(self.default_policy)
+
     def test_layer(self):
         layer_multi_io_test(
             SampledSofmax,
@@ -412,9 +435,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
             expected_output_dtypes=['float32']
         )
 
-        glob_policy = tf.keras.mixed_precision.experimental.global_policy()
-        mf16_policy = tf.keras.mixed_precision.experimental.Policy('mixed_float16')
-        tf.keras.mixed_precision.experimental.set_policy(mf16_policy)
+        tf.keras.mixed_precision.set_global_policy(self.mf16_policy)
         layer_multi_io_test(
             SampledSofmax,
             kwargs={
@@ -425,7 +446,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
             input_dtypes=['float16', 'int32'],
             expected_output_dtypes=['float32']
         )
-        tf.keras.mixed_precision.experimental.set_policy(glob_policy)
+        tf.keras.mixed_precision.set_global_policy(self.default_policy)
 
     def test_actual_shape_2d(self):
         layer = SampledSofmax(units=20, negatives=5)
