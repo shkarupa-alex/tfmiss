@@ -60,6 +60,9 @@ custom_op_library(
         "cc/kernels/unicode/transform/unicode_transform.h",
         "cc/kernels/unicode/transform/unicode_transform.cc",
 
+        "cc/kernels/unicode/transform/char_category.cc",
+        "cc/ops/unicode/transform/char_category.cc",
+
         "cc/kernels/unicode/transform/lower_case.cc",
         "cc/ops/unicode/transform/lower_case.cc",
 

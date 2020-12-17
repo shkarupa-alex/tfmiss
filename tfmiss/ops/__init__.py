@@ -25,6 +25,7 @@ def _fo_pool_batch_grad(op, grad):
 
 
 # unicode transform
+tf.no_gradient('Miss>CharCategory')
 tf.no_gradient('Miss>LowerCase')
 tf.no_gradient('Miss>NormalizeUnicode')
 tf.no_gradient('Miss>ReplaceRegex')
