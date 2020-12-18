@@ -3,8 +3,10 @@
 #include <unicode/regex.h>
 #include "unicode_expand.h"
 
-namespace tensorflow {
-namespace miss {
+namespace tensorflow
+{
+namespace miss
+{
 
 class SplitWordsOp : public UnicodeExpandOp
 {
@@ -21,55 +23,61 @@ public:
 
     if (_extended)
     {
+      UErrorCode regexError = U_ZERO_ERROR;
+
       // Regex for rule 6 and 7
       // ($ALetterEx | $Hebrew_LetterEx) ($MidLetterEx | $MidNumLetEx | $Single_QuoteEx) ($ALetterEx | $Hebrew_LetterEx)
-      UErrorCode regex67Error = U_ZERO_ERROR;
-      _wb67 = RegexPattern::compile(
+      _wb6 = RegexPattern::compile(
           "([[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]]"
           "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)"
+          "[[\\p{Word_Break = MidLetter}][\\p{Word_Break = MidNumLet}][\\p{Word_Break = Single_Quote}]]",
+          0,
+          regexError);
+      OP_REQUIRES(ctx, U_SUCCESS(regexError), errors::InvalidArgument("RegexPattern compilation failed"));
+
+      _wb7 = RegexPattern::compile(
           "([[\\p{Word_Break = MidLetter}][\\p{Word_Break = MidNumLet}][\\p{Word_Break = Single_Quote}]]"
           "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)"
-          "([[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]])",
+          "[[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]]",
           0,
-          regex67Error);
-      OP_REQUIRES(ctx, U_SUCCESS(regex67Error), errors::InvalidArgument("RegexPattern compilation failed"));
+          regexError);
+      OP_REQUIRES(ctx, U_SUCCESS(regexError), errors::InvalidArgument("RegexPattern compilation failed"));
 
-      // Regex for rule 9
-      // ($ALetterEx | $Hebrew_LetterEx) $NumericEx
-      UErrorCode regex9Error = U_ZERO_ERROR;
+      // Regex for rule 9 and 10
+      // $NumericEx ($ALetterEx | $Hebrew_LetterEx) $NumericEx
       _wb9 = RegexPattern::compile(
           "([[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]]"
           "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)"
-          "([[\\p{Word_Break = Numeric}][\uFF10-\uff19]]"
-          "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)",
+          "[[\\p{Word_Break = Numeric}][\uFF10-\uff19]]",
           0,
-          regex9Error);
-      OP_REQUIRES(ctx, U_SUCCESS(regex9Error), errors::InvalidArgument("RegexPattern compilation failed"));
+          regexError);
+      OP_REQUIRES(ctx, U_SUCCESS(regexError), errors::InvalidArgument("RegexPattern compilation failed"));
 
-      // Regex for rule 10
-      // $NumericEx ($ALetterEx | $Hebrew_LetterEx)
-      UErrorCode regex10Error = U_ZERO_ERROR;
       _wb10 = RegexPattern::compile(
           "([[\\p{Word_Break = Numeric}][\uFF10-\uff19]]"
           "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)"
-          "([[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]]"
-          "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)",
+          "[[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]]",
           0,
-          regex10Error);
-      OP_REQUIRES(ctx, U_SUCCESS(regex10Error), errors::InvalidArgument("RegexPattern compilation failed"));
+          regexError);
+      OP_REQUIRES(ctx, U_SUCCESS(regexError), errors::InvalidArgument("RegexPattern compilation failed"));
 
       // Regex for rule 11 and 12
       // $NumericEx ($MidNumEx | $MidNumLetEx | $Single_QuoteEx) $NumericEx
-      UErrorCode regex1112Error = U_ZERO_ERROR;
-      _wb1112 = RegexPattern::compile(
+      _wb11 = RegexPattern::compile(
           "([[\\p{Word_Break = Numeric}][\uFF10-\uff19]]"
           "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)"
+          "[[\\p{Word_Break = MidNum}][\\p{Word_Break = MidNumLet}][\\p{Word_Break = Single_Quote}]]",
+          0,
+          regexError);
+      OP_REQUIRES(ctx, U_SUCCESS(regexError), errors::InvalidArgument("RegexPattern compilation failed"));
+
+      _wb12 = RegexPattern::compile(
           "([[\\p{Word_Break = MidNum}][\\p{Word_Break = MidNumLet}][\\p{Word_Break = Single_Quote}]]"
           "[[\\p{Word_Break = Extend}][\\p{Word_Break = Format}][\\p{Word_Break = ZWJ}]]*)"
-          "([[\\p{Word_Break = Numeric}][\uFF10-\uff19]])",
+          "[[\\p{Word_Break = Numeric}][\uFF10-\uff19]]",
           0,
-          regex1112Error);
-      OP_REQUIRES(ctx, U_SUCCESS(regex1112Error), errors::InvalidArgument("RegexPattern compilation failed"));
+          regexError);
+      OP_REQUIRES(ctx, U_SUCCESS(regexError), errors::InvalidArgument("RegexPattern compilation failed"));
     }
   }
 
@@ -81,10 +89,12 @@ public:
 private:
   bool _extended;
   const BreakIterator *_wordIterator;
-  const RegexPattern *_wb67;
+  const RegexPattern *_wb6;
+  const RegexPattern *_wb7;
   const RegexPattern *_wb9;
   const RegexPattern *_wb10;
-  const RegexPattern *_wb1112;
+  const RegexPattern *_wb11;
+  const RegexPattern *_wb12;
 
 protected:
   uint64 expand_rate() override
@@ -116,29 +126,45 @@ protected:
     {
       UErrorCode extendedError = U_ZERO_ERROR;
 
-      RegexMatcher *matcher67 = _wb67->matcher(unicode_string, extendedError);
+      RegexMatcher *matcher6 = _wb6->matcher(unicode_string, extendedError);
       if (!U_SUCCESS(extendedError))
       {
-        delete matcher67;
+        delete matcher6;
 
         return false;
       }
-      while (matcher67->find(extendedError) && U_SUCCESS(extendedError))
+      while (matcher6->find(extendedError) && U_SUCCESS(extendedError))
       {
-        for (int i = 1; i < 3; i++)
+        int32_t end6 = matcher6->end(1, extendedError);
+        split_positions.push_back(end6);
+        if (!U_SUCCESS(extendedError))
         {
-          int32_t end67 = matcher67->end(i, extendedError);
-          split_positions.push_back(end67);
+          delete matcher6;
 
-          if (!U_SUCCESS(extendedError))
-          {
-            delete matcher67;
-
-            return false;
-          }
+          return false;
         }
       }
-      delete matcher67;
+      delete matcher6;
+
+      RegexMatcher *matcher7 = _wb7->matcher(unicode_string, extendedError);
+      if (!U_SUCCESS(extendedError))
+      {
+        delete matcher7;
+
+        return false;
+      }
+      while (matcher7->find(extendedError) && U_SUCCESS(extendedError))
+      {
+        int32_t end7 = matcher7->end(1, extendedError);
+        split_positions.push_back(end7);
+        if (!U_SUCCESS(extendedError))
+        {
+          delete matcher7;
+
+          return false;
+        }
+      }
+      delete matcher7;
 
       RegexMatcher *matcher9 = _wb9->matcher(unicode_string, extendedError);
       if (!U_SUCCESS(extendedError))
@@ -149,14 +175,14 @@ protected:
       }
       while (matcher9->find(extendedError) && U_SUCCESS(extendedError))
       {
-          int32_t end9 = matcher9->end(1, extendedError);
-          split_positions.push_back(end9);
-          if (!U_SUCCESS(extendedError))
-          {
-            delete matcher9;
+        int32_t end9 = matcher9->end(1, extendedError);
+        split_positions.push_back(end9);
+        if (!U_SUCCESS(extendedError))
+        {
+          delete matcher9;
 
-            return false;
-          }
+          return false;
+        }
       }
       delete matcher9;
 
@@ -169,39 +195,56 @@ protected:
       }
       while (matcher10->find(extendedError) && U_SUCCESS(extendedError))
       {
-          int32_t end10 = matcher10->end(1, extendedError);
-          split_positions.push_back(end10);
-          if (!U_SUCCESS(extendedError))
-          {
-            delete matcher10;
+        int32_t end10 = matcher10->end(1, extendedError);
+        split_positions.push_back(end10);
+        if (!U_SUCCESS(extendedError))
+        {
+          delete matcher10;
 
-            return false;
-          }
+          return false;
+        }
       }
       delete matcher10;
 
-      RegexMatcher *matcher1112 = _wb1112->matcher(unicode_string, extendedError);
+      RegexMatcher *matcher11 = _wb11->matcher(unicode_string, extendedError);
       if (!U_SUCCESS(extendedError))
       {
-        delete matcher1112;
+        delete matcher11;
 
         return false;
       }
-      while (matcher1112->find(extendedError) && U_SUCCESS(extendedError))
+      while (matcher11->find(extendedError) && U_SUCCESS(extendedError))
       {
-        for (int i = 1; i < 3; i++)
+        int32_t end11 = matcher11->end(1, extendedError);
+        split_positions.push_back(end11);
+        if (!U_SUCCESS(extendedError))
         {
-          int32_t end1112 = matcher1112->end(i, extendedError);
-          split_positions.push_back(end1112);
-          if (!U_SUCCESS(extendedError))
-          {
-            delete matcher1112;
+          delete matcher11;
 
-            return false;
-          }
+          return false;
         }
       }
-      delete matcher1112;
+      delete matcher11;
+
+      RegexMatcher *matcher12 = _wb12->matcher(unicode_string, extendedError);
+      if (!U_SUCCESS(extendedError))
+      {
+        delete matcher12;
+
+        return false;
+      }
+      while (matcher12->find(extendedError) && U_SUCCESS(extendedError))
+      {
+        int32_t end12 = matcher12->end(1, extendedError);
+        split_positions.push_back(end12);
+        if (!U_SUCCESS(extendedError))
+        {
+          delete matcher12;
+
+          return false;
+        }
+      }
+      delete matcher12;
     }
 
     // Remove duplicates and split
@@ -213,7 +256,8 @@ protected:
       int32_t prev = split_positions[i];
       int32_t pos = split_positions[i + 1];
 
-      if (prev < 0) continue;
+      if (prev < 0)
+        continue;
 
       UnicodeString word = UnicodeString(unicode_string, prev, pos - prev);
 
@@ -226,5 +270,5 @@ protected:
 
 REGISTER_KERNEL_BUILDER(Name("Miss>SplitWords").Device(DEVICE_CPU), SplitWordsOp);
 
-}  // end namespace miss
-}  // namespace tensorflow
+} // end namespace miss
+} // namespace tensorflow

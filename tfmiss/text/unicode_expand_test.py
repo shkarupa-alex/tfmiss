@@ -611,6 +611,29 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
+    def test_split_extended_double(self):
+        expected = tf.constant([
+            [' ', 'word', '.', 'word', '.', 'word', '.', ' '],
+            [' ', 'word', '1', 'word', '1', 'word', '1', ' '],
+            [' ', '.', '1', '.', '1', '.', '1', ' '],
+        ], dtype=tf.string)
+        result = split_words([
+            ' word.word.word. ',  # wb 6, 7
+            ' word1word1word1 ',  # wb 9, 10
+            ' .1.1.1 ',  # wb 11, 12
+        ], extended=True)
+        self.assertIsInstance(result, tf.RaggedTensor)
+        result = result.to_tensor(default_value='')
+
+        expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
+
+    def test_complex_extended_case(self):
+        expected = tf.constant(['Word', '.', 'W', '.', 'O', '.', ' ', 'rd', '.'])
+        result = split_words('Word.W.O. rd.', extended=True)
+        expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
+
     def test_skip(self):
         expected = tf.constant([[['x', '!'], ['y!', '']]], dtype=tf.string)
         result = split_words([['x!', 'y!']], skip=['y!'])
