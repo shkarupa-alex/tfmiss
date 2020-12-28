@@ -83,7 +83,7 @@ class AdaptiveEmbedding(Embedding):
         self.built = True
 
     def _no_projection(self, embedding):
-        return tf.cast(embedding, self._compute_dtype)
+        return tf.cast(embedding, self.compute_dtype)
 
     def call(self, inputs):
         dtype = tf.keras.backend.dtype(inputs)
