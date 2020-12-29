@@ -3,8 +3,8 @@ package(default_visibility = ["//visibility:public"])
 py_library(
     name = "layers",
     srcs = [
-        # TODO: https://mlwhiz.com/blog/2018/12/17/text_classification/
         "__init__.py",
+        "attention.py",
         "embedding.py",
         "preprocessing.py",
         "qrnn.py",
@@ -20,6 +20,15 @@ py_library(
         "//tfmiss/text"
     ],
     srcs_version = "PY2AND3",
+)
+
+py_test(
+    name = "attention_test",
+    srcs = ["attention_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":layers"
+    ],
 )
 
 py_test(

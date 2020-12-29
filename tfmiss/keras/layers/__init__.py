@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+from tfmiss.keras.layers.attention import AttentionWithContext
 from tfmiss.keras.layers.embedding import AdaptiveEmbedding
 from tfmiss.keras.layers.preprocessing import CharNgams, WordShape
 from tfmiss.keras.layers.qrnn import QRNN
