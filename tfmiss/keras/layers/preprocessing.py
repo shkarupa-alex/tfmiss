@@ -151,7 +151,7 @@ class WordShape(tf.keras.layers.Layer):
         # Length
         if self.options & self.SHAPE_LENGTH_NORM:
             length_norm = tf.strings.length(inputs, unit='UTF8_CHAR')
-            length_norm = (tf.cast(length_norm, self._compute_dtype) - self.mean_len) / self.std_len
+            length_norm = (tf.cast(length_norm, self.compute_dtype) - self.mean_len) / self.std_len
             outputs_one.append(length_norm)
 
         # Same
@@ -195,8 +195,8 @@ class WordShape(tf.keras.layers.Layer):
             last_feats = tf.one_hot(last_ids, depth=30)
             outputs_many.append(last_feats)
 
-        outputs_one = [tf.cast(o, self._compute_dtype) for o in outputs_one]
-        outputs_many = [tf.cast(o, self._compute_dtype) for o in outputs_many]
+        outputs_one = [tf.cast(o, self.compute_dtype) for o in outputs_one]
+        outputs_many = [tf.cast(o, self.compute_dtype) for o in outputs_many]
 
         if not outputs_one:
             return tf.concat(outputs_many, axis=-1)

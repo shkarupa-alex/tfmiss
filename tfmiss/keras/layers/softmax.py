@@ -163,7 +163,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             training = tf.keras.backend.learning_phase()
 
         input_logits, input_targets = inputs
-        input_logits = tf.cast(input_logits, self._compute_dtype)
+        input_logits = tf.cast(input_logits, self.compute_dtype)
 
         input_logits, row_lengths = convert_inputs_if_ragged(input_logits)
         input_targets, _ = convert_inputs_if_ragged(input_targets)
@@ -175,7 +175,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             loss_weights = loss_weights.to_tensor(False)
         if mask is not None:
             loss_weights = tf.logical_and(loss_weights, mask)
-        loss_weights = tf.cast(loss_weights, self._compute_dtype)
+        loss_weights = tf.cast(loss_weights, self.compute_dtype)
 
         probs, loss = control_flow_util.smart_cond(
             training,
@@ -418,7 +418,7 @@ class SampledSofmax(tf.keras.layers.Layer):
                 training = tf.keras.backend.learning_phase()
 
             input_logits, input_targets = inputs
-            input_logits = tf.cast(input_logits, self._compute_dtype)
+            input_logits = tf.cast(input_logits, self.compute_dtype)
             input_logits, row_lengths = convert_inputs_if_ragged(input_logits)
             input_targets, _ = convert_inputs_if_ragged(input_targets)
             is_ragged_input = (row_lengths is not None)
@@ -429,7 +429,7 @@ class SampledSofmax(tf.keras.layers.Layer):
                 loss_weights = loss_weights.to_tensor(False)
             if mask is not None:
                 loss_weights = tf.logical_and(loss_weights, mask)
-            loss_weights = tf.cast(loss_weights, self._compute_dtype)
+            loss_weights = tf.cast(loss_weights, self.compute_dtype)
 
             input_shape = tf.shape(input_logits)
             output_shape = tf.stack(tf.unstack(input_shape)[:-1] + [self.units])
