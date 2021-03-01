@@ -87,7 +87,7 @@ class AdditiveSelfAttentionTest(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
             AdditiveSelfAttention,
-            kwargs={},
+            kwargs={'units': 1},
             input_shape=(2, 10, 5),
             input_dtype='float32',
             expected_output_dtype='float32',
@@ -97,7 +97,7 @@ class AdditiveSelfAttentionTest(keras_parameterized.TestCase):
         tf.keras.mixed_precision.set_global_policy(self.mf16_policy)
         testing_utils.layer_test(
             AdditiveSelfAttention,
-            kwargs={'use_scale': True, 'causal': True, 'dropout': 0.1},
+            kwargs={'units': 7, 'use_scale': True, 'causal': True, 'dropout': 0.1},
             input_shape=(2, 10, 5),
             input_dtype='float16',
             expected_output_dtype='float16',

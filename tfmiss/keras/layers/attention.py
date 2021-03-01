@@ -101,10 +101,7 @@ class SelfAttentionWithContext(layers.Layer):
 
 @utils.register_keras_serializable(package='Miss')
 class MultiplicativeSelfAttention(layers.Attention):
-    """Multiplicative (Luong) self-attention layer for temporal data.
-
-    This version of Self-Attention refers to Transformers
-    """
+    """Multiplicative (Luong) self-attention layer for temporal data."""
 
     def __init__(self, **kwargs):
         super(MultiplicativeSelfAttention, self).__init__(**kwargs)
@@ -118,8 +115,12 @@ class MultiplicativeSelfAttention(layers.Attention):
         self.input_spec = layers.InputSpec(ndim=3, axes={-1: channels})
 
         self.make_query = layers.Dense(channels, use_bias=False)
-        self.make_value = layers.Dense(channels, use_bias=False)
-        self.make_key = layers.Dense(channels, use_bias=False)
+        self.att_bias = self.add_weight(
+            'bias',
+            shape=(1,),
+            initializer='zeros',
+            dtype=self.dtype,
+            trainable=True)
 
         super(MultiplicativeSelfAttention, self).build([input_shape, input_shape, input_shape])
 
@@ -128,10 +129,10 @@ class MultiplicativeSelfAttention(layers.Attention):
             training = tf.keras.backend.learning_phase()
 
         query = self.make_query(inputs)
-        value = self.make_value(inputs)
-        key = self.make_key(inputs)
+        value = inputs
+        key = inputs
 
-        floatx = tf.keras.backend.floatx()  # Hack for wrong cast in _apply_scores
+        floatx = tf.keras.backend.floatx()  # TODO: wait for https://github.com/tensorflow/tensorflow/issues/46064
         tf.keras.backend.set_floatx(self.compute_dtype)
 
         outputs = super(MultiplicativeSelfAttention, self).call(
@@ -145,6 +146,13 @@ class MultiplicativeSelfAttention(layers.Attention):
 
         return outputs
 
+    def _calculate_scores(self, query, key):
+        scores = tf.matmul(query, key, transpose_b=True)
+        scores += self.att_bias  # This stage missed in parent implementation
+        if self.scale is not None:
+            scores *= self.scale
+        return scores
+
     def compute_mask(self, inputs, mask=None):
         return super(MultiplicativeSelfAttention, self).compute_mask(
             [inputs, inputs, inputs],
@@ -157,14 +165,13 @@ class MultiplicativeSelfAttention(layers.Attention):
 
 @utils.register_keras_serializable(package='Miss')
 class AdditiveSelfAttention(layers.AdditiveAttention):
-    """Additive (Bahdanau) self-attention layer for temporal data.
+    """Additive (Bahdanau) self-attention layer for temporal data."""
 
-    Reference: https://arxiv.org/pdf/1806.01264.pdf
-    """
-
-    def __init__(self, **kwargs):
+    def __init__(self, units, **kwargs):
         super(AdditiveSelfAttention, self).__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=3)
+
+        self.units = units
 
     @tf_utils.shape_type_conversion
     def build(self, input_shape):
@@ -173,8 +180,8 @@ class AdditiveSelfAttention(layers.AdditiveAttention):
             raise ValueError('Channel dimension of inputs should be defined. Found `None`.')
         self.input_spec = layers.InputSpec(ndim=3, axes={-1: channels})
 
-        self.make_query = layers.Dense(channels, use_bias=False)
-        self.make_key = layers.Dense(channels)
+        self.make_query = layers.Dense(self.units, use_bias=False)
+        self.make_key = layers.Dense(self.units)
         self.make_score = layers.Dense(1, activation='sigmoid')
 
         super(AdditiveSelfAttention, self).build([input_shape, input_shape, input_shape])
@@ -187,7 +194,7 @@ class AdditiveSelfAttention(layers.AdditiveAttention):
         value = inputs
         key = self.make_key(inputs)
 
-        floatx = tf.keras.backend.floatx()  # Hack for wrong cast in _apply_scores
+        floatx = tf.keras.backend.floatx()  # TODO: wait for https://github.com/tensorflow/tensorflow/issues/46064
         tf.keras.backend.set_floatx(self.compute_dtype)
 
         outputs = super(AdditiveSelfAttention, self).call(
@@ -222,3 +229,9 @@ class AdditiveSelfAttention(layers.AdditiveAttention):
     @tf_utils.shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape
+
+    def get_config(self):
+        config = super(AdditiveSelfAttention, self).get_config()
+        config.update({'units': self.units})
+
+        return config
