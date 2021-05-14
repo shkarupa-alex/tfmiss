@@ -10,7 +10,7 @@ from tfmiss.keras.layers.preprocessing import CharNgams, WordShape
 
 @keras_parameterized.run_all_keras_modes
 class CharNgamsTest(keras_parameterized.TestCase):
-    # TODO: can't test ragged output
+    # TODO: check issue with shape computation
     # def test_layer(self):
     #     testing_utils.layer_test(
     #         CharNgams,
