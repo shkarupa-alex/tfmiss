@@ -221,7 +221,7 @@ def estimate_bucket_pipeline(bucket_boundaries, num_samples, safe=True):
         batch_size = num_samples / (boundary - 1)
         batch_size = np.floor(batch_size / batch_step) if safe \
             else np.round(batch_size / batch_step)
-        batch_size = batch_step * batch_size
+        batch_size *= batch_step
 
         if safe and batch_size < batch_step:
             if len(batch_sizes) < 2:

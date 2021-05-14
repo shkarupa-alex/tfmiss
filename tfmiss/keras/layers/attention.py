@@ -132,17 +132,12 @@ class MultiplicativeSelfAttention(layers.Attention):
         value = inputs
         key = inputs
 
-        floatx = tf.keras.backend.floatx()  # TODO: wait for https://github.com/tensorflow/tensorflow/issues/46064
-        tf.keras.backend.set_floatx(self.compute_dtype)
-
         outputs = super(MultiplicativeSelfAttention, self).call(
             [query, value, key],
             mask=None if mask is None else [mask, mask],
             training=training,
             return_attention_scores=return_attention_scores
         )
-
-        tf.keras.backend.set_floatx(floatx)
 
         return outputs
 
@@ -194,17 +189,12 @@ class AdditiveSelfAttention(layers.AdditiveAttention):
         value = inputs
         key = self.make_key(inputs)
 
-        floatx = tf.keras.backend.floatx()  # TODO: wait for https://github.com/tensorflow/tensorflow/issues/46064
-        tf.keras.backend.set_floatx(self.compute_dtype)
-
         outputs = super(AdditiveSelfAttention, self).call(
             [query, value, key],
             mask=None if mask is None else [mask, mask],
             training=training,
             return_attention_scores=return_attention_scores
         )
-
-        tf.keras.backend.set_floatx(floatx)
 
         return outputs
 
