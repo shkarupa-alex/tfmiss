@@ -78,6 +78,18 @@ public:
           0,
           regexError);
       OP_REQUIRES(ctx, U_SUCCESS(regexError), errors::InvalidArgument("RegexPattern compilation failed"));
+
+      _wbExtSp0 = RegexPattern::compile(
+          "([[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]"
+          "[\\p{Word_Break = Numeric}][\\p{Word_Break = Katakana}]])[\u202F\u2060\u2061\uFEFF]",
+          0,
+          regexError);
+      _wbExtSp1 = RegexPattern::compile(
+          "([\u202F\u2060\u2061\uFEFF])[[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]"
+          "[\\p{Word_Break = Numeric}][\\p{Word_Break = Katakana}]]",
+          0,
+          regexError);
+      OP_REQUIRES(ctx, U_SUCCESS(regexError), errors::InvalidArgument("RegexPattern compilation failed"));
     }
   }
 
@@ -95,6 +107,8 @@ private:
   const RegexPattern *_wb10;
   const RegexPattern *_wb11;
   const RegexPattern *_wb12;
+  const RegexPattern *_wbExtSp0;
+  const RegexPattern *_wbExtSp1;
 
 protected:
   uint64 expand_rate() override
@@ -245,6 +259,46 @@ protected:
         }
       }
       delete matcher12;
+
+      RegexMatcher *matcherExtSp0 = _wbExtSp0->matcher(unicode_string, extendedError);
+      if (!U_SUCCESS(extendedError))
+      {
+        delete matcherExtSp0;
+
+        return false;
+      }
+      while (matcherExtSp0->find(extendedError) && U_SUCCESS(extendedError))
+      {
+        int32_t endExtSp0 = matcherExtSp0->end(1, extendedError);
+        split_positions.push_back(endExtSp0);
+        if (!U_SUCCESS(extendedError))
+        {
+          delete matcherExtSp0;
+
+          return false;
+        }
+      }
+      delete matcherExtSp0;
+
+      RegexMatcher *matcherExtSp1 = _wbExtSp1->matcher(unicode_string, extendedError);
+      if (!U_SUCCESS(extendedError))
+      {
+        delete matcherExtSp1;
+
+        return false;
+      }
+      while (matcherExtSp1->find(extendedError) && U_SUCCESS(extendedError))
+      {
+        int32_t endExtSp1 = matcherExtSp1->end(1, extendedError);
+        split_positions.push_back(endExtSp1);
+        if (!U_SUCCESS(extendedError))
+        {
+          delete matcherExtSp1;
+
+          return false;
+        }
+      }
+      delete matcherExtSp1;
     }
 
     // Remove duplicates and split
