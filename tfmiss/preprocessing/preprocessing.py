@@ -123,3 +123,37 @@ def skip_gram(source, window, seed=None, name=None):
             seed2=seed2
         )
         return target, context
+
+
+def spaces_after(source, name=None):
+    """Separates spaces from tokens.
+
+    Args:
+        source: `2-D` string `Tensor` or `RaggedTensor`, batched lists of "tokens with spaces" [sentences, tokens].
+        name: `string`, a name for the operation (optional).
+
+    Returns:
+        `2-D` string `RaggedTensor`: tokens.
+        `2-D` string `RaggedTensor`: spaces.
+    """
+    with tf.name_scope(name or 'spaces_after'):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source')
+
+        if source.shape.rank != 2:
+            raise ValueError('Rank of `source` must equals 2')
+
+        if not ragged_tensor.is_ragged(source):
+            source = ragged_tensor.RaggedTensor.from_tensor(source, ragged_rank=1)
+
+        if source.ragged_rank != 1:
+            raise ValueError('Ragged rank of `source` must equals 1')
+
+        token_values, space_values, common_splits = tfmiss_ops.miss_spaces_after(
+            source_values=source.values,
+            source_splits=source.row_splits
+        )
+
+        tokens = tf.RaggedTensor.from_row_splits(token_values, common_splits)
+        spaces = tf.RaggedTensor.from_row_splits(space_values, common_splits)
+
+        return tokens, spaces

@@ -5,7 +5,8 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from tfmiss.preprocessing.preprocessing import cbow_context, cont_bow, skip_gram
+from tfmiss.preprocessing.preprocessing import cbow_context, cont_bow, skip_gram, spaces_after
+from tfmiss.text.unicode_expand import split_words
 
 
 @test_util.run_all_in_graph_and_eager_modes
@@ -271,6 +272,92 @@ class SkipGramTest(tf.test.TestCase):
             [b'lazy', b'dog'],
             [b'dog', b'lazy']
         ], pairs.tolist())
+
+
+@test_util.run_all_in_graph_and_eager_modes
+class SpacesAfterTest(tf.test.TestCase):
+    def test_empty(self):
+        source = tf.ragged.constant(np.array([]).reshape(0, 2), dtype=tf.string)
+        tokens, spaces = spaces_after(source)
+        tokens, spaces = self.evaluate([tokens, spaces])
+
+        self.assertAllEqual([], tokens.values.tolist())
+        self.assertAllEqual([0], tokens.row_splits.tolist())
+        self.assertAllEqual([], spaces.values.tolist())
+        self.assertAllEqual([0], spaces.row_splits.tolist())
+
+    def test_dense(self):
+        source = tf.constant([
+            ['the', ' ', 'quick', 'brown', ' ', 'fox'],
+            ['jumped', 'over', ' ', 'the', 'dog', ' '],
+        ])
+        tokens, spaces = spaces_after(source)
+        tokens, spaces = self.evaluate([tokens.to_tensor(''), spaces.to_tensor('')])
+
+        self.assertAllEqual([
+            [b'the', b'quick', b'brown', b'fox'],
+            [b'jumped', b'over', b'the', b'dog'],
+        ], tokens.tolist())
+        self.assertAllEqual([
+            [b' ', b'', b' ', b''],
+            [b'', b' ', b'', b' '],
+        ], spaces.tolist())
+
+    def test_ragged(self):
+        source = tf.ragged.constant([
+            ['', '', ''],
+            ['the', ' ', 'quick', 'brown', 'fox'],
+            [],
+            ['tensorflow'],
+        ])
+        tokens, spaces = spaces_after(source)
+        tokens, spaces = self.evaluate([tokens.to_tensor(''), spaces.to_tensor('')])
+
+        self.assertAllEqual([
+            [b'', b'', b'', b''],
+            [b'the', b'quick', b'brown', b'fox'],
+            [b'', b'', b'', b''],
+            [b'tensorflow', b'', b'', b''],
+        ], tokens.tolist())
+        self.assertAllEqual([
+            [b'', b'', b'', b''],
+            [b' ', b'', b'', b''],
+            [b'', b'', b'', b''],
+            [b'', b'', b'', b''],
+        ], spaces.tolist())
+
+    def test_start(self):
+        source = tf.constant([
+            [' ', 'the', ' ', 'quick'],
+            ['\u200b', 'jumped', 'over', '\ufeff'],
+            [' ', '\u200b', '', '']
+        ])
+        tokens, spaces = spaces_after(source)
+        tokens, spaces = self.evaluate([tokens.to_tensor(''), spaces.to_tensor('')])
+
+        self.assertAllEqual([
+            [b'the', b'quick'],
+            [b'jumped', b'over'],
+            [b'', b''],
+        ], tokens.tolist())
+        self.assertAllEqual([
+            [b' ', b''],
+            [b'', b'\xef\xbb\xbf'],
+            [b'', b''],
+        ], spaces.tolist())
+
+    def test_space(self):
+        sure_spaces = [
+            '\t', '\n', '\x0b', '\x0c', '\r', '\x1c', '\x1d', '\x1e', '\x1f', ' ', '\x85', '\xa0', '\u1680', '\u2000',
+            '\u2001', '\u2002', '\u2003', '\u2004', '\u2005', '\u2006', '\u2007', '\u2008', '\u2009', '\u200a',
+            '\u2028', '\u2029', '\u200b', '\u202f', '\u205f', '\u2060', '\u2061', '\u2800', '\u3000', '\ufeff']
+        source = split_words([' {}W{}W{} {} '.format(s, s, s, s) for s in sure_spaces], extended=True)
+
+        tokens, spaces = spaces_after(source)
+        tokens, spaces = self.evaluate([tokens.to_tensor(''), spaces.to_tensor('')])
+
+        self.assertAllEqual([[b'W', b'W']] * 34, tokens.tolist())
+        self.assertAllEqual([[s, '{} {} '.format(s, s)] for s in sure_spaces], spaces.tolist())
 
 
 if __name__ == "__main__":

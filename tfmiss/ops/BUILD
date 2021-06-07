@@ -29,6 +29,9 @@ custom_op_library(
         "cc/kernels/preprocessing/skip_gram.cc",
         "cc/ops/preprocessing/skip_gram.cc",
 
+        "cc/kernels/preprocessing/spaces_after.cc",
+        "cc/ops/preprocessing/spaces_after.cc",
+
 
         # qrnn
         "cc/kernels/qrnn/fo_pool.h",
