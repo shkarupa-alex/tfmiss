@@ -685,6 +685,19 @@ class SplitWordsTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
+    def test_extended_lr(self):
+        expected = tf.constant([
+            ['A', ' ', '\u200e', 'B'], ['A\u200eB', '', '', ''],
+            ['A', ' ', '\xad', 'B'], ['A\xadB', '', '', ''],
+            ['A', ' ', '\ufe0f', 'B'], ['A\ufe0fB', '', '', ''],
+        ], dtype=tf.string)
+        result = split_words(['A \u200eB', 'A\u200eB', 'A \xadB', 'A\xadB', 'A \ufe0fB', 'A\ufe0fB'], extended=True)
+        self.assertIsInstance(result, tf.RaggedTensor)
+        result = result.to_tensor(default_value='')
+
+        expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
+
     def test_skip(self):
         expected = tf.constant([[['x', '!'], ['y!', '']]], dtype=tf.string)
         result = split_words([['x!', 'y!']], skip=['y!'])
