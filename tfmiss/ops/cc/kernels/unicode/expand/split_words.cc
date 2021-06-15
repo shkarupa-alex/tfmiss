@@ -80,13 +80,19 @@ public:
       OP_REQUIRES(ctx, U_SUCCESS(regexError), errors::InvalidArgument("RegexPattern compilation failed"));
 
       _wbExtSp0 = RegexPattern::compile(
-          "([[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]"
-          "[\\p{Word_Break = Numeric}][\\p{Word_Break = Katakana}]])[\u202F\u2060\u2061\uFEFF]",
+          "([\u0009\u000A\u000B\u000C\u000D\u001C\u001D\u001E\u001F\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003"
+          "\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u2028\u2029\u200B\u202F\u205F\u2060\u2061\u2800\u3000\uFEFF])"
+          "[^\u0009\u000A\u000B\u000C\u000D\u001C\u001D\u001E\u001F\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003"
+          "\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u2028\u2029\u200B\u202F\u205F\u2060\u2061\u2800\u3000\uFEFF]",
           0,
           regexError);
+      OP_REQUIRES(ctx, U_SUCCESS(regexError), errors::InvalidArgument("RegexPattern compilation failed"));
+
       _wbExtSp1 = RegexPattern::compile(
-          "([\u202F\u2060\u2061\uFEFF])[[\\p{Word_Break = ALetter}][\\p{Word_Break = Hebrew_Letter}]"
-          "[\\p{Word_Break = Numeric}][\\p{Word_Break = Katakana}]]",
+          "([^\u0009\u000A\u000B\u000C\u000D\u001C\u001D\u001E\u001F\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003"
+          "\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u2028\u2029\u200B\u202F\u205F\u2060\u2061\u2800\u3000\uFEFF])"
+          "[\u0009\u000A\u000B\u000C\u000D\u001C\u001D\u001E\u001F\u0020\u0085\u00A0\u1680\u2000\u2001\u2002\u2003"
+          "\u2004\u2005\u2006\u2007\u2008\u2009\u200A\u2028\u2029\u200B\u202F\u205F\u2060\u2061\u2800\u3000\uFEFF]",
           0,
           regexError);
       OP_REQUIRES(ctx, U_SUCCESS(regexError), errors::InvalidArgument("RegexPattern compilation failed"));
@@ -135,7 +141,7 @@ protected:
     }
     delete wordIterator;
 
-    // Split words ignoring WB 6, 7, 11 and 12
+    // Split words ignoring WB ~4, 6, 7, 11, 12 and by known spaces
     if (_extended)
     {
       UErrorCode extendedError = U_ZERO_ERROR;
@@ -279,7 +285,7 @@ protected:
         }
       }
       delete matcherExtSp0;
-
+      
       RegexMatcher *matcherExtSp1 = _wbExtSp1->matcher(unicode_string, extendedError);
       if (!U_SUCCESS(extendedError))
       {
