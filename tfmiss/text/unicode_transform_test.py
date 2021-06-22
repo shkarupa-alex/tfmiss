@@ -5,8 +5,8 @@ from __future__ import print_function
 
 import tensorflow as tf
 from tensorflow.python.framework import test_util
-from tfmiss.text.unicode_transform import char_category, lower_case, normalize_unicode, replace_regex
-from tfmiss.text.unicode_transform import replace_string, title_case, upper_case, wrap_with, zero_digits
+from tfmiss.text.unicode_transform import char_category, lower_case, normalize_unicode, replace_regex, replace_string
+from tfmiss.text.unicode_transform import sub_string, title_case, upper_case, wrap_with, zero_digits
 
 
 @test_util.run_all_in_graph_and_eager_modes
@@ -408,6 +408,131 @@ class ReplaceStringTest(tf.test.TestCase):
 
         result = self.evaluate(result)
         self.assertAllEqual([[b'>test>', b'<unk>']], result)
+
+
+@test_util.run_all_in_graph_and_eager_modes
+class SubStringTest(tf.test.TestCase):
+    def test_inference_shape(self):
+        source = [
+            ['1', '2', '3'],
+            ['4', '5', '6'],
+        ]
+        result = sub_string(source, 0, 1)
+
+        self.assertAllEqual([2, 3], result.shape.as_list())
+
+    def test_actual_shape(self):
+        source = [
+            ['1', '2', '3'],
+            ['4', '5', '6'],
+        ]
+        result = sub_string(source, 0, 1)
+        result = tf.shape(result)
+
+        result = self.evaluate(result)
+        self.assertAllEqual([2, 3], result.tolist())
+
+    def test_empty_source(self):
+        for start in [-1, 0, 1]:
+            for limit in [-2, -1, 0, 1, 2]:
+                result = sub_string('', start, limit)
+
+                result = self.evaluate(result)
+                self.assertAllEqual(b'', result)
+
+    def test_empty_sub(self):
+        result = sub_string('<test>', 6, 1)
+
+        result = self.evaluate(result)
+        self.assertAllEqual(b'', result)
+
+    def test_empty_result_left(self):
+        result = sub_string('<test>', 0, 0)
+
+        result = self.evaluate(result)
+        self.assertAllEqual(b'', result)
+
+    def test_empty_result_right(self):
+        result = sub_string('<test>', 5, 0)
+
+        result = self.evaluate(result)
+        self.assertAllEqual(b'', result)
+
+    def test_left_inside(self):
+        result = sub_string('<test>', 0, 2)
+
+        result = self.evaluate(result)
+        self.assertAllEqual(b'<t', result)
+
+    def test_left_last(self):
+        result = sub_string('<test>', 0, -1)
+
+        result = self.evaluate(result)
+        self.assertAllEqual(b'<test>', result)
+
+    def test_left_over(self):
+        result = sub_string('<test>', 0, 100)
+
+        result = self.evaluate(result)
+        self.assertAllEqual(b'<test>', result)
+
+    def test_right_inside(self):
+        result = sub_string('<test>', -1, 1)
+
+        result = self.evaluate(result)
+        self.assertAllEqual(b'>', result)
+
+    def test_right_begin(self):
+        result = sub_string('<test>', -1, -1)
+
+        result = self.evaluate(result)
+        self.assertAllEqual(b'>', result)
+
+    def test_right_over(self):
+        result = sub_string('<test>', -1, 100)
+
+        result = self.evaluate(result)
+        self.assertAllEqual(b'>', result)
+
+    def test_0d(self):
+        result = sub_string('<test>', 0, 1)
+
+        result = self.evaluate(result)
+        self.assertAllEqual(b'<', result)
+
+    def test_1d(self):
+        result = sub_string(['<test>'], 0, 1)
+
+        result = self.evaluate(result)
+        self.assertAllEqual([b'<'], result)
+
+    def test_2d(self):
+        result = sub_string([['<test>']], 0, 1)
+
+        result = self.evaluate(result)
+        self.assertAllEqual([[b'<']], result)
+
+    def test_ragged(self):
+        source = tf.ragged.constant([['<test', 'test>'], ['test']])
+        expected = tf.constant([['te', 'es'], ['es', '']])
+        result = sub_string(source, 1, 2).to_tensor(default_value='')
+
+        expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
+
+    def test_unicode(self):
+        expected = u'с'
+        result = sub_string(u'т́ест', 3, 1)
+        expected = tf.convert_to_tensor(expected, dtype=tf.string)
+
+        expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
+
+    def test_skip(self):
+        result = sub_string([['<test>', '<unk>']], 0, 1, skip=['<unk>'])
+
+        result = self.evaluate(result)
+        self.assertAllEqual([[b'<', b'<unk>']], result)
 
 
 @test_util.run_all_in_graph_and_eager_modes
