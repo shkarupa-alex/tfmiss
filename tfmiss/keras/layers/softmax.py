@@ -232,7 +232,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             target_indices = tf.reshape(target_indices, targets_shape)
             true_indices = tf.boolean_mask(target_indices, true_mask)
             false_indices = tf.boolean_mask(target_indices, false_mask)
-            target_logprobs = tf.dynamic_stitch(
+            target_logprobs = tf.dynamic_stitch(  # TODO: data_flow_ops.parallel_dynamic_stitch ?
                 [true_indices, false_indices],
                 [true_logprobs, false_logprobs]
             )

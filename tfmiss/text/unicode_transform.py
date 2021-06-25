@@ -143,6 +143,35 @@ def replace_string(source, needle, haystack, skip=None, name=None):
         )
 
 
+def sub_string(source, start, limit=None, skip=None, name=None):
+    """Cuts substrings starting at position `start` and spans `limit` characters.
+
+    Args:
+        source: `Tensor` or `RaggedTensor` of any shape, source strings for cut substring.
+        start: Substring start position. If negative, will be interpreted as "from the end of string"
+        limit: Substring length. `None` or any negative value will be interpreted as "to the end of string".
+        skip: list of strings to pass without changes or None.
+        name: A name for the operation (optional).
+    Returns:
+        `Tensor` or `RaggedTensor` of same shape and size as input.
+    """
+
+    with tf.name_scope(name or 'sub_string'):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
+
+        if isinstance(source, tf.RaggedTensor):
+            return source.with_flat_values(
+                sub_string(source.flat_values, start, limit, skip)
+            )
+
+        return tfmiss_ops.miss_sub_string(
+            source=source,
+            start=start,
+            limit=-1 if limit is None else limit,
+            skip=skip or [],
+        )
+
+
 def title_case(source, skip=None, name=None):
     """Titlecases unicode strings.
 

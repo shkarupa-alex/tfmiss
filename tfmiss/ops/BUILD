@@ -78,6 +78,9 @@ custom_op_library(
         "cc/kernels/unicode/transform/replace_string.cc",
         "cc/ops/unicode/transform/replace_string.cc",
 
+        "cc/kernels/unicode/transform/sub_string.cc",
+        "cc/ops/unicode/transform/sub_string.cc",
+
         "cc/kernels/unicode/transform/title_case.cc",
         "cc/ops/unicode/transform/title_case.cc",
 

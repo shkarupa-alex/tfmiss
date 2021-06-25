@@ -56,7 +56,7 @@ class AdaptiveEmbedding(Embedding):
                     '`cutoffs`, decrease `factor` or increase `output_dim`')
             prev_dim = dim
 
-            with tf.device('cpu:0'):
+            with tf.device('cpu:0'):  # TODO: first?
                 # Always place embeddings on CPU due to main use case is storing large vocabulary embeddings
                 embed = self.add_weight(
                     shape=(size, dim),
