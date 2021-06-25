@@ -5,6 +5,7 @@ py_library(
     srcs = [
         "__init__.py",
         "attention.py",
+        "dropout.py",
         "embedding.py",
         "preprocessing.py",
         "qrnn.py",
@@ -13,6 +14,7 @@ py_library(
         "tcn.py",
         "temp.py",
         "todense.py",
+        "wordvec.py",
         "wrappers.py",
     ],
     deps = [
@@ -25,6 +27,15 @@ py_library(
 py_test(
     name = "attention_test",
     srcs = ["attention_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":layers"
+    ],
+)
+
+py_test(
+    name = "dropout_test",
+    srcs = ["dropout_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":layers"
@@ -95,6 +106,13 @@ py_test(
 py_test(
     name = "todense_test",
     srcs = ["todense_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [":layers"],
+)
+
+py_test(
+    name = "wordvec_test",
+    srcs = ["wordvec_test.py"],
     srcs_version = "PY2AND3",
     deps = [":layers"],
 )

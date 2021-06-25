@@ -5,50 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 from tensorflow.keras.layers.experimental.preprocessing import StringLookup
 from tensorflow.python.keras.utils import tf_utils
-from tfmiss.text import char_category, char_ngrams, lower_case, title_case, upper_case, wrap_with
-
-
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class CharNgams(tf.keras.layers.Layer):
-    def __init__(self, minn, maxn, itself, reserved=None, left='<', right='>', *args, **kwargs):
-        super(CharNgams, self).__init__(*args, **kwargs)
-        self.input_spec = tf.keras.layers.InputSpec(dtype='string')
-        self._supports_ragged_inputs = True
-
-        self.minn = minn
-        self.maxn = maxn
-        self.itself = itself
-        self.reserved = [] if reserved is None else reserved
-        self.left = left
-        self.right = right
-
-    def call(self, inputs, **kwargs):
-        outputs = wrap_with(inputs, self.left, self.right, skip=self.reserved)
-        outputs = char_ngrams(outputs, self.minn, self.maxn, self.itself, skip=self.reserved)
-
-        return outputs
-
-    @tf_utils.shape_type_conversion
-    def compute_output_shape(self, input_shape):
-        return input_shape + (None,)
-
-    def compute_output_signature(self, input_signature):
-        outptut_signature = super().compute_output_signature(input_signature)
-
-        return tf.TensorSpec(dtype='string', shape=outptut_signature.shape)
-
-    def get_config(self):
-        config = super().get_config()
-        config.update({
-            'minn': self.minn,
-            'maxn': self.maxn,
-            'itself': self.itself,
-            'reserved': self.reserved,
-            'left': self.left,
-            'right': self.right,
-        })
-
-        return config
+from tfmiss.text import char_category, lower_case, title_case, upper_case
 
 
 @tf.keras.utils.register_keras_serializable(package='Miss')
