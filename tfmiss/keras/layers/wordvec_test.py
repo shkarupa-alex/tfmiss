@@ -249,8 +249,8 @@ class CharBpeEmbeddingTest(keras_parameterized.TestCase):
         adapts = [
             ('the', 4), ('##o', 3), ('f', 2), ('##x', 2), ('j', 2), ('##u', 2), ('##m', 2), ('##p', 2), ('##s', 2),
             ('[UNK]', 2), ('d', 1), ('##g', 1)]
-        layer = CharBpeEmbedding([], 4)
-        self.assertListEqual(layer.vocab(counts, vocab_size=4).most_common(), adapts)
+        layer = CharBpeEmbedding([], 4, vocab_size=4)
+        self.assertListEqual(layer.vocab(counts).most_common(), adapts)
 
         vocab = ['the', '##o', 'f', '##u', '##m', '##s', 'o', '##v', '##er', 'l', '##a', '##y', 'd', '##g']
         layer = CharBpeEmbedding(vocab, 4)
