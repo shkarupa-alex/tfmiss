@@ -58,7 +58,7 @@ class WordEmbedding(layers.Layer):
         miss_reserved_words = [m for m in self._reserved_words if m not in vocabulary]
         if miss_reserved_words:
             tf.get_logger().warning('Vocabulary missed some reserved_words values: {}. '
-                                    'This may indicate an error in vocabulary estimation'.format(miss_reserved_words))
+                                    'This may indicate an error in estimated vocabulary'.format(miss_reserved_words))
 
         clean_vocab = [w for w in vocabulary if w not in self._reserved_words]
         self._vocabulary = self._reserved_words + clean_vocab
