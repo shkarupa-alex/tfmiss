@@ -217,13 +217,24 @@ class CharNgramEmbedding(WordEmbedding):
 class CharBpeEmbedding(WordEmbedding):
     UNK_CHAR = '##[UNK]'
 
-    def __init__(self, vocabulary, output_dim, reduction='mean', reserved_words=None, **kwargs):
+    def __init__(self, vocabulary, output_dim, reduction='mean', vocab_size=32000, upper_thresh=None, lower_thresh=2,
+                 num_iterations=4, max_tokens=-1, max_chars=1000, slack_ratio=0.05, include_joiner=True,
+                 joiner_prefix='##', reserved_words=None, **kwargs):
         _reserved_words = [self.UNK_CHAR]
         _reserved_words += [] if reserved_words is None else [r for r in reserved_words if r not in _reserved_words]
 
         super().__init__(vocabulary, output_dim, reserved_words=_reserved_words, **kwargs)
 
         self.reduction = reduction
+        self.vocab_size = vocab_size
+        self.upper_thresh = upper_thresh
+        self.lower_thresh = lower_thresh
+        self.num_iterations = num_iterations
+        self.max_tokens = max_tokens
+        self.max_chars = max_chars
+        self.slack_ratio = slack_ratio
+        self.include_joiner = include_joiner
+        self.joiner_prefix = joiner_prefix
 
     def vocab(self, word_counts, **kwargs):
         if not word_counts:
@@ -231,30 +242,20 @@ class CharBpeEmbedding(WordEmbedding):
         if not all(map(lambda k: isinstance(k, str), word_counts.keys())):
             raise ValueError('Expected all words to be strings')
 
-        vocab_size = kwargs.pop('vocab_size', 32000)
-        upper_thresh = kwargs.pop('upper_thresh', None)
-        lower_thresh = kwargs.pop('lower_thresh', 2)
-        num_iterations = kwargs.pop('num_iterations', 4)
-        max_input_tokens = kwargs.pop('max_input_tokens', -1)
-        max_unique_chars = kwargs.pop('max_unique_chars', 1000)  # TODO
-        slack_ratio = kwargs.pop('slack_ratio', 0.05)
-        include_joiner_token = kwargs.pop('include_joiner_token', True)
-        joiner = kwargs.pop('joiner', '##')
-
         word_counts = Vocabulary(word_counts)
         sub_words = wordpiece_learner(
             word_counts,
-            vocab_size=vocab_size,
+            vocab_size=self.vocab_size,
             reserved_tokens=self._reserved_words,
-            upper_thresh=upper_thresh,
-            lower_thresh=lower_thresh,
-            num_iterations=num_iterations,
-            max_input_tokens=max_input_tokens,
+            upper_thresh=self.upper_thresh,
+            lower_thresh=self.lower_thresh,
+            num_iterations=self.num_iterations,
+            max_input_tokens=self.max_tokens,
             max_token_length=self.max_len or 9999,
-            max_unique_chars=max_unique_chars,
-            slack_ratio=slack_ratio,
-            include_joiner_token=include_joiner_token,
-            joiner=joiner)
+            max_unique_chars=self.max_chars,
+            slack_ratio=self.slack_ratio,
+            include_joiner_token=self.include_joiner,
+            joiner=self.joiner_prefix)
 
         word_tokens = word_counts.tokens()
         self_config = self.get_config()
@@ -284,7 +285,7 @@ class CharBpeEmbedding(WordEmbedding):
         values, row_splits, starts, ends = wordpiece_tokenizer.wordpiece_tokenize_with_offsets(
             input_values=adapts,
             vocab_lookup_table=self.lookup._table.resource_handle,
-            suffix_indicator='##',
+            suffix_indicator=self.joiner_prefix,
             use_unknown_token=True,
             max_bytes_per_word=(self.max_len or 9999) * 4,
             max_chars_per_token=0,
@@ -303,7 +304,18 @@ class CharBpeEmbedding(WordEmbedding):
 
     def get_config(self):
         config = super().get_config()
-        config.update({'reduction': self.reduction})
+        config.update({
+            'reduction': self.reduction,
+            'vocab_size': self.vocab_size,
+            'upper_thresh': self.upper_thresh,
+            'lower_thresh': self.lower_thresh,
+            'num_iterations': self.num_iterations,
+            'max_tokens': self.max_tokens,
+            'max_chars': self.max_chars,
+            'slack_ratio': self.slack_ratio,
+            'include_joiner': self.include_joiner,
+            'joiner_prefix': self.joiner_prefix,
+        })
 
         return config
 
