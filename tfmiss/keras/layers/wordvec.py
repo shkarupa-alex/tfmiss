@@ -21,7 +21,7 @@ class WordEmbedding(layers.Layer):
 
     def __init__(self, vocabulary, output_dim, normalize_unicode='NFKC', lower_case=False, zero_digits=False,
                  max_len=None, reserved_words=None, embed_type='dense_auto', adapt_cutoff=None, adapt_factor=4,
-                 embeddings_initializer='uniform', show_warning=False, **kwargs):
+                 embeddings_initializer='uniform', show_warning=True, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(min_ndim=1, max_ndim=2, dtype='string')
 
