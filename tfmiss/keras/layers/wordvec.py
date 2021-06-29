@@ -21,7 +21,7 @@ class WordEmbedding(layers.Layer):
 
     def __init__(self, vocabulary, output_dim, normalize_unicode='NFKC', lower_case=False, zero_digits=False,
                  max_len=None, reserved_words=None, embed_type='dense_auto', adapt_cutoff=None, adapt_factor=4,
-                 embeddings_initializer='uniform', **kwargs):
+                 embeddings_initializer='uniform', show_warning=False, **kwargs):
         super().__init__(**kwargs)
         self.input_spec = layers.InputSpec(min_ndim=1, max_ndim=2, dtype='string')
 
@@ -51,12 +51,13 @@ class WordEmbedding(layers.Layer):
         self.adapt_cutoff = adapt_cutoff
         self.adapt_factor = adapt_factor
         self.embeddings_initializer = initializers.get(embeddings_initializer)
+        self.show_warning = show_warning
 
         all_reserved_words = [] if reserved_words is None else [r for r in reserved_words if self.UNK_MARK != r]
         self._reserved_words = [self.UNK_MARK] + all_reserved_words
 
         miss_reserved_words = [m for m in self._reserved_words if m not in vocabulary]
-        if miss_reserved_words:
+        if show_warning and miss_reserved_words:
             tf.get_logger().warning('Vocabulary missed some reserved_words values: {}. '
                                     'This may indicate an error in estimated vocabulary'.format(miss_reserved_words))
 
@@ -163,7 +164,8 @@ class WordEmbedding(layers.Layer):
             'embed_type': self.embed_type,
             'adapt_cutoff': self.adapt_cutoff,
             'adapt_factor': self.adapt_factor,
-            'embeddings_initializer': initializers.serialize(self.embeddings_initializer)
+            'embeddings_initializer': initializers.serialize(self.embeddings_initializer),
+            'show_warning': self.show_warning
         })
 
         return config
