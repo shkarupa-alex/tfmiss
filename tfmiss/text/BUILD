@@ -6,6 +6,8 @@ py_library(
         "__init__.py",
         "unicode_expand.py",
         "unicode_transform.py",
+        "wordpiece.py",
+        "wordpiecelib.py",
     ],
     data = [
         "//tfmiss/ops"
@@ -26,4 +28,18 @@ py_test(
    srcs = ["unicode_transform_test.py"],
    srcs_version = "PY2AND3",
    deps = [":text"],
+)
+
+py_test(
+    name = "wordpiece_test",
+    srcs = ["wordpiece_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [":text"],
+)
+
+py_test(
+    name = "wordpiecelib_test",
+    srcs = ["wordpiecelib_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [":text"],
 )

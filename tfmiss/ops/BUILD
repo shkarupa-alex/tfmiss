@@ -32,6 +32,11 @@ custom_op_library(
         "cc/kernels/preprocessing/spaces_after.cc",
         "cc/ops/preprocessing/spaces_after.cc",
 
+        "cc/kernels/preprocessing/wordpiece/tokenizer.h",
+        "cc/kernels/preprocessing/wordpiece/tokenizer.cc",
+        "cc/kernels/preprocessing/wordpiece/word_piece.cc",
+        "cc/ops/preprocessing/word_piece.cc",
+
 
         # qrnn
         "cc/kernels/qrnn/fo_pool.h",
@@ -101,5 +106,6 @@ custom_op_library(
         "//third_party/icu/data:custom_data",
         "@icu//:common",
         "@re2//:re2",
+        # "@com_google_absl//absl/base:core_headers",
     ]
 )

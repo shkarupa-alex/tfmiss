@@ -8,8 +8,6 @@ from nlpvocab import Vocabulary
 from tensorflow.keras import activations, initializers, layers, utils
 from tensorflow.keras.layers.experimental.preprocessing import StringLookup
 from tensorflow.python.keras.utils import tf_utils
-from tensorflow_text.python.ops.wordpiece_tokenizer import gen_wordpiece_tokenizer as wordpiece_tokenizer
-from tensorflow_text.tools.wordpiece_vocab.wordpiece_tokenizer_learner_lib import learn as wordpiece_learner
 from tfmiss.keras.layers import AdaptiveEmbedding, Reduction
 from tfmiss import text as miss_text
 
@@ -245,7 +243,7 @@ class CharBpeEmbedding(WordEmbedding):
             raise ValueError('Expected all words to be strings')
 
         word_counts = Vocabulary(word_counts)
-        sub_words = wordpiece_learner(
+        sub_words = miss_text.learn_word_piece(
             word_counts,
             vocab_size=self.vocab_size,
             reserved_tokens=self._reserved_words,
@@ -284,17 +282,14 @@ class CharBpeEmbedding(WordEmbedding):
             self.build([None])
         adapts = super().adapt(inputs)
 
-        values, row_splits, starts, ends = wordpiece_tokenizer.wordpiece_tokenize_with_offsets(
-            input_values=adapts,
-            vocab_lookup_table=self.lookup._table.resource_handle,
-            suffix_indicator=self.joiner_prefix,
-            use_unknown_token=True,
-            max_bytes_per_word=(self.max_len or 9999) * 4,
-            max_chars_per_token=0,
+        subwords = miss_text.word_piece(
+            source=adapts,
+            lookup_table=self.lookup._table,
+            joiner_prefix=self.joiner_prefix,
+            max_bytes=(self.max_len or 9999) * 4,
+            max_chars=0,
             unknown_token=self.UNK_MARK,
-            split_unknown_characters=True,
-            output_row_partition_type='row_splits')
-        subwords = tf.RaggedTensor.from_row_splits(values, row_splits)
+            split_unknown=True)
 
         return subwords
 
