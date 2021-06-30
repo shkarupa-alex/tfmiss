@@ -13,4 +13,4 @@ from tfmiss.keras.layers.tcn import TemporalConvNet
 from tfmiss.keras.layers.temp import Reduction
 from tfmiss.keras.layers.todense import ToDense
 from tfmiss.keras.layers.wordvec import WordEmbedding, CharNgramEmbedding, CharBpeEmbedding, CharCnnEmbedding
-from tfmiss.keras.layers.wrappers import WeightNorm, WithRagged
+from tfmiss.keras.layers.wrappers import MapFlat, WeightNorm, WithRagged

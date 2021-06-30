@@ -8,7 +8,20 @@ from tensorflow.python.keras import keras_parameterized
 from tensorflow.python.keras import testing_utils
 from tensorflow.python.util import object_identity
 from tensorflow.python.training.tracking import util as trackable_util
-from tfmiss.keras.layers.wrappers import WeightNorm, WithRagged
+from tfmiss.keras.layers.wrappers import MapFlat, WeightNorm, WithRagged
+
+
+@keras_parameterized.run_all_keras_modes
+class MapFlatTest(keras_parameterized.TestCase):
+    def test_layer(self):
+        testing_utils.layer_test(
+            MapFlat,
+            kwargs={'layer': tf.keras.layers.Lambda(lambda x: tf.stack([x, x], axis=-1))},
+            input_shape=(3, 10),
+            input_dtype='float32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 10, 2)
+        )
 
 
 @keras_parameterized.run_all_keras_modes
