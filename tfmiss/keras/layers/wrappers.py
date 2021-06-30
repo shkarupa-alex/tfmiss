@@ -63,6 +63,9 @@ class MapFlat(tf.keras.layers.Wrapper):
         super().__init__(layer, **kwargs)
         self._supports_ragged_inputs = True
 
+    def build(self, input_shape=None):
+        super(MapFlat, self).build([None])
+
     def call(self, inputs, **kwargs):
         return tf.ragged.map_flat_values(self.layer, inputs)
 
