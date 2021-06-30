@@ -58,6 +58,20 @@ class WithRagged(tf.keras.layers.Wrapper):
 
 
 @tf.keras.utils.register_keras_serializable(package='Miss')
+class MapFlat(tf.keras.layers.Wrapper):
+    def __init__(self, layer, **kwargs):
+        super().__init__(layer, **kwargs)
+        self._supports_ragged_inputs = True
+
+    def call(self, inputs, **kwargs):
+        return tf.ragged.map_flat_values(self.layer, inputs)
+
+    @tf_utils.shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return input_shape + self.layer.compute_output_shape([None])[1:]
+
+
+@tf.keras.utils.register_keras_serializable(package='Miss')
 class WeightNorm(tf.keras.layers.Wrapper):
     """ Applies weight normalization to a layer. Weight normalization is a reparameterization that decouples the
     magnitude of a weight tensor from its direction. This speeds up convergence by improving the conditioning of the
