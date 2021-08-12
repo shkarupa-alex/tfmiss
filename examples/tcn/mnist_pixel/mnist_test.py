@@ -5,8 +5,7 @@ from __future__ import print_function
 import argparse
 import numpy as np
 from matplotlib import pyplot
-from tensorflow import keras
-from tensorflow.python.keras import backend as K
+from keras import optimizers
 from model import MnistModel
 from utils import data_generator
 
@@ -27,7 +26,6 @@ if __name__ == "__main__":
     argv, _ = parser.parse_known_args()
 
     np.random.seed(argv.seed)
-    K.random_ops.random_seed.set_random_seed(argv.seed)
 
     train_dataset, test_dataset = data_generator(argv.permute, argv.batch_size)
 
@@ -48,10 +46,8 @@ if __name__ == "__main__":
         )
         model.compile(
             run_eagerly=False,
-            optimizer=keras.optimizers.Adam(
-                lr=argv.lr,
-                clipnorm=argv.clip
-            ),
+            optimizer=optimizers.get({
+                'class_name': 'adam', 'config': {'learning_rate': argv.lr, 'clipnorm': argv.clip}}),
             loss='sparse_categorical_crossentropy',
             metrics=['accuracy']
         )

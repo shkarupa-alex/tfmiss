@@ -4,8 +4,8 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized
-from tensorflow.python.keras import testing_utils
+from keras import backend, layers, models, optimizers, keras_parameterized, testing_utils
+from keras.mixed_precision import policy as mixed_precision
 from tfmiss.keras.layers.embedding import AdaptiveEmbedding
 
 
@@ -13,12 +13,12 @@ from tfmiss.keras.layers.embedding import AdaptiveEmbedding
 class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
     def setUp(self):
         super(AdaptiveEmbeddingTest, self).setUp()
-        self.default_policy = tf.keras.mixed_precision.global_policy()
-        self.mf16_policy = tf.keras.mixed_precision.Policy('mixed_float16')
+        self.default_policy = mixed_precision.global_policy()
+        self.mf16_policy = mixed_precision.Policy('mixed_float16')
 
     def tearDown(self):
         super(AdaptiveEmbeddingTest, self).tearDown()
-        tf.keras.mixed_precision.set_global_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_layer(self):
         testing_utils.layer_test(
@@ -98,7 +98,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             expected_output_shape=(None, 3, 7, 128)
         )
 
-        tf.keras.mixed_precision.set_global_policy(self.mf16_policy)
+        mixed_precision.set_policy(self.mf16_policy)
         testing_utils.layer_test(
             AdaptiveEmbedding,
             kwargs={
@@ -111,11 +111,11 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float16',
             expected_output_shape=(None, 3, 128)
         )
-        tf.keras.mixed_precision.set_global_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_embedding_correctness(self):
         layer = AdaptiveEmbedding(cutoff=[1], output_dim=16, input_dim=2, factor=2)
-        model = tf.keras.models.Sequential([layer])
+        model = models.Sequential([layer])
         layer.set_weights([
             np.array([[1] * 16]),
             np.array([[2] * 8]),
@@ -130,11 +130,11 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
     def test_eager_gpu_cpu(self):
         layer = AdaptiveEmbedding(cutoff=[100], output_dim=32, input_dim=200, proj0=True)
         layer.build((None, 2))
-        inputs = tf.keras.backend.constant([[0, 1, 0]], dtype='int32')
+        inputs = backend.constant([[0, 1, 0]], dtype='int32')
         with tf.GradientTape() as tape:
             output = layer(inputs)
         gs = tape.gradient(output, layer.weights)
-        opt = tf.keras.optimizers.Adagrad(0.1)
+        opt = optimizers.get('adagrad')
         opt.apply_gradients(zip(gs, layer.weights))
         self.assertAllEqual(len(gs), 4)
 
@@ -154,11 +154,11 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             np.array([[3] * 16] * 8),
         ])
 
-        inputs = tf.keras.layers.Input(shape=(None,), dtype=tf.float32, ragged=True)
-        outputs = tf.keras.layers.Lambda(lambda args: tf.identity(args))(inputs)
+        inputs = layers.Input(shape=(None,), dtype=tf.float32, ragged=True)
+        outputs = layers.Lambda(lambda args: tf.identity(args))(inputs)
         outputs = layer(outputs)
 
-        model = tf.keras.Model(inputs, outputs)
+        model = models.Model(inputs, outputs)
         model.run_eagerly = testing_utils.should_run_eagerly()
         outputs = model.predict(data)
         self.assertAllClose(

@@ -3,10 +3,13 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.python.keras.losses import LossFunctionWrapper
+from keras import backend
+from keras.losses import LossFunctionWrapper
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.losses_utils import ReductionV2 as Reduction
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 def macro_soft_f1(y_true, y_pred, from_logits=False, double=True):
     y_pred = tf.convert_to_tensor(y_pred)
     y_true = tf.cast(y_true, y_pred.dtype)
@@ -20,7 +23,7 @@ def macro_soft_f1(y_true, y_pred, from_logits=False, double=True):
     tp = tf.reduce_sum(y_pred * y_true, axis=axis_)
     fp = tf.reduce_sum(y_pred * (1. - y_true), axis=axis_)
     fn = tf.reduce_sum((1. - y_pred) * y_true, axis=axis_)
-    epsilon_ = tf.constant(tf.keras.backend.epsilon(), y_pred.dtype.base_dtype)
+    epsilon_ = tf.constant(backend.epsilon(), y_pred.dtype.base_dtype)
 
     loss = 2 * tp / (2 * tp + fn + fp + epsilon_)
     loss = 1 - loss
@@ -35,7 +38,7 @@ def macro_soft_f1(y_true, y_pred, from_logits=False, double=True):
     return loss
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 def binary_soft_f1(y_true, y_pred, from_logits=False, double=True):
     y_pred = tf.convert_to_tensor(y_pred)
     y_true = tf.cast(y_true, y_pred.dtype)
@@ -48,7 +51,7 @@ def binary_soft_f1(y_true, y_pred, from_logits=False, double=True):
     tp = y_pred * y_true
     fp = y_pred * (1. - y_true)
     fn = (1. - y_pred) * y_true
-    epsilon_ = tf.constant(tf.keras.backend.epsilon(), y_pred.dtype.base_dtype)
+    epsilon_ = tf.constant(backend.epsilon(), y_pred.dtype.base_dtype)
 
     loss = 2 * tp / (2 * tp + fn + fp + epsilon_)
     loss = 1. - loss
@@ -63,21 +66,21 @@ def binary_soft_f1(y_true, y_pred, from_logits=False, double=True):
     return tf.reduce_mean(loss, axis=-1)
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 class MacroSoftF1(LossFunctionWrapper):
     """Computes macro soft F1 loss."""
 
     def __init__(self, double=True, from_logits=False,
-                 reduction=tf.keras.losses.Reduction.AUTO, name='macro_soft_f1'):
+                 reduction=Reduction.AUTO, name='macro_soft_f1'):
         super(MacroSoftF1, self).__init__(
             macro_soft_f1, name=name, reduction=reduction, from_logits=from_logits, double=double)
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 class BinarySoftF1(LossFunctionWrapper):
     """Computes binary soft F1 loss."""
 
     def __init__(self, double=True, from_logits=False,
-                 reduction=tf.keras.losses.Reduction.AUTO, name='binary_soft_f1'):
+                 reduction=Reduction.AUTO, name='binary_soft_f1'):
         super(BinarySoftF1, self).__init__(
             binary_soft_f1, name=name, reduction=reduction, from_logits=from_logits, double=double)

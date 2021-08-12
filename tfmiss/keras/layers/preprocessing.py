@@ -3,13 +3,14 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.keras.layers.experimental.preprocessing import StringLookup
-from tensorflow.python.keras.utils import tf_utils
+from keras import layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from tfmiss.text import char_category, lower_case, title_case, upper_case
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class WordShape(tf.keras.layers.Layer):
+@register_keras_serializable(package='Miss')
+class WordShape(layers.Layer):
     SHAPE_HAS_CASE = 1
     SHAPE_LOWER_CASE = 2
     SHAPE_UPPER_CASE = 4
@@ -34,9 +35,13 @@ class WordShape(tf.keras.layers.Layer):
 
     SHAPE_ALL = SHAPE_ALL_CASES | SHAPE_LENGTH_NORM | SHAPE_ALL_SAME | SHAPE_CHAR_CAT_BOTH
 
-    def __init__(self, options, mean_len=3.906, std_len=3.285, char_embed=5, *args, **kwargs):
+    CHARACTER_CATEGORIES = [
+        'Lu', 'Ll', 'Lt', 'Lm', 'Lo', 'Mn', 'Me', 'Mc', 'Nd', 'Nl', 'No', 'Zs', 'Zl', 'Zp', 'Cc', 'Cf', 'Co', 'Cs',
+        'Pd', 'Ps', 'Pe', 'Pc', 'Po', 'Sm', 'Sc', 'Sk', 'So', 'Pi', 'Pf']
+
+    def __init__(self, options, mean_len=3.906, std_len=3.285, char_cat=None, *args, **kwargs):
         super(WordShape, self).__init__(*args, **kwargs)
-        self.input_spec = tf.keras.layers.InputSpec(dtype='string')
+        self.input_spec = layers.InputSpec(dtype='string')
         self._supports_ragged_inputs = True
 
         if 0 == options:
@@ -45,15 +50,17 @@ class WordShape(tf.keras.layers.Layer):
         self.options = options
         self.mean_len = mean_len
         self.std_len = std_len
+        self.char_cat = char_cat
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape):
         if self.options & WordShape.SHAPE_CHAR_CAT_FIRST or self.options & WordShape.SHAPE_CHAR_CAT_LAST:
-            category_vocab = [
-                'Lu', 'Ll', 'Lt', 'Lm', 'Lo', 'Mn', 'Me', 'Mc', 'Nd', 'Nl', 'No', 'Zs', 'Zl', 'Zp', 'Cc', 'Cf',
-                'Co', 'Cs', 'Pd', 'Ps', 'Pe', 'Pc', 'Po', 'Sm', 'Sc', 'Sk', 'So', 'Pi', 'Pf']
-            self.cat_lookup = StringLookup(num_oov_indices=0, oov_token='Cn', vocabulary=category_vocab)
-            if self.cat_lookup.vocab_size() != 30:
+            self.ccat_vocab = self.char_cat or self.CHARACTER_CATEGORIES
+            self.oov_indices = int(bool(len(set(self.CHARACTER_CATEGORIES).difference(self.ccat_vocab))))
+
+            self.cat_lookup = layers.StringLookup(
+                num_oov_indices=self.oov_indices, oov_token='Cn', vocabulary=self.ccat_vocab)
+            if self.cat_lookup.vocab_size() != len(self.ccat_vocab) + self.oov_indices:
                 raise ValueError('Wrong vocabulary size')
 
         super(WordShape, self).build(input_shape)
@@ -143,13 +150,13 @@ class WordShape(tf.keras.layers.Layer):
         if self.options & WordShape.SHAPE_CHAR_CAT_FIRST:
             first_cats = char_category(inputs)
             first_ids = self.cat_lookup(first_cats)
-            first_feats = tf.one_hot(first_ids, depth=30)
+            first_feats = tf.one_hot(first_ids, depth=len(self.ccat_vocab) + self.oov_indices)
             outputs_many.append(first_feats)
 
         if self.options & WordShape.SHAPE_CHAR_CAT_LAST:
             last_cats = char_category(inputs, first=False)
             last_ids = self.cat_lookup(last_cats)
-            last_feats = tf.one_hot(last_ids, depth=30)
+            last_feats = tf.one_hot(last_ids, depth=len(self.ccat_vocab) + self.oov_indices)
             outputs_many.append(last_feats)
 
         outputs_one = [tf.cast(o, self.compute_dtype) for o in outputs_one]
@@ -164,7 +171,7 @@ class WordShape(tf.keras.layers.Layer):
 
         return tf.concat([outputs_one, *outputs_many], axis=-1)
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         units = 0
         options = [
@@ -176,9 +183,9 @@ class WordShape(tf.keras.layers.Layer):
                 units += 1
 
         if self.options & WordShape.SHAPE_CHAR_CAT_FIRST:
-            units += 30
+            units += len(self.ccat_vocab) + self.oov_indices
         if self.options & WordShape.SHAPE_CHAR_CAT_LAST:
-            units += 30
+            units += len(self.ccat_vocab) + self.oov_indices
 
         return input_shape + (units,)
 
@@ -187,7 +194,8 @@ class WordShape(tf.keras.layers.Layer):
         config.update({
             'options': self.options,
             'mean_len': self.mean_len,
-            'std_len': self.std_len
+            'std_len': self.std_len,
+            'char_cat': self.char_cat
         })
 
         return config

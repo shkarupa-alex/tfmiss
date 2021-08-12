@@ -3,12 +3,13 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.python.keras.backend import convert_inputs_if_ragged, maybe_convert_to_ragged
-from tensorflow.python.keras.utils import generic_utils, tf_utils
+from keras import backend, layers
+from keras.utils.generic_utils import has_arg, register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class WithRagged(tf.keras.layers.Wrapper):
+@register_keras_serializable(package='Miss')
+class WithRagged(layers.Wrapper):
     """ Passes ragged tensor to layer that accepts only dense one.
 
     Arguments:
@@ -21,7 +22,7 @@ class WithRagged(tf.keras.layers.Wrapper):
         self.supports_masking = layer.supports_masking
         self._supports_ragged_inputs = True
 
-        if not isinstance(layer, tf.keras.layers.Layer):
+        if not isinstance(layer, layers.Layer):
             raise ValueError(
                 'Please initialize `WithRagged` layer with a '
                 '`Layer` instance. You passed: {input}'.format(input=layer))
@@ -33,20 +34,20 @@ class WithRagged(tf.keras.layers.Wrapper):
         self.input_spec = self.layer.input_spec
 
         zero = '' if self.layer.dtype == tf.string else 0
-        self.masking_layer = tf.keras.layers.Masking(mask_value=zero)
+        self.masking_layer = layers.Masking(mask_value=zero)
 
         super(WithRagged, self).build()
 
     def call(self, inputs, **kwargs):
         layer_kwargs = {}
         for key in kwargs.keys():
-            if generic_utils.has_arg(self.layer.call, key):
+            if has_arg(self.layer.call, key):
                 layer_kwargs[key] = kwargs[key]
 
-        inputs_dense, row_lengths = convert_inputs_if_ragged(inputs)
+        inputs_dense, row_lengths = backend.convert_inputs_if_ragged(inputs)
         inputs_dense = self.masking_layer(inputs_dense)
         outputs_dense = self.layer.call(inputs_dense, **layer_kwargs)
-        outputs = maybe_convert_to_ragged(row_lengths is not None, outputs_dense, row_lengths)
+        outputs = backend.maybe_convert_to_ragged(row_lengths is not None, outputs_dense, row_lengths)
 
         return outputs
 
@@ -57,8 +58,8 @@ class WithRagged(tf.keras.layers.Wrapper):
         return self.layer.compute_mask(inputs, mask)
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class MapFlat(tf.keras.layers.Wrapper):
+@register_keras_serializable(package='Miss')
+class MapFlat(layers.Wrapper):
     def __init__(self, layer, **kwargs):
         super().__init__(layer, **kwargs)
         self._supports_ragged_inputs = True
@@ -69,13 +70,13 @@ class MapFlat(tf.keras.layers.Wrapper):
     def call(self, inputs, **kwargs):
         return tf.ragged.map_flat_values(self.layer, inputs)
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape + self.layer.compute_output_shape([None])[1:]
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class WeightNorm(tf.keras.layers.Wrapper):
+@register_keras_serializable(package='Miss')
+class WeightNorm(layers.Wrapper):
     """ Applies weight normalization to a layer. Weight normalization is a reparameterization that decouples the
     magnitude of a weight tensor from its direction. This speeds up convergence by improving the conditioning of the
     optimization problem.
@@ -96,7 +97,7 @@ class WeightNorm(tf.keras.layers.Wrapper):
         if hasattr(layer, '_supports_ragged_inputs'):
             self._supports_ragged_inputs = layer._supports_ragged_inputs
 
-        if not isinstance(layer, tf.keras.layers.Layer):
+        if not isinstance(layer, layers.Layer):
             raise ValueError(
                 'Please initialize `WeightNorm` layer with a '
                 '`Layer` instance. You passed: {input}'.format(input=layer))
@@ -118,7 +119,7 @@ class WeightNorm(tf.keras.layers.Wrapper):
             setattr(self, '{}_g'.format(name), None)
             setattr(self, '{}_norm_axes'.format(name), None)
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape=None):
         if not self.layer.built:
             self.layer.build(input_shape)
@@ -208,7 +209,7 @@ class WeightNorm(tf.keras.layers.Wrapper):
 
         layer_kwargs = {}
         for key in kwargs.keys():
-            if generic_utils.has_arg(self.layer.call, key):
+            if has_arg(self.layer.call, key):
                 layer_kwargs[key] = kwargs[key]
 
         # Ensure we calculate result after updating kernel.

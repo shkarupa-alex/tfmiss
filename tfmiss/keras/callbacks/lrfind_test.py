@@ -5,7 +5,7 @@ from __future__ import print_function
 import os
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized, testing_utils
+from keras import layers, keras_parameterized, testing_utils
 from tfmiss.keras.callbacks.lrfind import LRFinder
 
 
@@ -14,8 +14,8 @@ from tfmiss.keras.callbacks.lrfind import LRFinder
 class LRFInderTest(keras_parameterized.TestCase):
     def test_no_exceptions(self):
         model = testing_utils.get_model_from_layers([
-            tf.keras.layers.Dense(3, activation='relu', kernel_initializer='ones'),
-            tf.keras.layers.Dense(1, activation='sigmoid', kernel_initializer='ones')
+            layers.Dense(3, activation='relu', kernel_initializer='ones'),
+            layers.Dense(1, activation='sigmoid', kernel_initializer='ones')
         ], input_shape=(10,))
         model.compile(loss='mae', optimizer='rmsprop', run_eagerly=testing_utils.should_run_eagerly())
 

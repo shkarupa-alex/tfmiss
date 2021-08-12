@@ -3,12 +3,15 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.python.keras.utils import control_flow_util, tf_utils
+from keras import activations, backend, constraints, initializers, layers, regularizers
+from keras.utils.control_flow_util import smart_cond
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from tfmiss.nn import fo_pool
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class QRNN(tf.keras.layers.Layer):
+@register_keras_serializable(package='Miss')
+class QRNN(layers.Layer):
     """Residual block for Temporal Convolutional Network.
     Reference: https://arxiv.org/abs/1803.01271
     An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling
@@ -39,30 +42,30 @@ class QRNN(tf.keras.layers.Layer):
                  time_major=False,
                  **kwargs):
         super(QRNN, self).__init__(**kwargs)
-        self.input_spec = tf.keras.layers.InputSpec(ndim=3)
+        self.input_spec = layers.InputSpec(ndim=3)
         self.supports_masking = return_sequences
 
         self.units = units
         self.window = window
         self.zoneout = zoneout
         self.output_gate = output_gate
-        self.activation = tf.keras.activations.get(activation)
-        self.gate_activation = tf.keras.activations.get(gate_activation)
+        self.activation = activations.get(activation)
+        self.gate_activation = activations.get(gate_activation)
 
         self.use_bias = use_bias
-        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
-        self.bias_initializer = tf.keras.initializers.get(bias_initializer)
-        self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
-        self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
-        self.kernel_constraint = tf.keras.constraints.get(kernel_constraint)
-        self.bias_constraint = tf.keras.constraints.get(bias_constraint)
+        self.kernel_initializer = initializers.get(kernel_initializer)
+        self.bias_initializer = initializers.get(bias_initializer)
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.bias_regularizer = regularizers.get(bias_regularizer)
+        self.kernel_constraint = constraints.get(kernel_constraint)
+        self.bias_constraint = constraints.get(bias_constraint)
 
         self.return_sequences = return_sequences
         self.return_state = return_state
         self.go_backwards = go_backwards
         self.time_major = time_major
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape):
         if len(input_shape) != 3:
             raise ValueError('Shape {} must have rank 3'.format(input_shape))
@@ -71,10 +74,10 @@ class QRNN(tf.keras.layers.Layer):
         if num_channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        self.input_spec = tf.keras.layers.InputSpec(ndim=3, axes={-1: num_channels})
+        self.input_spec = layers.InputSpec(ndim=3, axes={-1: num_channels})
 
         conv1d_channels = self.units * (3 if self.output_gate else 2)
-        self.conv1d = tf.keras.layers.Conv1D(
+        self.conv1d = layers.Conv1D(
             filters=conv1d_channels,
             kernel_size=self.window,
             padding='causal',
@@ -87,16 +90,16 @@ class QRNN(tf.keras.layers.Layer):
             bias_constraint=self.bias_constraint)
 
         if self.zoneout > 0.:
-            self.drop = tf.keras.layers.Dropout(self.zoneout)
+            self.drop = layers.Dropout(self.zoneout)
 
-        self.act = tf.keras.layers.Activation(activation=self.activation)
-        self.gate_act = tf.keras.layers.Activation(activation=self.gate_activation)
+        self.act = layers.Activation(activation=self.activation)
+        self.gate_act = layers.Activation(activation=self.gate_activation)
 
         super(QRNN, self).build(input_shape)
 
     def call(self, inputs, training=None, initial_state=None):
         if training is None:
-            training = tf.keras.backend.learning_phase()
+            training = backend.learning_phase()
 
         reverse_sim = [0] if self.time_major else [1]
         if self.go_backwards:
@@ -122,7 +125,7 @@ class QRNN(tf.keras.layers.Layer):
         f = self.gate_act(f)
 
         if self.zoneout > 0.:
-            f = control_flow_util.smart_cond(
+            f = smart_cond(
                 training,
                 # multiply by (1. - self.zoneout) due to dropout scales preserved items
                 lambda: self.drop(f) * (1. - self.zoneout),
@@ -144,7 +147,7 @@ class QRNN(tf.keras.layers.Layer):
 
         return h
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         h_shape = input_shape[:-1] + (self.units,)
         c_shape = (h_shape[0], h_shape[2]) if not self.time_major else (h_shape[1], h_shape[2])
@@ -170,15 +173,15 @@ class QRNN(tf.keras.layers.Layer):
             'window': self.window,
             'zoneout': self.zoneout,
             'output_gate': self.output_gate,
-            'activation': tf.keras.activations.serialize(self.activation),
-            'gate_activation': tf.keras.activations.serialize(self.gate_activation),
+            'activation': activations.serialize(self.activation),
+            'gate_activation': activations.serialize(self.gate_activation),
             'use_bias': self.use_bias,
-            'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
-            'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
-            'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
-            'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
-            'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
-            'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
+            'kernel_initializer': initializers.serialize(self.kernel_initializer),
+            'bias_initializer': initializers.serialize(self.bias_initializer),
+            'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
+            'bias_regularizer': regularizers.serialize(self.bias_regularizer),
+            'kernel_constraint': constraints.serialize(self.kernel_constraint),
+            'bias_constraint': constraints.serialize(self.bias_constraint),
             'return_sequences': self.return_sequences,
             'return_state': self.return_state,
             'go_backwards': self.go_backwards,

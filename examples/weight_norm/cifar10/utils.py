@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from tensorflow import keras
+from keras import layers
 from keras_preprocessing.image import ImageDataGenerator
 
 

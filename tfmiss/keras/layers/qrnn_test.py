@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized, testing_utils
+from keras import layers, models, keras_parameterized, testing_utils
 from tensorflow.python.util import object_identity
 from tensorflow.python.training.tracking import util as trackable_util
 from tfmiss.keras.layers.qrnn import QRNN
@@ -255,8 +255,8 @@ class QRNNTest(keras_parameterized.TestCase):
         self.assertTupleEqual((3, 8), c.shape)
 
     def test_model(self):
-        model = tf.keras.models.Sequential()
-        model.add(tf.keras.layers.Bidirectional(QRNN(
+        model = models.Sequential()
+        model.add(layers.Bidirectional(QRNN(
             units=12,
             window=2,
             zoneout=0.2,

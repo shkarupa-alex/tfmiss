@@ -4,7 +4,9 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized, testing_utils
+from keras import layers, models, keras_parameterized, testing_utils
+from keras.mixed_precision import policy as mixed_precision
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from tfmiss.keras.layers.softmax import AdaptiveSoftmax, NoiseContrastiveEstimation, SampledSofmax
 from tfmiss.keras.testing_utils import layer_multi_io_test
 
@@ -13,12 +15,12 @@ from tfmiss.keras.testing_utils import layer_multi_io_test
 class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
     def setUp(self):
         super(AdaptiveSoftmaxTest, self).setUp()
-        self.default_policy = tf.keras.mixed_precision.global_policy()
-        self.mf16_policy = tf.keras.mixed_precision.Policy('mixed_float16')
+        self.default_policy = mixed_precision.global_policy()
+        self.mf16_policy = mixed_precision.Policy('mixed_float16')
 
     def tearDown(self):
         super(AdaptiveSoftmaxTest, self).tearDown()
-        tf.keras.mixed_precision.set_global_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_layer(self):
         layer_multi_io_test(
@@ -56,7 +58,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
             expected_output_shapes=[(None, 2, 10, 20)]
         )
 
-        tf.keras.mixed_precision.set_global_policy(self.mf16_policy)
+        mixed_precision.set_policy(self.mf16_policy)
         layer_multi_io_test(
             AdaptiveSoftmax,
             kwargs={
@@ -68,7 +70,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
             expected_output_dtypes=['float32'],
             expected_output_shapes=[(None, 20)]
         )
-        tf.keras.mixed_precision.set_global_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_actual_shape_2d(self):
         layer = AdaptiveSoftmax(units=20, cutoff=[3])
@@ -87,7 +89,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
         self.assertListEqual([2, 10, 20], list(result.shape))
 
     def test_loss_and_output_2d_over_batch(self):
-        layer = AdaptiveSoftmax(units=20, cutoff=[3], loss_reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE)
+        layer = AdaptiveSoftmax(units=20, cutoff=[3], loss_reduction=Reduction.SUM_OVER_BATCH_SIZE)
         inputs = np.random.rand(10, 5)
         targets = np.arange(10, dtype=np.int32)
 
@@ -104,7 +106,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
         self.assertGreater(eval_loss, train_loss)
 
     def test_loss_and_output_2d_sum(self):
-        layer = AdaptiveSoftmax(units=20, cutoff=[3], loss_reduction=tf.keras.losses.Reduction.SUM)
+        layer = AdaptiveSoftmax(units=20, cutoff=[3], loss_reduction=Reduction.SUM)
         inputs = np.random.rand(10, 5)
         targets = np.arange(10, dtype=np.int32)
 
@@ -128,7 +130,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
         ], ragged_rank=1)
         targets = tf.cast(tf.reduce_max(inputs, axis=-1), tf.int32)
         inputs_dense = inputs.to_tensor()
-        mask_dense = tf.keras.layers.Masking().compute_mask(inputs_dense)
+        mask_dense = layers.Masking().compute_mask(inputs_dense)
         targets_dense = targets.to_tensor(0)
         eval_ones = self.evaluate(tf.ones_like(targets).to_tensor())
 
@@ -166,13 +168,13 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
         xp = [np.random.randint(num_samples - 1, size=(sample_size // 100, seq_length)),
               np.zeros((sample_size // 100, seq_length)).astype(np.int32)]
 
-        ids = tf.keras.layers.Input(shape=(None,), dtype='int32')
-        targets = tf.keras.layers.Input(shape=(None,), dtype='int32')
+        ids = layers.Input(shape=(None,), dtype='int32')
+        targets = layers.Input(shape=(None,), dtype='int32')
 
-        embeddings = tf.keras.layers.Embedding(input_dim=num_samples, output_dim=embed_size)(ids)
-        logits = tf.keras.layers.Dense(embed_size // 2, activation='relu')(embeddings)
+        embeddings = layers.Embedding(input_dim=num_samples, output_dim=embed_size)(ids)
+        logits = layers.Dense(embed_size // 2, activation='relu')(embeddings)
         probs = AdaptiveSoftmax(units=num_classes, cutoff=[3])([logits, targets])
-        model = tf.keras.Model(inputs=[ids, targets], outputs=probs)
+        model = models.Model(inputs=[ids, targets], outputs=probs)
 
         model.compile(optimizer='Adam', loss=None, run_eagerly=testing_utils.should_run_eagerly())
         history = model.fit(x=xt, y=None, batch_size=100, epochs=3, validation_data=(xv, None)).history
@@ -208,11 +210,11 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
             np.array([5.] * 15),
         ])
 
-        logit_inputs = tf.keras.layers.Input(shape=(None, 2), dtype=tf.float32, ragged=True)
-        logit_targets = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, ragged=True)
+        logit_inputs = layers.Input(shape=(None, 2), dtype=tf.float32, ragged=True)
+        logit_targets = layers.Input(shape=(None,), dtype=tf.int32, ragged=True)
         outputs = layer([logit_inputs, logit_targets])
 
-        model = tf.keras.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
+        model = models.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
         model.run_eagerly = testing_utils.should_run_eagerly()
         outputs = model.predict([logits_data, targets_data])
         self.assertAllClose(
@@ -238,12 +240,12 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
 class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
     def setUp(self):
         super(NoiseContrastiveEstimationTest, self).setUp()
-        self.default_policy = tf.keras.mixed_precision.global_policy()
-        self.mf16_policy = tf.keras.mixed_precision.Policy('mixed_float16')
+        self.default_policy = mixed_precision.global_policy()
+        self.mf16_policy = mixed_precision.Policy('mixed_float16')
 
     def tearDown(self):
         super(NoiseContrastiveEstimationTest, self).tearDown()
-        tf.keras.mixed_precision.set_global_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_layer(self):
         layer_multi_io_test(
@@ -277,7 +279,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
             expected_output_dtypes=['float32']
         )
 
-        tf.keras.mixed_precision.set_global_policy(self.mf16_policy)
+        mixed_precision.set_policy(self.mf16_policy)
         layer_multi_io_test(
             NoiseContrastiveEstimation,
             kwargs={
@@ -288,7 +290,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
             input_dtypes=['float16', 'int32'],
             expected_output_dtypes=['float32']
         )
-        tf.keras.mixed_precision.set_global_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_actual_shape_2d(self):
         layer = NoiseContrastiveEstimation(units=20, negatives=5)
@@ -337,13 +339,13 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
         xp = [np.random.randint(num_samples - 1, size=(sample_size // 100, seq_length)),
               np.zeros((sample_size // 100, seq_length)).astype(np.int32)]
 
-        ids = tf.keras.layers.Input(shape=(None,), dtype='int32')
-        targets = tf.keras.layers.Input(shape=(None,), dtype='int32')
+        ids = layers.Input(shape=(None,), dtype='int32')
+        targets = layers.Input(shape=(None,), dtype='int32')
 
-        embeddings = tf.keras.layers.Embedding(input_dim=num_samples, output_dim=embed_size)(ids)
-        logits = tf.keras.layers.Dense(embed_size // 2, activation='relu')(embeddings)
+        embeddings = layers.Embedding(input_dim=num_samples, output_dim=embed_size)(ids)
+        logits = layers.Dense(embed_size // 2, activation='relu')(embeddings)
         probs = NoiseContrastiveEstimation(units=num_classes, negatives=num_classes // 2)([logits, targets])
-        model = tf.keras.Model(inputs=[ids, targets], outputs=probs)
+        model = models.Model(inputs=[ids, targets], outputs=probs)
 
         model.compile(optimizer='Adam', loss=None, run_eagerly=testing_utils.should_run_eagerly())
         history = model.fit(x=xt, y=None, batch_size=100, epochs=3, validation_data=(xv, None)).history
@@ -375,11 +377,11 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
             np.array([2.] * 16),
         ])
 
-        logit_inputs = tf.keras.layers.Input(shape=(None, 1), dtype=tf.float32, ragged=True)
-        logit_targets = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, ragged=True)
+        logit_inputs = layers.Input(shape=(None, 1), dtype=tf.float32, ragged=True)
+        logit_targets = layers.Input(shape=(None,), dtype=tf.int32, ragged=True)
         outputs = layer([logit_inputs, logit_targets])
 
-        model = tf.keras.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
+        model = models.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
         model.run_eagerly = testing_utils.should_run_eagerly()
         outputs = model.predict([logits_data, targets_data])
         self.assertAllClose(
@@ -396,12 +398,12 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
 class SampledSofmaxTest(keras_parameterized.TestCase):
     def setUp(self):
         super(SampledSofmaxTest, self).setUp()
-        self.default_policy = tf.keras.mixed_precision.global_policy()
-        self.mf16_policy = tf.keras.mixed_precision.Policy('mixed_float16')
+        self.default_policy = mixed_precision.global_policy()
+        self.mf16_policy = mixed_precision.Policy('mixed_float16')
 
     def tearDown(self):
         super(SampledSofmaxTest, self).tearDown()
-        tf.keras.mixed_precision.set_global_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_layer(self):
         layer_multi_io_test(
@@ -435,7 +437,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
             expected_output_dtypes=['float32']
         )
 
-        tf.keras.mixed_precision.set_global_policy(self.mf16_policy)
+        mixed_precision.set_policy(self.mf16_policy)
         layer_multi_io_test(
             SampledSofmax,
             kwargs={
@@ -446,7 +448,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
             input_dtypes=['float16', 'int32'],
             expected_output_dtypes=['float32']
         )
-        tf.keras.mixed_precision.set_global_policy(self.default_policy)
+        mixed_precision.set_policy(self.default_policy)
 
     def test_actual_shape_2d(self):
         layer = SampledSofmax(units=20, negatives=5)
@@ -489,7 +491,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
         ], ragged_rank=1)
         targets = tf.cast(tf.reduce_max(inputs, axis=-1), tf.int32)
         inputs_dense = inputs.to_tensor()
-        mask_dense = tf.keras.layers.Masking().compute_mask(inputs_dense)
+        mask_dense = layers.Masking().compute_mask(inputs_dense)
         targets_dense = targets.to_tensor(0)
         eval_ones = self.evaluate(tf.ones_like(targets).to_tensor())
 
@@ -527,13 +529,13 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
         xp = [np.random.randint(num_samples - 1, size=(sample_size // 100, seq_length)),
               np.zeros((sample_size // 100, seq_length)).astype(np.int32)]
 
-        ids = tf.keras.layers.Input(shape=(None,), dtype='int32')
-        targets = tf.keras.layers.Input(shape=(None,), dtype='int32')
+        ids = layers.Input(shape=(None,), dtype='int32')
+        targets = layers.Input(shape=(None,), dtype='int32')
 
-        embeddings = tf.keras.layers.Embedding(input_dim=num_samples, output_dim=embed_size)(ids)
-        logits = tf.keras.layers.Dense(embed_size // 2, activation='relu')(embeddings)
+        embeddings = layers.Embedding(input_dim=num_samples, output_dim=embed_size)(ids)
+        logits = layers.Dense(embed_size // 2, activation='relu')(embeddings)
         probs = SampledSofmax(units=num_classes, negatives=num_classes // 2)([logits, targets])
-        model = tf.keras.Model(inputs=[ids, targets], outputs=probs)
+        model = models.Model(inputs=[ids, targets], outputs=probs)
 
         model.compile(optimizer='Adam', loss=None, run_eagerly=testing_utils.should_run_eagerly())
         history = model.fit(x=xt, y=None, batch_size=100, epochs=3, validation_data=(xv, None)).history
@@ -565,11 +567,11 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
             np.array([2.] * 16),
         ])
 
-        logit_inputs = tf.keras.layers.Input(shape=(None, 1), dtype=tf.float32, ragged=True)
-        logit_targets = tf.keras.layers.Input(shape=(None,), dtype=tf.int32, ragged=True)
+        logit_inputs = layers.Input(shape=(None, 1), dtype=tf.float32, ragged=True)
+        logit_targets = layers.Input(shape=(None,), dtype=tf.int32, ragged=True)
         outputs = layer([logit_inputs, logit_targets])
 
-        model = tf.keras.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
+        model = models.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
         model.run_eagerly = testing_utils.should_run_eagerly()
         outputs = model.predict([logits_data, targets_data])
         self.assertAllClose(

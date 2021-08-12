@@ -5,14 +5,14 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from nlpvocab import Vocabulary
-from tensorflow.keras import activations, initializers, layers, utils
-from tensorflow.keras.layers.experimental.preprocessing import StringLookup
-from tensorflow.python.keras.utils import tf_utils
+from keras import activations, initializers, layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from tfmiss.keras.layers import AdaptiveEmbedding, Reduction
 from tfmiss import text as miss_text
 
 
-@utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 class WordEmbedding(layers.Layer):
     UNK_MARK = '[UNK]'
     REP_CHAR = '\uFFFD'
@@ -82,7 +82,7 @@ class WordEmbedding(layers.Layer):
 
         return adapt_counts
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape=None):
         self.squeeze = False
         if 2 == len(input_shape):
@@ -94,7 +94,7 @@ class WordEmbedding(layers.Layer):
             self.squeeze = True
             input_shape = input_shape[:1]
 
-        self.lookup = StringLookup(vocabulary=self._vocabulary, mask_token=None, oov_token=self.UNK_MARK)
+        self.lookup = layers.StringLookup(vocabulary=self._vocabulary, mask_token=None, oov_token=self.UNK_MARK)
         self.lookup.build(input_shape)
 
         if 'adapt' == self.embed_type:
@@ -145,7 +145,7 @@ class WordEmbedding(layers.Layer):
 
         return outputs
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape + (self.output_dim,)
 
@@ -169,7 +169,7 @@ class WordEmbedding(layers.Layer):
         return config
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 class CharNgramEmbedding(WordEmbedding):
     BOW_MARK = '<'
     EOW_MARK = '>'
@@ -182,7 +182,7 @@ class CharNgramEmbedding(WordEmbedding):
         self.itself = itself
         self.reduction = reduction
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape=None):
         self.reduce = Reduction(self.reduction)
 
@@ -213,7 +213,7 @@ class CharNgramEmbedding(WordEmbedding):
         return config
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 class CharBpeEmbedding(WordEmbedding):
     UNK_CHAR = '##[UNK]'
 
@@ -271,7 +271,7 @@ class CharBpeEmbedding(WordEmbedding):
 
         return adapt_counts
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape=None):
         self.reduce = Reduction(self.reduction)
 
@@ -280,11 +280,11 @@ class CharBpeEmbedding(WordEmbedding):
     def adapt(self, inputs):
         if not self.built:
             self.build([None])
-        adapts = super().adapt(inputs)
 
+        adapts = super().adapt(inputs)
         subwords = miss_text.word_piece(
             source=adapts,
-            lookup_table=self.lookup._table,
+            lookup_table=self.lookup.lookup_table,
             joiner_prefix=self.joiner_prefix,
             max_bytes=(self.max_len or 9999) * 4,
             max_chars=0,
@@ -317,7 +317,7 @@ class CharBpeEmbedding(WordEmbedding):
         return config
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 class CharCnnEmbedding(WordEmbedding):
     BOW_MARK = '[BOW]'
     EOW_MARK = '[EOW]'
@@ -415,7 +415,7 @@ class CharCnnEmbedding(WordEmbedding):
         return config
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 class Highway(layers.Layer):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -447,6 +447,6 @@ class Highway(layers.Layer):
 
         return outputs
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape

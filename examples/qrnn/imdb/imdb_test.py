@@ -6,8 +6,7 @@ import argparse
 import numpy as np
 import time
 from matplotlib import pyplot
-from tensorflow import keras
-from tensorflow.python.keras import backend as K
+from keras import optimizers
 from model import ImdbModel
 from utils import data_generator
 
@@ -27,7 +26,6 @@ if __name__ == "__main__":
     argv, _ = parser.parse_known_args()
 
     np.random.seed(argv.seed)
-    K.random_ops.random_seed.set_random_seed(argv.seed)
 
     train_dataset, test_dataset, vocab_size = data_generator(argv.batch_size)
 
@@ -53,7 +51,7 @@ if __name__ == "__main__":
         )
         model.compile(
             run_eagerly=False,
-            optimizer=keras.optimizers.RMSprop(lr=argv.lr),
+            optimizer=optimizers.get({'class_name': 'rmsprop', 'config': {'learning_rate': argv.lr}}),
             loss='binary_crossentropy',
             metrics=['accuracy']
         )
