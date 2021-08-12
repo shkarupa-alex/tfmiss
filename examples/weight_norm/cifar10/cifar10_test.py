@@ -5,8 +5,8 @@ from __future__ import print_function
 import argparse
 import numpy as np
 from matplotlib import pyplot
-from tensorflow import keras
-from tensorflow.python.keras import backend as K
+from keras import backend as K, callbacks, optimizers
+from keras.utils.generic_utils import custom_object_scope
 from model import Cifar10Model
 from utils import data_generator
 
@@ -16,7 +16,7 @@ def lr_decay_callback(model, initial_lr, epoch_count):
         K.set_value(model.optimizer.lr, initial_lr * np.minimum(2. - epoch * 2 / epoch_count, 1.))
         K.set_value(model.optimizer.beta_1, 0.5 if epoch > epoch_count // 2 else 0.9)
 
-    return keras.callbacks.LambdaCallback(_lr_beta_decay)
+    return callbacks.LambdaCallback(_lr_beta_decay)
 
 
 if __name__ == "__main__":
@@ -28,15 +28,15 @@ if __name__ == "__main__":
     argv, _ = parser.parse_known_args()
 
     np.random.seed(argv.random_seed)
-    K.random_ops.random_seed.set_random_seed(argv.random_seed)
 
     train_dataset, test_dataset = data_generator(argv.batch_size)
 
-    with keras.utils.custom_object_scope({'leaky_relu': K.nn.leaky_relu}):
+    with custom_object_scope({'leaky_relu': K.nn.leaky_relu}):
         # Train weighted
         weighted_model = Cifar10Model(weight_norm=True)
         weighted_model.compile(
-            optimizer=keras.optimizers.Adam(lr=argv.initial_lr, beta_1=0.9),
+            optimizer=optimizers.get({
+                'class_name': 'adam', 'config': {'learning_rate': argv.initial_lr, 'beta_1': 0.9}}),
             loss='sparse_categorical_crossentropy',
             metrics=['accuracy'],
             run_eagerly=False,
@@ -52,7 +52,8 @@ if __name__ == "__main__":
         # Train regular
         regular_model = Cifar10Model(weight_norm=False)
         regular_model.compile(
-            optimizer=keras.optimizers.Adam(lr=argv.initial_lr, beta_1=0.9),
+            optimizer=optimizers.get({
+                'class_name': 'adam', 'config': {'learning_rate': argv.initial_lr, 'beta_1': 0.9}}),
             loss='sparse_categorical_crossentropy',
             metrics=['accuracy'],
             run_eagerly=False,

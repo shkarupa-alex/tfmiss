@@ -1,10 +1,15 @@
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import print_function
+
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized
+from keras import layers, keras_parameterized
+from keras.utils.generic_utils import custom_object_scope
 from tfmiss.keras.testing_utils import layer_multi_io_test
 
 
-class OneToManyLayer(tf.keras.layers.Dense):
+class OneToManyLayer(layers.Dense):
     def call(self, inputs):
         result = super(OneToManyLayer, self).call(inputs)
 
@@ -20,20 +25,20 @@ class OneToManyLayer(tf.keras.layers.Dense):
 class LayerMultiIOTestTest(keras_parameterized.TestCase):
     def test_one_to_one(self):
         layer_multi_io_test(
-            tf.keras.layers.Dense,
+            layers.Dense,
             kwargs={'units': 10},
             input_shapes=[(2, 4)],
             expected_output_shapes=[(None, 10)]
         )
         layer_multi_io_test(
-            tf.keras.layers.Dense,
+            layers.Dense,
             kwargs={'units': 10},
             input_shapes=[(2, 4)],
             input_dtypes=['float32'],
             expected_output_dtypes=['float32']
         )
         layer_multi_io_test(
-            tf.keras.layers.Dense,
+            layers.Dense,
             kwargs={'units': 10},
             input_shapes=[(2, 4)],
             input_datas=[np.random.random((2, 4)).astype(np.float32)],
@@ -41,7 +46,7 @@ class LayerMultiIOTestTest(keras_parameterized.TestCase):
         )
 
         layer_multi_io_test(
-            tf.keras.layers.Dense,
+            layers.Dense,
             kwargs={'units': 10, 'dtype': 'float16'},
             input_shapes=[(2, 4)],
             input_dtypes=['float16'],
@@ -50,14 +55,14 @@ class LayerMultiIOTestTest(keras_parameterized.TestCase):
             expected_output_dtypes=['float16']
         )
         layer_multi_io_test(
-            tf.keras.layers.Dense,
+            layers.Dense,
             kwargs={'units': 10, 'dtype': 'float16'},
             input_datas=[np.random.random((2, 4))],
             input_dtypes=['float16'],
             expected_output_dtypes=['float16']
         )
         layer_multi_io_test(
-            tf.keras.layers.Dense,
+            layers.Dense,
             kwargs={'units': 10, 'dtype': 'float16'},
             input_datas=[np.random.random((2, 10)).astype(np.float16)],
             expected_output_dtypes=['float16']
@@ -65,13 +70,13 @@ class LayerMultiIOTestTest(keras_parameterized.TestCase):
 
     def test_many_to_one(self):
         layer_multi_io_test(
-            tf.keras.layers.Add,
+            layers.Add,
             input_shapes=[(2, 4), (2, 4)],
             expected_output_shapes=[(None, 4)]
         )
 
     def test_one_to_many(self):
-        with tf.keras.utils.custom_object_scope(
+        with custom_object_scope(
                 {'OneToManyLayer': OneToManyLayer}):
             layer_multi_io_test(
                 OneToManyLayer,

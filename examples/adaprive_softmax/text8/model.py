@@ -3,20 +3,21 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from keras import layers, models
 from tfmiss.keras.layers import AdaptiveSoftmax, SampledSofmax
 
 
-class Text8Model(tf.keras.Model):
+class Text8Model(models.Model):
     OUT_ASM = 'ASS'
     OUT_SS = 'SS'
     OUT_SM = 'SM'
 
     def __init__(self, seq_len, vocab_size, embed_size, units, core, dropout, cutoff, negatives):
-        inputs = tf.keras.Input(shape=(seq_len,), dtype=tf.int32, name='inputs')
-        targets = tf.keras.Input(shape=(seq_len,), dtype=tf.int32, name='targets')
+        inputs = layers.Input(shape=(seq_len,), dtype=tf.int32, name='inputs')
+        targets = layers.Input(shape=(seq_len,), dtype=tf.int32, name='targets')
 
-        encoder = tf.keras.layers.Embedding(vocab_size, embed_size)
-        sequence = tf.keras.layers.LSTM(units=units, dropout=dropout, return_sequences=True)
+        encoder = layers.Embedding(vocab_size, embed_size)
+        sequence = layers.LSTM(units=units, dropout=dropout, return_sequences=True)
 
         if self.OUT_ASM == core:
             decoder = AdaptiveSoftmax(vocab_size, cutoff=cutoff)
@@ -25,7 +26,7 @@ class Text8Model(tf.keras.Model):
         else:
             if not self.OUT_SM == core:
                 raise ValueError('Wrong "core" value')
-            decoder = tf.keras.layers.Dense(vocab_size, activation='softmax')
+            decoder = layers.Dense(vocab_size, activation='softmax')
 
         outputs = encoder(inputs)
         outputs = sequence(outputs)

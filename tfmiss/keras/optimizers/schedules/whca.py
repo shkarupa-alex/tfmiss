@@ -4,10 +4,13 @@ from __future__ import print_function
 
 import math
 import tensorflow as tf
+from keras import backend
+from keras.optimizer_v2.learning_rate_schedule import LearningRateSchedule
+from keras.utils.generic_utils import register_keras_serializable
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class WarmHoldCoolAnnihilateScheduler(tf.keras.optimizers.schedules.LearningRateSchedule):
+@register_keras_serializable(package='Miss')
+class WarmHoldCoolAnnihilateScheduler(LearningRateSchedule):
     def __init__(self, min_lr, max_lr, warm_steps, hold_steps, cool_steps, annih_steps,
                  annih_factor=0.01, name=None):
         super(WarmHoldCoolAnnihilateScheduler, self).__init__()
@@ -83,7 +86,7 @@ class WarmHoldCoolAnnihilateScheduler(tf.keras.optimizers.schedules.LearningRate
         }
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 class WarmHoldCosineCoolAnnihilateScheduler(WarmHoldCoolAnnihilateScheduler):
     def __init__(self, min_lr, max_lr, warm_steps, hold_steps, cool_steps, cosine_cycles, annih_steps,
                  cosine_width=2.0, cosine_height=0.9, annih_factor=0.01, name=None):
@@ -106,7 +109,7 @@ class WarmHoldCosineCoolAnnihilateScheduler(WarmHoldCoolAnnihilateScheduler):
 
     def cool_down(self, min_lr, max_lr, step, total):
         alpha = min_lr / max_lr
-        eps_100 = 100 * tf.keras.backend.epsilon()
+        eps_100 = 100 * backend.epsilon()
         first_width = (1 + eps_100) * total / sum(self.cosine_width ** i for i in range(self.cosine_cycles))
         complete_fraction = step / first_width
 

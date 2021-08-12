@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 import observations
+from keras.preprocessing.text import Tokenizer
 
 
 def data_generator(seq_length, batch_size):
@@ -15,7 +16,7 @@ def data_generator(seq_length, batch_size):
     train_chars, test_chars, valid_chars = getattr(observations, 'text8')('data/')
     del valid_chars
 
-    tokenizer = tf.keras.preprocessing.text.Tokenizer(num_words=45000)
+    tokenizer = Tokenizer(num_words=45000)
     tokenizer.fit_on_texts([train_chars, test_chars])
 
     train_ids, test_ids = tokenizer.texts_to_sequences([train_chars, test_chars])

@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tensorflow.keras import backend, models, layers
-from tensorflow.python.keras.testing_utils import (
+from keras import backend, models, layers
+from keras.testing_utils import (
     _thread_local_data, should_run_eagerly
 )
 from tensorflow.python.framework import tensor_shape, test_util

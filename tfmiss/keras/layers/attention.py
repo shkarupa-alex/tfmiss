@@ -3,11 +3,12 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.keras import constraints, initializers, layers, regularizers, utils
-from tensorflow.python.keras.utils import tf_utils
+from keras import backend, constraints, initializers, layers, regularizers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 
 
-@utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 class SelfAttentionWithContext(layers.Layer):
     """Self-attention layer for temporal data.
 
@@ -31,7 +32,7 @@ class SelfAttentionWithContext(layers.Layer):
 
         super(SelfAttentionWithContext, self).__init__(**kwargs)
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape):
         channels = input_shape[-1]
         if channels is None:
@@ -70,7 +71,7 @@ class SelfAttentionWithContext(layers.Layer):
 
         # In some cases especially in the early stages of training the sum may be almost zero
         # and this results in NaN's. A workaround is to add a very small positive number ε to the sum.
-        epsilon = tf.keras.backend.epsilon()
+        epsilon = backend.epsilon()
         a /= tf.cast(tf.reduce_sum(a, axis=1, keepdims=True) + epsilon, a.dtype)
 
         weighted = inputs * a
@@ -82,7 +83,7 @@ class SelfAttentionWithContext(layers.Layer):
         # do not pass the mask to the next layers
         return None
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape[0], input_shape[-1]
 
@@ -99,7 +100,7 @@ class SelfAttentionWithContext(layers.Layer):
         return config
 
 
-@utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 class MultiplicativeSelfAttention(layers.Attention):
     """Multiplicative (Luong) self-attention layer for temporal data."""
 
@@ -107,7 +108,7 @@ class MultiplicativeSelfAttention(layers.Attention):
         super(MultiplicativeSelfAttention, self).__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=3)
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape):
         channels = input_shape[-1]
         if channels is None:
@@ -126,7 +127,7 @@ class MultiplicativeSelfAttention(layers.Attention):
 
     def call(self, inputs, mask=None, training=None, return_attention_scores=False):
         if training is None:
-            training = tf.keras.backend.learning_phase()
+            training = backend.learning_phase()
 
         query = self.make_query(inputs)
         value = inputs
@@ -153,12 +154,12 @@ class MultiplicativeSelfAttention(layers.Attention):
             [inputs, inputs, inputs],
             mask=None if mask is None else [mask, mask])
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape
 
 
-@utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 class AdditiveSelfAttention(layers.AdditiveAttention):
     """Additive (Bahdanau) self-attention layer for temporal data."""
 
@@ -168,7 +169,7 @@ class AdditiveSelfAttention(layers.AdditiveAttention):
 
         self.units = units
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape):
         channels = input_shape[-1]
         if channels is None:
@@ -183,7 +184,7 @@ class AdditiveSelfAttention(layers.AdditiveAttention):
 
     def call(self, inputs, mask=None, training=None, return_attention_scores=False):
         if training is None:
-            training = tf.keras.backend.learning_phase()
+            training = backend.learning_phase()
 
         query = self.make_query(inputs)
         value = inputs
@@ -216,7 +217,7 @@ class AdditiveSelfAttention(layers.AdditiveAttention):
             [inputs, inputs, inputs],
             mask=None if mask is None else [mask, mask])
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape
 

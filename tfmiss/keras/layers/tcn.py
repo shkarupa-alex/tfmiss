@@ -2,13 +2,14 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import tensorflow as tf
-from tensorflow.python.keras.utils import tf_utils
+from keras import activations, backend, constraints, initializers, layers, models, regularizers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from tfmiss.keras.layers.wrappers import WeightNorm
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class TemporalBlock(tf.keras.layers.Layer):
+@register_keras_serializable(package='Miss')
+class TemporalBlock(layers.Layer):
     """Residual block for Temporal Convolutional Network.
     Reference: https://arxiv.org/abs/1803.01271
     An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling
@@ -35,7 +36,7 @@ class TemporalBlock(tf.keras.layers.Layer):
                  bias_constraint=None,
                  **kwargs):
         super(TemporalBlock, self).__init__(**kwargs)
-        self.input_spec = tf.keras.layers.InputSpec(ndim=3)
+        self.input_spec = layers.InputSpec(ndim=3)
         self.supports_masking = True
 
         if padding not in {'causal', 'same'}:
@@ -47,14 +48,14 @@ class TemporalBlock(tf.keras.layers.Layer):
         self.dropout = dropout
         self.padding = padding
 
-        self.activation = tf.keras.activations.get(activation)
+        self.activation = activations.get(activation)
         self.use_bias = use_bias
-        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
-        self.bias_initializer = tf.keras.initializers.get(bias_initializer)
-        self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
-        self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
-        self.kernel_constraint = tf.keras.constraints.get(kernel_constraint)
-        self.bias_constraint = tf.keras.constraints.get(bias_constraint)
+        self.kernel_initializer = initializers.get(kernel_initializer)
+        self.bias_initializer = initializers.get(bias_initializer)
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.bias_regularizer = regularizers.get(bias_regularizer)
+        self.kernel_constraint = constraints.get(kernel_constraint)
+        self.bias_constraint = constraints.get(bias_constraint)
 
         self.conv1d1 = None
         self.conv1d2 = None
@@ -64,7 +65,7 @@ class TemporalBlock(tf.keras.layers.Layer):
         self.add = None
         self.act = None
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape):
         if len(input_shape) != 3:
             raise ValueError('Shape {} must have rank 3'.format(input_shape))
@@ -73,9 +74,9 @@ class TemporalBlock(tf.keras.layers.Layer):
         if num_channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        self.input_spec = tf.keras.layers.InputSpec(ndim=3, axes={-1: num_channels})
+        self.input_spec = layers.InputSpec(ndim=3, axes={-1: num_channels})
 
-        self.conv1d1 = WeightNorm(tf.keras.layers.Conv1D(
+        self.conv1d1 = WeightNorm(layers.Conv1D(
             filters=self.filters,
             kernel_size=self.kernel_size,
             strides=self._STRIDES,
@@ -90,7 +91,7 @@ class TemporalBlock(tf.keras.layers.Layer):
             kernel_constraint=self.kernel_constraint,
             bias_constraint=self.bias_constraint,
         ))
-        self.conv1d2 = WeightNorm(tf.keras.layers.Conv1D(
+        self.conv1d2 = WeightNorm(layers.Conv1D(
             filters=self.filters,
             kernel_size=self.kernel_size,
             strides=self._STRIDES,
@@ -106,11 +107,11 @@ class TemporalBlock(tf.keras.layers.Layer):
             bias_constraint=self.bias_constraint,
         ))
 
-        self.dropout1 = tf.keras.layers.SpatialDropout1D(rate=self.dropout)
-        self.dropout2 = tf.keras.layers.SpatialDropout1D(rate=self.dropout)
+        self.dropout1 = layers.SpatialDropout1D(rate=self.dropout)
+        self.dropout2 = layers.SpatialDropout1D(rate=self.dropout)
 
         if num_channels != self.filters:
-            self.downsample = tf.keras.layers.Conv1D(
+            self.downsample = layers.Conv1D(
                 self.filters,
                 kernel_size=1,
                 padding='valid',
@@ -124,14 +125,14 @@ class TemporalBlock(tf.keras.layers.Layer):
                 bias_constraint=self.bias_constraint,
             )
 
-        self.add = tf.keras.layers.Add()
-        self.act = tf.keras.layers.Activation(activation=self.activation)
+        self.add = layers.Add()
+        self.act = layers.Activation(activation=self.activation)
 
         super(TemporalBlock, self).build(input_shape)
 
     def call(self, inputs, training=None):
         if training is None:
-            training = tf.keras.backend.learning_phase()
+            training = backend.learning_phase()
 
         out = self.conv1d1(inputs)
         out = self.dropout1(out, training=training)
@@ -146,7 +147,7 @@ class TemporalBlock(tf.keras.layers.Layer):
 
         return out
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape[:-1] + (self.filters,)
 
@@ -158,21 +159,21 @@ class TemporalBlock(tf.keras.layers.Layer):
             'dilation': self.dilation,
             'dropout': self.dropout,
             'padding': self.padding,
-            'activation': tf.keras.activations.serialize(self.activation),
+            'activation': activations.serialize(self.activation),
             'use_bias': self.use_bias,
-            'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
-            'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
-            'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
-            'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
-            'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
-            'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
+            'kernel_initializer': initializers.serialize(self.kernel_initializer),
+            'bias_initializer': initializers.serialize(self.bias_initializer),
+            'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
+            'bias_regularizer': regularizers.serialize(self.bias_regularizer),
+            'kernel_constraint': constraints.serialize(self.kernel_constraint),
+            'bias_constraint': constraints.serialize(self.bias_constraint),
         })
 
         return config
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class TemporalConvNet(tf.keras.layers.Layer):
+@register_keras_serializable(package='Miss')
+class TemporalConvNet(layers.Layer):
     """Temporal Convolutional Network layer.
     Reference: https://arxiv.org/abs/1803.01271
     An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling
@@ -194,7 +195,7 @@ class TemporalConvNet(tf.keras.layers.Layer):
                  bias_constraint=None,
                  **kwargs):
         super(TemporalConvNet, self).__init__(**kwargs)
-        self.input_spec = tf.keras.layers.InputSpec(ndim=3)
+        self.input_spec = layers.InputSpec(ndim=3)
         self.supports_masking = True
 
         if not isinstance(filters, (list, tuple)) or not len(filters):
@@ -208,16 +209,16 @@ class TemporalConvNet(tf.keras.layers.Layer):
         self.dropout = dropout
         self.padding = padding
 
-        self.activation = tf.keras.activations.get(activation)
+        self.activation = activations.get(activation)
         self.use_bias = use_bias
-        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
-        self.bias_initializer = tf.keras.initializers.get(bias_initializer)
-        self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
-        self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
-        self.kernel_constraint = tf.keras.constraints.get(kernel_constraint)
-        self.bias_constraint = tf.keras.constraints.get(bias_constraint)
+        self.kernel_initializer = initializers.get(kernel_initializer)
+        self.bias_initializer = initializers.get(bias_initializer)
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.bias_regularizer = regularizers.get(bias_regularizer)
+        self.kernel_constraint = constraints.get(kernel_constraint)
+        self.bias_constraint = constraints.get(bias_constraint)
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape):
         if len(input_shape) != 3:
             raise ValueError('Shape {} must have rank 3'.format(input_shape))
@@ -226,9 +227,9 @@ class TemporalConvNet(tf.keras.layers.Layer):
         if num_channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        self.input_spec = tf.keras.layers.InputSpec(ndim=3, axes={-1: num_channels})
+        self.input_spec = layers.InputSpec(ndim=3, axes={-1: num_channels})
 
-        self.blocks = tf.keras.Sequential()
+        self.blocks = models.Sequential()
         for i in range(len(self.filters)):
             self.blocks.add(TemporalBlock(
                 filters=self.filters[i],
@@ -251,11 +252,11 @@ class TemporalConvNet(tf.keras.layers.Layer):
 
     def call(self, inputs, training=None):
         if training is None:
-            training = tf.keras.backend.learning_phase()
+            training = backend.learning_phase()
 
         return self.blocks(inputs, training=training)
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         if len(input_shape) != 3:
             raise ValueError('Shape {} must have rank 3'.format(input_shape))
@@ -269,14 +270,14 @@ class TemporalConvNet(tf.keras.layers.Layer):
             'kernel_size': self.kernel_size,
             'dropout': self.dropout,
             'padding': self.padding,
-            'activation': tf.keras.activations.serialize(self.activation),
+            'activation': activations.serialize(self.activation),
             'use_bias': self.use_bias,
-            'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
-            'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
-            'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
-            'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
-            'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
-            'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
+            'kernel_initializer': initializers.serialize(self.kernel_initializer),
+            'bias_initializer': initializers.serialize(self.bias_initializer),
+            'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
+            'bias_regularizer': regularizers.serialize(self.bias_regularizer),
+            'kernel_constraint': constraints.serialize(self.kernel_constraint),
+            'bias_constraint': constraints.serialize(self.bias_constraint),
         })
 
         return config

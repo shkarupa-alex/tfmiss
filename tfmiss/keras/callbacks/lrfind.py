@@ -5,10 +5,12 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 import tempfile
+from keras import backend, callbacks
+from keras.utils.generic_utils import register_keras_serializable
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class LRFinder(tf.keras.callbacks.Callback):
+@register_keras_serializable(package='Miss')
+class LRFinder(callbacks.Callback):
     """Stop training when a monitored quantity has stopped improving.
     Arguments:
         max_steps: Number of steps to run experiment.
@@ -40,7 +42,7 @@ class LRFinder(tf.keras.callbacks.Callback):
         self.losses = []
         self.lrs = []
 
-        tf.keras.backend.set_value(self.model.optimizer.lr, self.min_lr)
+        backend.set_value(self.model.optimizer.lr, self.min_lr)
         tf.get_logger().warning('Don\'t forget to set "epochs=1" and "steps_per_epoch={}" '
                                 'in model.fit() call'.format(self.max_steps))
 
@@ -79,7 +81,7 @@ class LRFinder(tf.keras.callbacks.Callback):
         if self.curr_step == 0 or smooth_loss < self.best_value:
             self.best_value = smooth_loss
 
-        curr_lr = tf.keras.backend.get_value(self.model.optimizer.lr)
+        curr_lr = backend.get_value(self.model.optimizer.lr)
         self.lrs.append(curr_lr)
         self.losses.append(smooth_loss)
 
@@ -91,7 +93,7 @@ class LRFinder(tf.keras.callbacks.Callback):
 
         # Set next lr (annealing exponential)
         next_lr = self.min_lr * (self.max_lr / self.min_lr) ** (self.curr_step / self.max_steps)
-        tf.keras.backend.set_value(self.model.optimizer.lr, next_lr)
+        backend.set_value(self.model.optimizer.lr, next_lr)
 
         self.curr_step += 1
 

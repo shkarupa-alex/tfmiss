@@ -3,15 +3,15 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from keras import backend, constraints, initializers, layers, regularizers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 from tensorflow.python.distribute import sharded_variable
-from tensorflow.python.keras.layers.embeddings import Embedding
-from tensorflow.python.keras.layers.core import Dense
-from tensorflow.python.keras.utils import tf_utils
 from tfmiss.nn.embedding import adaptive_embedding_lookup
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class AdaptiveEmbedding(Embedding):
+@register_keras_serializable(package='Miss')
+class AdaptiveEmbedding(layers.Embedding):
     """Adaptive input embedding layer.
     Reference: https://arxiv.org/pdf/1809.10853v3.pdf
     Adaptive Input Representations for Neural Language Modeling
@@ -34,11 +34,11 @@ class AdaptiveEmbedding(Embedding):
         self._cutoff = cutoff + [self.input_dim] if self.input_dim > cutoff[-1] else cutoff
         self.factor = factor
         self.proj0 = proj0
-        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
-        self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
-        self.kernel_constraint = tf.keras.constraints.get(kernel_constraint)
+        self.kernel_initializer = initializers.get(kernel_initializer)
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.kernel_constraint = constraints.get(kernel_constraint)
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape):
         self.embeddings = []
         self.projections = []
@@ -68,7 +68,7 @@ class AdaptiveEmbedding(Embedding):
             self.embeddings.append(embed)
 
             if dim != self.output_dim or self.proj0:
-                project = Dense(
+                project = layers.Dense(
                     units=self.output_dim,
                     activation=None,
                     use_bias=False,
@@ -86,7 +86,7 @@ class AdaptiveEmbedding(Embedding):
         return tf.cast(embedding, self.compute_dtype)
 
     def call(self, inputs):
-        dtype = tf.keras.backend.dtype(inputs)
+        dtype = backend.dtype(inputs)
         if dtype not in {'int32', 'int64'}:
             inputs = tf.cast(inputs, 'int32')
 
@@ -110,9 +110,9 @@ class AdaptiveEmbedding(Embedding):
             'cutoff': self.cutoff,
             'factor': self.factor,
             'proj0': self.proj0,
-            'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
-            'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
-            'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
+            'kernel_initializer': initializers.serialize(self.kernel_initializer),
+            'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
+            'kernel_constraint': constraints.serialize(self.kernel_constraint),
         })
 
         return config

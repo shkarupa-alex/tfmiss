@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized, testing_utils
+from keras import layers, models, keras_parameterized, testing_utils
 from tfmiss.keras.layers.scale import L2Scale
 from tfmiss.keras.layers.wrappers import WithRagged
 
@@ -33,10 +33,10 @@ class L2ScaleTest(keras_parameterized.TestCase):
             [[0., 9.]],
             [[1., 1.], [2., 9.]]
         ], ragged_rank=1)
-        inputs = tf.keras.layers.Input(shape=(None, 2), dtype=tf.float32, ragged=True)
+        inputs = layers.Input(shape=(None, 2), dtype=tf.float32, ragged=True)
         outputs = layer(inputs)
 
-        model = tf.keras.Model(inputs=inputs, outputs=outputs)
+        model = models.Model(inputs=inputs, outputs=outputs)
         model.run_eagerly = testing_utils.should_run_eagerly()
         predictions = model.predict(logits)
         self.assertAllClose(
@@ -62,10 +62,10 @@ class L2ScaleTest(keras_parameterized.TestCase):
             [[0., 9.]],
             [[1., 1.], [2., 9.]]
         ], ragged_rank=1)
-        inputs = tf.keras.layers.Input(shape=(None, 2), dtype=tf.float32)
+        inputs = layers.Input(shape=(None, 2), dtype=tf.float32)
         outputs = layer(inputs)
 
-        model = tf.keras.Model(inputs=inputs, outputs=outputs)
+        model = models.Model(inputs=inputs, outputs=outputs)
         model.run_eagerly = testing_utils.should_run_eagerly()
         predictions = model.predict(logits)
         self.assertAllClose(

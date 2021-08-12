@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized, testing_utils
+from keras import layers, optimizers, keras_parameterized, testing_utils
 from tensorflow.python.ops import variables
 from tfmiss.keras.metrics.f1 import F1Binary
 
@@ -109,11 +109,10 @@ class F1BinaryTest(keras_parameterized.TestCase):
 
     def test_reset_states(self):
         f1_obj = F1Binary()
-        layers = [
-            tf.keras.layers.Dense(3, activation='relu', kernel_initializer='ones'),
-            tf.keras.layers.Dense(1, activation='sigmoid', kernel_initializer='ones')
-        ]
-        model = testing_utils.get_model_from_layers(layers, input_shape=(4,))
+        model = testing_utils.get_model_from_layers([
+            layers.Dense(3, activation='relu', kernel_initializer='ones'),
+            layers.Dense(1, activation='sigmoid', kernel_initializer='ones')
+        ], input_shape=(4,))
         model.compile(loss='mae', metrics=[f1_obj], optimizer='rmsprop', run_eagerly=testing_utils.should_run_eagerly())
         model.run_eagerly = testing_utils.should_run_eagerly()
         x = np.ones((100, 4))
@@ -133,13 +132,12 @@ class F1BinaryTest(keras_parameterized.TestCase):
 
     def test_metric_rises(self):
         f1_obj = F1Binary()
-        layers = [
-            tf.keras.layers.Dense(3, activation='relu'),
-            tf.keras.layers.Dense(1, activation='sigmoid')
-        ]
-        model = testing_utils.get_model_from_layers(layers, input_shape=(4,))
+        model = testing_utils.get_model_from_layers([
+            layers.Dense(3, activation='relu'),
+            layers.Dense(1, activation='sigmoid')
+        ], input_shape=(4,))
         model.compile(
-            loss='mae', metrics=[f1_obj], optimizer=tf.keras.optimizers.Adam(0.01),
+            loss='mae', metrics=[f1_obj], optimizer=optimizers.get('adam'),
             run_eagerly=testing_utils.should_run_eagerly())
         model.run_eagerly = True
         model.run_eagerly = testing_utils.should_run_eagerly()

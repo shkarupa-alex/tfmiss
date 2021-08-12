@@ -17,12 +17,11 @@ import numpy as np
 import tensorflow as tf
 from tensorflow.python.data.ops import dataset_ops
 from tensorflow.python.framework import test_util
-from tensorflow.python.keras import backend as K
-from tensorflow.python.keras import keras_parameterized, testing_utils
+from keras import backend as K, layers, keras_parameterized, testing_utils
 from tfmiss.keras.layers import ToDense
 
 
-class Final(tf.keras.layers.Layer):
+class Final(layers.Layer):
     """This is a helper layer that can be used as the last layer in a network for testing purposes."""
 
     def call(self, inputs, **kwargs):
@@ -76,9 +75,8 @@ class RaggedTensorsToDenseLayerTest(keras_parameterized.TestCase):
                                     [[2., -1., -1., -1., -1.],
                                      [3., -1., -1., -1., -1.]]])
 
-        layers = [ToDense(pad_value=-1), Final()]
         model = testing_utils.get_model_from_layers(
-            layers,
+            [ToDense(pad_value=-1), Final()],
             input_shape=(None, None),
             input_ragged=True,
             input_dtype=tf.int32)
@@ -101,21 +99,20 @@ class RaggedTensorsToDenseLayerTest(keras_parameterized.TestCase):
 
     @parameterized.named_parameters(
         *test_util.generate_combinations_with_testcase_name(layer=[
-            tf.keras.layers.SimpleRNN, tf.keras.layers.GRU, tf.keras.layers.LSTM
+            layers.SimpleRNN, layers.GRU, layers.LSTM
         ]))
     def SKIP_test_ragged_input_RNN_layer(self, layer):
         input_data = get_input_dataset(
             tf.ragged.constant([[1, 2, 3, 4, 5], [5, 6]]))
 
-        layers = [
-            ToDense(pad_value=7, mask=True),
-            tf.keras.layers.Embedding(8, 16),
-            layer(16),
-            tf.keras.layers.Dense(3, activation="softmax"),
-            tf.keras.layers.Dense(1, activation="sigmoid")
-        ]
         model = testing_utils.get_model_from_layers(
-            layers,
+            [
+                ToDense(pad_value=7, mask=True),
+                layers.Embedding(8, 16),
+                layer(16),
+                layers.Dense(3, activation="softmax"),
+                layers.Dense(1, activation="sigmoid")
+            ],
             input_shape=(None,),
             input_ragged=True,
             input_dtype=tf.int32)

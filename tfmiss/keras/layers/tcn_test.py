@@ -4,8 +4,7 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from tensorflow.python.keras import keras_parameterized
-from tensorflow.python.keras import testing_utils
+from keras import backend, models, keras_parameterized, testing_utils
 from tensorflow.python.util import object_identity
 from tensorflow.python.training.tracking import util as trackable_util
 from tfmiss.keras.layers.tcn import TemporalBlock, TemporalConvNet
@@ -47,12 +46,12 @@ class TemporalBlockTest(keras_parameterized.TestCase):
         static_shape = layer.compute_output_shape(tf.TensorShape([None, None, 7])).as_list()
         self.assertAllEqual((None, None, 3), static_shape)
 
-        out = layer(tf.keras.backend.variable(np.ones((1, 5, 7))))
+        out = layer(backend.variable(np.ones((1, 5, 7))))
         dynamic_shape = self.evaluate(out).shape
         self.assertAllEqual((1, 5, 3), dynamic_shape)
 
     def test_model(self):
-        model = tf.keras.models.Sequential()
+        model = models.Sequential()
         model.add(TemporalBlock(
             filters=3,
             kernel_size=2,
@@ -106,12 +105,12 @@ class TemporalConvNetTest(keras_parameterized.TestCase):
         static_shape = layer.compute_output_shape(tf.TensorShape([None, None, 7])).as_list()
         self.assertAllEqual((None, None, 3), static_shape)
 
-        out = layer(tf.keras.backend.variable(np.ones((1, 5, 7))))
+        out = layer(backend.variable(np.ones((1, 5, 7))))
         dynamic_shape = self.evaluate(out).shape
         self.assertAllEqual((1, 5, 3), dynamic_shape)
 
     def test_model(self):
-        model = tf.keras.models.Sequential()
+        model = models.Sequential()
         model.add(TemporalConvNet(
             filters=[5, 4, 3],
             kernel_size=3,

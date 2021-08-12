@@ -4,6 +4,7 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
+from keras.datasets import mnist
 
 
 def data_generator(permute, batch_size):
@@ -12,7 +13,7 @@ def data_generator(permute, batch_size):
         permute: Use permuted MNIST
         batch_size: Size of batch
     """
-    (x_train, y_train), (x_test, y_test) = tf.keras.datasets.mnist.load_data()
+    (x_train, y_train), (x_test, y_test) = mnist.load_data()
 
     x_train = x_train.reshape(-1, 28 * 28, 1).astype('float32') / 255.
     x_test = x_test.reshape(-1, 28 * 28, 1).astype('float32') / 255.

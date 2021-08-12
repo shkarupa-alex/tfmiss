@@ -3,11 +3,13 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.python.keras.utils import tf_utils
+from keras import layers
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.tf_utils import shape_type_conversion
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class L2Scale(tf.keras.layers.Layer):
+@register_keras_serializable(package='Miss')
+class L2Scale(layers.Layer):
     """L2-constrained and scaled layer.
     Reference: https://arxiv.org/pdf/1703.09507.pdf
     L2-constrained Softmax Loss for Discriminative Face Verification
@@ -21,13 +23,13 @@ class L2Scale(tf.keras.layers.Layer):
 
     def __init__(self, alpha=20., **kwargs):
         super(L2Scale, self).__init__(**kwargs)
-        self.input_spec = tf.keras.layers.InputSpec(min_ndim=2)
+        self.input_spec = layers.InputSpec(min_ndim=2)
         self.supports_masking = True
         self._supports_ragged_inputs = True
 
         self.alpha = alpha
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape):
         if len(input_shape) < 2:
             raise ValueError('Shape {} must have rank >= 2'.format(input_shape))
@@ -36,7 +38,7 @@ class L2Scale(tf.keras.layers.Layer):
         if num_channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
 
-        self.input_spec = tf.keras.layers.InputSpec(ndim=len(input_shape), axes={-1: num_channels})
+        self.input_spec = layers.InputSpec(ndim=len(input_shape), axes={-1: num_channels})
 
         super(L2Scale, self).build(input_shape)
 
@@ -50,7 +52,7 @@ class L2Scale(tf.keras.layers.Layer):
 
         return normalized * alpha
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape
 

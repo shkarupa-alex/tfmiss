@@ -4,6 +4,8 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
+from keras import layers, models
+from keras.utils.losses_utils import ReductionV2 as Reduction
 from tensorflow.python.framework import test_util
 from tfmiss.keras.losses.f1 import macro_soft_f1, binary_soft_f1, MacroSoftF1, BinarySoftF1
 
@@ -25,11 +27,11 @@ def _log10(x):
 class MacroSoftF1Test(tf.test.TestCase):
     def test_config(self):
         bce_obj = MacroSoftF1(
-            reduction=tf.keras.losses.Reduction.NONE,
+            reduction=Reduction.NONE,
             name='macro_soft_f1'
         )
         self.assertEqual(bce_obj.name, 'macro_soft_f1')
-        self.assertEqual(bce_obj.reduction, tf.keras.losses.Reduction.NONE)
+        self.assertEqual(bce_obj.reduction, Reduction.NONE)
 
     def test_logits(self):
         prediction_tensor = tf.constant([
@@ -49,9 +51,9 @@ class MacroSoftF1Test(tf.test.TestCase):
         self.assertAllClose(fl, [0.208014, 0.216742, 0.665546])
 
     def test_keras_model_compile(self):
-        model = tf.keras.models.Sequential([
-            tf.keras.layers.Input(shape=(100,)),
-            tf.keras.layers.Dense(1, activation='sigmoid')]
+        model = models.Sequential([
+            layers.Input(shape=(100,)),
+            layers.Dense(1, activation='sigmoid')]
         )
         model.compile(loss='Miss>macro_soft_f1')
 
@@ -70,11 +72,11 @@ class MacroSoftF1Test(tf.test.TestCase):
 class BinarySoftF1Test(tf.test.TestCase):
     def test_config(self):
         bce_obj = BinarySoftF1(
-            reduction=tf.keras.losses.Reduction.NONE,
+            reduction=Reduction.NONE,
             name='binary_soft_f1'
         )
         self.assertEqual(bce_obj.name, 'binary_soft_f1')
-        self.assertEqual(bce_obj.reduction, tf.keras.losses.Reduction.NONE)
+        self.assertEqual(bce_obj.reduction, Reduction.NONE)
 
     def test_logits(self):
         prediction_tensor = tf.constant([
@@ -94,9 +96,9 @@ class BinarySoftF1Test(tf.test.TestCase):
         self.assertAllClose(fl, [0.507614, 0.689655, 0.507614])
 
     def test_keras_model_compile(self):
-        model = tf.keras.models.Sequential([
-            tf.keras.layers.Input(shape=(100,)),
-            tf.keras.layers.Dense(1, activation='sigmoid')]
+        model = models.Sequential([
+            layers.Input(shape=(100,)),
+            layers.Dense(1, activation='sigmoid')]
         )
         model.compile(loss='Miss>binary_soft_f1')
 

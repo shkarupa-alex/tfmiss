@@ -13,10 +13,12 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from keras import layers
+from keras.utils.generic_utils import register_keras_serializable
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class ToDense(tf.keras.layers.Layer):
+@register_keras_serializable(package='Miss')
+class ToDense(layers.Layer):
     """ Layer that makes padding and masking a Composite Tensors effortless. The layer takes a RaggedTensor or
     a SparseTensor and converts it to a uniform tensor by right-padding it or filling in missing values.
 
@@ -43,7 +45,7 @@ class ToDense(tf.keras.layers.Layer):
 
     def build(self, input_shape):
         if self.mask:
-            self.masking_layer = tf.keras.layers.Masking(mask_value=self.pad_value)
+            self.masking_layer = layers.Masking(mask_value=self.pad_value)
 
     def call(self, inputs, **kwargs):
         if isinstance(inputs, tf.RaggedTensor):

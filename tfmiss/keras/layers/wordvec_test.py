@@ -5,7 +5,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from collections import Counter
-from tensorflow.python.keras import keras_parameterized, testing_utils
+from keras import keras_parameterized, testing_utils
 from tfmiss.keras.layers.wordvec import WordEmbedding, CharNgramEmbedding, CharBpeEmbedding, CharCnnEmbedding, Highway
 
 

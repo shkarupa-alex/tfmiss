@@ -3,31 +3,35 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
+from keras import backend, constraints, initializers, layers, models, regularizers
+from keras.backend import convert_inputs_if_ragged, maybe_convert_to_ragged
+from keras.utils.control_flow_util import smart_cond
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.losses_utils import compute_weighted_loss as _compute_weighted_loss, ReductionV2 as Reduction
+from keras.utils.tf_utils import shape_type_conversion
 from tensorflow.python.distribute import distribution_strategy_context
-from tensorflow.python.keras.backend import convert_inputs_if_ragged, maybe_convert_to_ragged
-from tensorflow.python.keras.utils import control_flow_util, losses_utils, tf_utils
 
 
-def compute_weighted_loss(losses, sample_weight=None, reduction=tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE):
+def compute_weighted_loss(losses, sample_weight=None, reduction=Reduction.SUM_OVER_BATCH_SIZE):
     if distribution_strategy_context.has_strategy() and \
-            reduction in {tf.keras.losses.Reduction.AUTO, tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE}:
+            reduction in {Reduction.AUTO, Reduction.SUM_OVER_BATCH_SIZE}:
         raise ValueError(
-            'Please use `tf.keras.losses.Reduction.SUM` or  `tf.keras.losses.Reduction.NONE` for loss reduction when '
+            'Please use `Reduction.SUM` or  `Reduction.NONE` for loss reduction when '
             'losses are used with `tf.distribute.Strategy` outside of the built-in training loops. You can implement '
-            '`tf.keras.losses.Reduction.SUM_OVER_BATCH_SIZE` using global batch size like:\n'
+            '`Reduction.SUM_OVER_BATCH_SIZE` using global batch size like:\n'
             '```\n'
             'with strategy.scope():\n'
-            '    loss_obj = tf.keras.losses.CategoricalCrossentropy(reduction=tf.keras.losses.Reduction.NONE)\n'
+            '    loss_obj = losses.CategoricalCrossentropy(reduction=Reduction.NONE)\n'
             '....\n'
             '    loss = tf.reduce_sum(loss_obj(labels, predictions)) * (1. / global_batch_size)\n'
             '```\n'
             'Please see https://www.tensorflow.org/tutorials/distribute/custom_training for more details.')
 
-    return losses_utils.compute_weighted_loss(losses, sample_weight=sample_weight, reduction=reduction)
+    return _compute_weighted_loss(losses, sample_weight=sample_weight, reduction=reduction)
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class AdaptiveSoftmax(tf.keras.layers.Layer):
+@register_keras_serializable(package='Miss')
+class AdaptiveSoftmax(layers.Layer):
     """Adaptive softmax layer.
     Reference https://arxiv.org/pdf/1609.04309.pdf
     Efficient softmax approximation for GPUs
@@ -54,12 +58,12 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
     def __init__(
             self, units, cutoff, factor=4, dropout=0., use_bias=True, kernel_initializer='glorot_uniform',
             bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, kernel_constraint=None,
-            bias_constraint=None, loss_reduction=tf.keras.losses.Reduction.AUTO, **kwargs):
+            bias_constraint=None, loss_reduction=Reduction.AUTO, **kwargs):
         kwargs['autocast'] = False
         super(AdaptiveSoftmax, self).__init__(**kwargs)
         self.input_spec = [
-            tf.keras.layers.InputSpec(min_ndim=2),  # predictions
-            tf.keras.layers.InputSpec(min_ndim=1, dtype='int32'),  # targets
+            layers.InputSpec(min_ndim=2),  # predictions
+            layers.InputSpec(min_ndim=1, dtype='int32'),  # targets
         ]
         self.supports_masking = True
         self._supports_ragged_inputs = True
@@ -67,7 +71,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         if cutoff[-1] > units - 1:
             raise ValueError('Can\'t specify `cutoff` larger than `units` size')
         units = int(units)
-        tf.keras.losses.Reduction.validate(loss_reduction)
+        Reduction.validate(loss_reduction)
 
         self.cutoff = cutoff
         self._cutoff = cutoff + [units] if units > cutoff[-1] else cutoff
@@ -75,17 +79,17 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         self.factor = factor
         self.dropout = dropout
         self.use_bias = use_bias
-        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
-        self.bias_initializer = tf.keras.initializers.get(bias_initializer)
-        self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
-        self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
-        self.kernel_constraint = tf.keras.constraints.get(kernel_constraint)
-        self.bias_constraint = tf.keras.constraints.get(bias_constraint)
+        self.kernel_initializer = initializers.get(kernel_initializer)
+        self.bias_initializer = initializers.get(bias_initializer)
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.bias_regularizer = regularizers.get(bias_regularizer)
+        self.kernel_constraint = constraints.get(kernel_constraint)
+        self.bias_constraint = constraints.get(bias_constraint)
         self.loss_reduction = loss_reduction
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape):
-        dtype = tf.dtypes.as_dtype(self.dtype or tf.keras.backend.floatx())
+        dtype = tf.dtypes.as_dtype(self.dtype or backend.floatx())
         if not (dtype.is_floating or dtype.is_complex):
             raise TypeError('Unable to build `AdaptiveSoftmax` layer with non-floating point dtype {}'.format(dtype))
 
@@ -99,11 +103,11 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
         if self.input_channels is None:
             raise ValueError('Channel dimension of predictions should be defined. Found `None`.')
         self.input_spec = [
-            tf.keras.layers.InputSpec(ndim=predictions_rank, axes={-1: self.input_channels}),
-            tf.keras.layers.InputSpec(ndim=predictions_rank - 1, dtype=tf.int32)
+            layers.InputSpec(ndim=predictions_rank, axes={-1: self.input_channels}),
+            layers.InputSpec(ndim=predictions_rank - 1, dtype=tf.int32)
         ]
 
-        self.head = tf.keras.layers.Dense(
+        self.head = layers.Dense(
             units=self._cutoff[0] + len(self._cutoff) - 1,
             activation=None,
             use_bias=False,
@@ -125,8 +129,8 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                                  'Try to shorten `cutoffs` or decrease `factor`')
             prev_dim = dim
 
-            tail = tf.keras.Sequential([
-                tf.keras.layers.Dense(
+            tail = models.Sequential([
+                layers.Dense(
                     units=dim,
                     activation=None,
                     use_bias=self.use_bias,
@@ -139,8 +143,8 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
                     name='tail_proj_{}'.format(i),
                     input_shape=(self.input_channels,)
                 ),
-                tf.keras.layers.Dropout(self.dropout, name='tail_drop_{}'.format(i)),
-                tf.keras.layers.Dense(
+                layers.Dropout(self.dropout, name='tail_drop_{}'.format(i)),
+                layers.Dense(
                     units=self._cutoff[i + 1] - self._cutoff[i],
                     activation=None,
                     use_bias=self.use_bias,
@@ -160,7 +164,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
 
     def call(self, inputs, training=None, mask=None):
         if training is None:
-            training = tf.keras.backend.learning_phase()
+            training = backend.learning_phase()
 
         input_logits, input_targets = inputs
         input_logits = tf.cast(input_logits, self.compute_dtype)
@@ -177,7 +181,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             loss_weights = tf.logical_and(loss_weights, mask)
         loss_weights = tf.cast(loss_weights, self.compute_dtype)
 
-        probs, loss = control_flow_util.smart_cond(
+        probs, loss = smart_cond(
             training,
             lambda: self._train_probs_loss(input_logits, input_targets, loss_weights),
             lambda: self._eval_probs_loss(input_logits, input_targets, loss_weights)
@@ -284,7 +288,7 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
 
         return probs, loss
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         predictions_shape, _ = input_shape
 
@@ -303,20 +307,20 @@ class AdaptiveSoftmax(tf.keras.layers.Layer):
             'factor': self.factor,
             'dropout': self.dropout,
             'use_bias': self.use_bias,
-            'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
-            'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
-            'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
-            'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
-            'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
-            'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
+            'kernel_initializer': initializers.serialize(self.kernel_initializer),
+            'bias_initializer': initializers.serialize(self.bias_initializer),
+            'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
+            'bias_regularizer': regularizers.serialize(self.bias_regularizer),
+            'kernel_constraint': constraints.serialize(self.kernel_constraint),
+            'bias_constraint': constraints.serialize(self.bias_constraint),
             'loss_reduction': self.loss_reduction,
         })
 
         return config
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
-class SampledSofmax(tf.keras.layers.Layer):
+@register_keras_serializable(package='Miss')
+class SampledSofmax(layers.Layer):
     """Sampled softmax layer.
     Reference http://arxiv.org/abs/1412.2007.pdf
     On Using Very Large Target Vocabulary for Neural Machine Translation
@@ -346,32 +350,32 @@ class SampledSofmax(tf.keras.layers.Layer):
     def __init__(
             self, units, negatives, kernel_initializer='zeros', bias_initializer='zeros', kernel_regularizer=None,
             bias_regularizer=None, kernel_constraint=None, bias_constraint=None,
-            loss_reduction=tf.keras.losses.Reduction.AUTO, **kwargs):
+            loss_reduction=Reduction.AUTO, **kwargs):
         kwargs['dtype'] = 'float32'
         kwargs['autocast'] = False
         super(SampledSofmax, self).__init__(**kwargs)
         self.input_spec = [
-            tf.keras.layers.InputSpec(min_ndim=2),  # predictions
-            tf.keras.layers.InputSpec(min_ndim=1, dtype=tf.int32),  # targets
+            layers.InputSpec(min_ndim=2),  # predictions
+            layers.InputSpec(min_ndim=1, dtype=tf.int32),  # targets
         ]
         self.supports_masking = True
         self._supports_ragged_inputs = True
 
-        tf.keras.losses.Reduction.validate(loss_reduction)
+        Reduction.validate(loss_reduction)
 
         self.units = units
         self.negatives = negatives
-        self.kernel_initializer = tf.keras.initializers.get(kernel_initializer)
-        self.bias_initializer = tf.keras.initializers.get(bias_initializer)
-        self.kernel_regularizer = tf.keras.regularizers.get(kernel_regularizer)
-        self.bias_regularizer = tf.keras.regularizers.get(bias_regularizer)
-        self.kernel_constraint = tf.keras.constraints.get(kernel_constraint)
-        self.bias_constraint = tf.keras.constraints.get(bias_constraint)
+        self.kernel_initializer = initializers.get(kernel_initializer)
+        self.bias_initializer = initializers.get(bias_initializer)
+        self.kernel_regularizer = regularizers.get(kernel_regularizer)
+        self.bias_regularizer = regularizers.get(bias_regularizer)
+        self.kernel_constraint = constraints.get(kernel_constraint)
+        self.bias_constraint = constraints.get(bias_constraint)
         self.loss_reduction = loss_reduction
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def build(self, input_shape):
-        dtype = tf.dtypes.as_dtype(self.dtype or tf.keras.backend.floatx())
+        dtype = tf.dtypes.as_dtype(self.dtype or backend.floatx())
         if not (dtype.is_floating or dtype.is_complex):
             raise TypeError(
                 'Unable to build `{}` layer with non-floating point dtype {}'.format(self.__class__.__name__, dtype))
@@ -386,8 +390,8 @@ class SampledSofmax(tf.keras.layers.Layer):
         if self.num_channels is None:
             raise ValueError('Channel dimension of predictions should be defined. Found `None`.')
         self.input_spec = [
-            tf.keras.layers.InputSpec(ndim=predictions_rank, axes={-1: self.num_channels}),
-            tf.keras.layers.InputSpec(ndim=predictions_rank - 1, dtype=tf.int32)
+            layers.InputSpec(ndim=predictions_rank, axes={-1: self.num_channels}),
+            layers.InputSpec(ndim=predictions_rank - 1, dtype=tf.int32)
         ]
 
         with tf.device('cpu:0'):
@@ -415,7 +419,7 @@ class SampledSofmax(tf.keras.layers.Layer):
     def call(self, inputs, training=None, mask=None):
         with tf.device('cpu:0'):
             if training is None:
-                training = tf.keras.backend.learning_phase()
+                training = backend.learning_phase()
 
             input_logits, input_targets = inputs
             input_logits = tf.cast(input_logits, self.compute_dtype)
@@ -440,7 +444,7 @@ class SampledSofmax(tf.keras.layers.Layer):
             output_logits = tf.matmul(input_logits, self.kernel, transpose_b=True)
             output_logits = tf.nn.bias_add(output_logits, self.bias)
 
-            loss = control_flow_util.smart_cond(
+            loss = smart_cond(
                 training,
                 lambda: self._train_loss(input_logits, input_targets),
                 lambda: self._eval_loss(output_logits, input_targets)
@@ -475,7 +479,7 @@ class SampledSofmax(tf.keras.layers.Layer):
 
         return loss
 
-    @tf_utils.shape_type_conversion
+    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         predictions_shape, _ = input_shape
 
@@ -486,19 +490,19 @@ class SampledSofmax(tf.keras.layers.Layer):
         config.update({
             'units': self.units,
             'negatives': self.negatives,
-            'kernel_initializer': tf.keras.initializers.serialize(self.kernel_initializer),
-            'bias_initializer': tf.keras.initializers.serialize(self.bias_initializer),
-            'kernel_regularizer': tf.keras.regularizers.serialize(self.kernel_regularizer),
-            'bias_regularizer': tf.keras.regularizers.serialize(self.bias_regularizer),
-            'kernel_constraint': tf.keras.constraints.serialize(self.kernel_constraint),
-            'bias_constraint': tf.keras.constraints.serialize(self.bias_constraint),
+            'kernel_initializer': initializers.serialize(self.kernel_initializer),
+            'bias_initializer': initializers.serialize(self.bias_initializer),
+            'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
+            'bias_regularizer': regularizers.serialize(self.bias_regularizer),
+            'kernel_constraint': constraints.serialize(self.kernel_constraint),
+            'bias_constraint': constraints.serialize(self.bias_constraint),
             'loss_reduction': self.loss_reduction,
         })
 
         return config
 
 
-@tf.keras.utils.register_keras_serializable(package='Miss')
+@register_keras_serializable(package='Miss')
 class NoiseContrastiveEstimation(SampledSofmax):
     """Noise-contrastive estimation layer.
     Reference: http://www.jmlr.org/proceedings/papers/v9/gutmann10a/gutmann10a.pdf
