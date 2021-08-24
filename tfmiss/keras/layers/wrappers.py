@@ -57,6 +57,9 @@ class WithRagged(layers.Wrapper):
     def compute_mask(self, inputs, mask=None):
         return self.layer.compute_mask(inputs, mask)
 
+    def get_config(self):
+        return super(WithRagged, self).get_config()
+
 
 @register_keras_serializable(package='Miss')
 class MapFlat(layers.Wrapper):
