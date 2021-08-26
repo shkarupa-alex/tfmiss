@@ -8,6 +8,16 @@ load("@bazel_tools//tools/build_defs/repo:http.bzl", "http_archive")
 # curl -L https://github.com/.../.../archive/<git hash>.tar.gz | [g]sha256sum
 
 http_archive(
+    name = "cub_archive",
+    build_file = "//build_deps/toolchains/gpu:cub.BUILD",
+    sha256 = "6bfa06ab52a650ae7ee6963143a0bbc667d6504822cbd9670369b598f18c58c3",
+    strip_prefix = "cub-1.8.0",
+    urls = [
+        "https://storage.googleapis.com/mirror.tensorflow.org/github.com/NVlabs/cub/archive/1.8.0.zip",
+        "https://github.com/NVlabs/cub/archive/1.8.0.zip",
+    ],
+)
+http_archive(
     name = "icu",
     sha256 = "65271a83fa81783d1272553f4564965ac2e32535a58b0b8141e9f4003afb0e3a",
     strip_prefix = "icu-release-64-2",

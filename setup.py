@@ -2,22 +2,22 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from setuptools import setup, find_packages
-from setuptools.command.install import install
+import sys
+from pathlib import Path
+from setuptools import setup, find_packages, Extension
 from setuptools.dist import Distribution
 
 __VERSION__ = '0.14.0'
 
 
-class InstallPlatlib(install):
-    """This class is needed due to a bug in
-    distutils.command.install.finalize_options().
-    See https://github.com/google/or-tools/issues/616#issuecomment-371480314"""
-
-    def finalize_options(self):
-        install.finalize_options(self)
-        if self.distribution.has_ext_modules():
-            self.install_lib = self.install_platlib
+def get_ext_modules():
+    ext_modules = []
+    if "--platlib-patch" in sys.argv:
+        if sys.platform.startswith("linux"):
+            # Manylinux2010 requires a patch for platlib
+            ext_modules = [Extension("_foo", ["stub.cc"])]
+        sys.argv.remove("--platlib-patch")
+    return ext_modules
 
 
 class BinaryDistribution(Distribution):
@@ -40,17 +40,10 @@ setup(
     author='Shkarupa Alex',
     author_email='shkarupa.alex@gmail.com',
     packages=find_packages(),
-    install_requires=[
-        'tensorflow==2.6.0',
-        'keras>=2.6.0',
-        'scipy>=1.5.4',
-        'matplotlib>=3.1.1',
-        'tabulate>=0.8.6',
-        'nlpvocab>=1.2.0'
-    ],
+    ext_modules=get_ext_modules(),
+    install_requires=Path("requirements.txt").read_text().splitlines(),
     include_package_data=True,
     zip_safe=False,
-    cmdclass={'install': InstallPlatlib},
     distclass=BinaryDistribution,
     classifiers=[
         'Development Status :: 5 - Production/Stable',

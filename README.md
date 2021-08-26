@@ -13,18 +13,12 @@ You can build the pip package with Bazel v0.25.3:
 export TF_NEED_CUDA="1"
 
 # Set these if the below defaults are different on your system
-export TF_CUDA_VERSION="11"
+export TF_CUDA_VERSION="11.2"
 export TF_CUDNN_VERSION="8"
 export CUDA_TOOLKIT_PATH="/usr/local/cuda"
 export CUDNN_INSTALL_PATH="/usr/lib/x86_64-linux-gnu"
 
-# Set this to proper GCC v8 compiller path if using GPU
-export GCC_HOST_COMPILER_PATH=`which gcc-8`
-
-# Set these to target another python interpreter
-export PYTHON_BIN_PATH=`which python`
-
-./configure.sh
+./configure.py
 bazel clean --expunge
 bazel test --test_output=errors //tfmiss/...
 bazel build build_pip_pkg
@@ -33,7 +27,8 @@ bazel-bin/build_pip_pkg wheels
 
 ### Build release with Linux docker container
 ```bash
-docker run -it -v `pwd`:/tfmiss tensorflow/tensorflow:custom-op-ubuntu16 /tfmiss/build_linux_release.sh
+# Requires about 4Gb of RAM allocated to Docker
+DOCKER_BUILDKIT=1 docker build -t miss --output type=local,dest=wheels --build-arg TF_VERSION=2.6.0 --build-arg PY_VERSION=3.8 ./
 ```
 
 ### Install and test PIP package

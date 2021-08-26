@@ -1,76 +1,104 @@
 #!/usr/bin/env bash
-set -e -x
+# Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+#     http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+# ==============================================================================
+set -e
+set -x
 
-PIP_FILE_PREFIX="bazel-bin/build_pip_pkg.runfiles/__main__/"
+PLATFORM="$(uname -s | tr 'A-Z' 'a-z')"
+
+function is_windows() {
+  # On windows, the shell script is actually running in msys
+  [[ "${PLATFORM}" =~ msys_nt*|mingw*|cygwin*|uwin* ]]
+}
+
+function is_macos() {
+  [[ "${PLATFORM}" == "darwin" ]]
+}
+
+if is_windows; then
+  PIP_FILE_PREFIX="bazel-bin/build_pip_pkg.exe.runfiles/__main__/"
+else
+  PIP_FILE_PREFIX="bazel-bin/build_pip_pkg.runfiles/__main__/"
+fi
+
+function abspath() {
+  cd "$(dirname $1)"
+  echo "$PWD/$(basename $1)"
+  cd "$OLDPWD"
+}
 
 function main() {
   DEST=${1}
+  NIGHTLY_FLAG=${2}
+
   if [[ -z ${DEST} ]]; then
     echo "No destination dir provided"
     exit 1
   fi
 
-  mkdir -p "${DEST}"
-  DEST="$(realpath "${DEST}")"
+  mkdir -p ${DEST}
+  DEST=$(abspath "${DEST}")
   echo "=== destination directory: ${DEST}"
 
   TMPDIR=$(mktemp -d -t tmp.XXXXXXXXXX)
   echo $(date) : "=== Using tmpdir: ${TMPDIR}"
+  echo "=== Copy TF Miss files"
 
-  echo "=== Copy module files"
-  cp ${PIP_FILE_PREFIX}.bazelrc "${TMPDIR}"
   cp ${PIP_FILE_PREFIX}setup.py "${TMPDIR}"
   cp ${PIP_FILE_PREFIX}README.md "${TMPDIR}"
   cp ${PIP_FILE_PREFIX}MANIFEST.in "${TMPDIR}"
   cp ${PIP_FILE_PREFIX}LICENSE "${TMPDIR}"
-  rsync -avm -L --exclude='*_test.py' ${PIP_FILE_PREFIX}tfmiss "${TMPDIR}"
+  cp ${PIP_FILE_PREFIX}requirements.txt "${TMPDIR}"
+  touch ${TMPDIR}/stub.cc
 
-  pushd "${TMPDIR}"
-  echo $(date) : "=== Building wheel"
-  PY_BIN=${PYTHON_BIN_PATH:-`which python`}
-  $PY_BIN setup.py bdist_wheel > /dev/null
-
-  # Define OS-specific repair command for
-  if [[ ${SKIP_REPAIR:-0} ]]; then
-    if which gcp >/dev/null; then
-      REPAIR_CMD="gcp -t repaired/"
-    else
-      REPAIR_CMD="cp -t repaired/"
-    fi
-  elif [[ $(uname) == "Darwin" ]]; then
-    python3 -m pip install -U delocate
-    REPAIR_CMD="delocate-wheel -w repaired"
+  if is_windows; then
+    from=$(cygpath -w ${PIP_FILE_PREFIX}tfmiss)
+    to=$(cygpath -w "${TMPDIR}"/tfmiss)
+    start robocopy //S "${from}" "${to}" //xf *_test.py
+    sleep 5
   else
-    python3 -m pip install -U auditwheel==2.0.0
-
-    # Patch auditwheel
-    AUDIT_WHEEL_PATH=$(python3 -c 'import auditwheel as aw; import os; print(os.path.dirname(aw.__file__))')
-    POLICY_JSON="${AUDIT_WHEEL_PATH}/policy/policy.json"
-    if [[ ! -f ${POLICY_JSON}.bak ]]; then
-      cp -f "${POLICY_JSON}" "${POLICY_JSON}".bak
-    fi
-    cp -f "${POLICY_JSON}".bak "${POLICY_JSON}"
-    TF_SHARED_LIBRARY_NAME=$(grep -r TF_SHARED_LIBRARY_NAME .bazelrc | head -n 1 | awk -F= '{print$2}')
-    sed -i "s/libresolv.so.2\"/libresolv.so.2\", ${TF_SHARED_LIBRARY_NAME}/g" ${POLICY_JSON}
-
-    REPAIR_CMD="auditwheel repair --plat manylinux2010_x86_64 -w repaired"
+    rsync -avm -L --exclude='*_test.py' ${PIP_FILE_PREFIX}tfmiss "${TMPDIR}"
   fi
 
-  # Repair wheels
-  mkdir -p repaired
-  for WHL in dist/*.whl
-  do
-    ${REPAIR_CMD} "${WHL}"
-  done
+  pushd ${TMPDIR}
+  echo $(date) : "=== Building wheel"
 
-  # Move wheels to destination
-  cp repaired/*.whl "${DEST}"
-  echo $(date) : "=== Output wheel file is in: ${DEST}"
 
-  # Cleanup
-  rm -rf repaired/*.whl
+  BUILD_CMD="setup.py bdist_wheel --platlib-patch"
+  if is_macos; then
+    if [[ x"$(arch)" == x"arm64" ]]; then
+      BUILD_CMD="${BUILD_CMD} --plat-name macosx_11_0_arm64"
+    else
+      BUILD_CMD="${BUILD_CMD} --plat-name macosx_10_13_x86_64"
+    fi
+    PYTHON=python3
+  else
+    PYTHON=python
+  fi
+
+  if [[ -z ${NIGHTLY_FLAG} ]]; then
+    # Windows has issues with locking library files for deletion so do not fail here
+    $PYTHON ${BUILD_CMD} || true
+  else
+    $PYTHON ${BUILD_CMD} ${NIGHTLY_FLAG} || true
+  fi
+
+  cp dist/*.whl "${DEST}"
   popd
-  rm -rf "${TMPDIR}"
+  rm -rf ${TMPDIR}
+  echo $(date) : "=== Output wheel file is in: ${DEST}"
 }
 
 main "$@"
