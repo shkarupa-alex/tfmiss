@@ -16,6 +16,15 @@ py_library(
 custom_op_library(
     name = "_tfmiss_ops.so",
     srcs = [
+        # dcn v2
+        "cc/kernels/dcnv2/dcn_v2.h",
+        "cc/kernels/dcnv2/dcn_v2.cc",
+        "cc/kernels/dcnv2/dcn_v2_bwd.cc",
+
+        "cc/ops/dcnv2/dcn_v2.cc",
+        "cc/ops/dcnv2/dcn_v2_bwd.cc",
+
+
         # preprocessing
         "cc/kernels/preprocessing/cbow_context.cc",
         "cc/ops/preprocessing/cbow_context.cc",
@@ -99,6 +108,8 @@ custom_op_library(
         "cc/ops/unicode/transform/zero_digits.cc",
     ],
     cuda_srcs = [
+        "cc/kernels/dcnv2/dcn_v2.h",
+        "cc/kernels/dcnv2/dcn_v2.cu.cc",
         "cc/kernels/qrnn/fo_pool.h",
         "cc/kernels/qrnn/fo_pool.cu.cc",
     ],

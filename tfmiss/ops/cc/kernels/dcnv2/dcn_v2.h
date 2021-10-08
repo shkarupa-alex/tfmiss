@@ -15,13 +15,10 @@ typedef Eigen::GpuDevice GPUDevice;
 
 template <typename T>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
-T im2col_bilinear(const T *data, const int height, const int width, const int channels, const T h, const T w)
+float im2col_bilinear(const T *data, const int height, const int width, const int channels, const float h, const float w)
 {
-  const T zero = static_cast<T>(0.);
-  const T one = static_cast<T>(1.);
-
-  const int h_low = floor(static_cast<float>(h));
-  const int w_low = floor(static_cast<float>(w));
+  const int h_low = floor(h);
+  const int w_low = floor(w);
   const int h_high = h_low + 1;
   const int w_high = w_low + 1;
 
@@ -30,31 +27,35 @@ T im2col_bilinear(const T *data, const int height, const int width, const int ch
   const bool h_high_within = 0 <= h_high && h_high < height;
   const bool w_high_within = 0 <= w_high && w_high < width;
 
-  const T lh = h - static_cast<T>(h_low);
-  const T lw = w - static_cast<T>(w_low);
-  const T hh = one - lh;
-  const T hw = one - lw;
+  const float lh = h - h_low;
+  const float lw = w - w_low;
+  const float hh = 1. - lh;
+  const float hw = 1. - lw;
 
-  T value = zero;
+  float value = 0.;
 
   if (h_low_within && w_low_within)
   {
-    value += data[(h_low * width + w_low) * channels] * hh * hw;
+    const T h_low_w_low = data[(h_low * width + w_low) * channels];
+    value += h_low_w_low * hh * hw;
   }
 
   if (h_low_within && w_high_within)
   {
-    value += data[(h_low * width + w_high) * channels] * hh * lw;
+    const T h_low_w_high = data[(h_low * width + w_high) * channels];
+    value += h_low_w_high * hh * lw;
   }
 
   if (h_high_within && w_low_within)
   {
-    value += data[(h_high * width + w_low) * channels] * lh * hw;
+    const T h_high_w_low = data[(h_high * width + w_low) * channels];
+    value += h_high_w_low * lh * hw;
   }
 
   if (h_high_within && w_high_within)
   {
-    value += data[(h_high * width + w_high) * channels] * lh * lw;
+    const T h_high_w_high = data[(h_high * width + w_high) * channels];
+    value += h_high_w_high * lh * lw;
   }
 
   return value;
@@ -63,36 +64,32 @@ T im2col_bilinear(const T *data, const int height, const int width, const int ch
 
 template <typename T>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
-T coordinate_weight(
-    const T *data, const int height, const int width, const int channels, const T h, const T w, const bool horizontal)
+float coordinate_weight(
+    const T *data, const int height, const int width, const int channels, const float h, const float w, const bool horizontal)
 {
-  const T zero = static_cast<T>(0.);
-  const T one = static_cast<T>(1.);
-  const T two = static_cast<T>(2.);
-//  const T epsilon = static_cast<T>(1e-13);
-  const T epsilon = Eigen::NumTraits<T>::dummy_precision();
+  const float epsilon = Eigen::NumTraits<float>::dummy_precision(); // TODO: check
 
   const int h_low = floor(h);
   const int w_low = floor(w);
-  const T lh = h - static_cast<T>(h_low);
-  const T lw = w - static_cast<T>(w_low);
+  const float lh = h - h_low;
+  const float lw = w - w_low;
 
-  T weight = zero;
+  float weight = 0.;
 
-  if (horizontal && (zero == lh || one == lh))
+  if (horizontal && (0. == lh || 1. == lh))
   {
     weight += coordinate_weight(data, height, width, channels, h - epsilon, w, horizontal);
     weight += coordinate_weight(data, height, width, channels, h + epsilon, w, horizontal);
-    weight /= two;
+    weight /= 2.;
 
     return weight;
   }
 
-  if (!horizontal && (zero == lw || one == lw))
+  if (!horizontal && (0. == lw || 1. == lw))
   {
     weight += coordinate_weight(data, height, width, channels, h, w - epsilon, horizontal);
     weight += coordinate_weight(data, height, width, channels, h, w + epsilon, horizontal);
-    weight /= two;
+    weight /= 2.;
 
     return weight;
   }
@@ -100,8 +97,8 @@ T coordinate_weight(
 
   const int h_high = h_low + 1;
   const int w_high = w_low + 1;
-  const T hh = one - lh;
-  const T hw = one - lw;
+  const float hh = 1. - lh;
+  const float hw = 1. - lw;
 
   const bool h_low_within = 0 <= h_low && h_low < height;
   const bool w_low_within = 0 <= w_low && w_low < width;
@@ -133,23 +130,19 @@ T coordinate_weight(
 }
 
 
-template <typename T>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE
 bool input_weight(
-  const T h, const T w, const int height, const int width, const int dir, int *h_in, int *w_in, T *weight)
+  const float h, const float w, const int height, const int width, const int dir, int *h_in, int *w_in, float *weight)
 {
-  const T zero = static_cast<T>(0.);
-  const T one = static_cast<T>(1.);
-
-  const int h_low = floor(static_cast<float>(h));
-  const int w_low = floor(static_cast<float>(w));
+  const int h_low = floor(h);
+  const int w_low = floor(w);
   const int h_high = h_low + 1;
   const int w_high = w_low + 1;
 
-  const T lh = h - static_cast<T>(h_low);
-  const T lw = w - static_cast<T>(w_low);
-  const T hh = one - lh;
-  const T hw = one - lw;
+  const float lh = h - h_low;
+  const float lw = w - w_low;
+  const float hh = 1. - lh;
+  const float hw = 1. - lw;
 
   const bool h_low_within = 0 <= h_low && h_low < height;
   const bool w_low_within = 0 <= w_low && w_low < width;
@@ -192,7 +185,7 @@ bool input_weight(
 
   *h_in = 0;
   *w_in = 0;
-  *weight = zero;
+  *weight = 0.;
 
   return false;
 }
@@ -247,16 +240,16 @@ void modulated_deformable_im2col_body(
 
   for (int i = 0; i < kernel_h; ++i) {
     for (int j = 0; j < kernel_w; ++j) {
-      const T offset_h_ = offset_slice[i * kernel_w * 2 + j * 2];
-      const T offset_w_ = offset_slice[i * kernel_w * 2 + j * 2 + 1];
-      const T mask_ = mask_slice[i * kernel_w + j];
+      const float offset_h_ = offset_slice[i * kernel_w * 2 + j * 2];
+      const float offset_w_ = offset_slice[i * kernel_w * 2 + j * 2 + 1];
+      const float mask_ = mask_slice[i * kernel_w + j];
 
-      const T h_im = static_cast<T>(h_in + i * dilation_h) + offset_h_;
-      const T w_im = static_cast<T>(w_in + j * dilation_w) + offset_w_;
+      const float h_im = h_in + i * dilation_h + offset_h_;
+      const float w_im = w_in + j * dilation_w + offset_w_;
 
-      const T value = im2col_bilinear(input_slice, height_in, width_in, channel_in, h_im, w_im);
+      const float value = mask_ * im2col_bilinear(input_slice, height_in, width_in, channel_in, h_im, w_im);
 
-      output_slice[i * kernel_w + j] = mask_ * value;
+      output_slice[i * kernel_w + j] = static_cast<T>(value);
     }
   }
 }
@@ -334,37 +327,37 @@ void modulated_deformable_col2im_body(
 
   for (int i = 0; i < kernel_h; ++i) {
     for (int j = 0; j < kernel_w; ++j) {
-      const T offset_h_ = offset_slice[i * kernel_w * 2 + j * 2];
-      const T offset_w_ = offset_slice[i * kernel_w * 2 + j * 2 + 1];
-      const T mask_ = mask_slice[i * kernel_w + j];
-      const T grad_ = grad_slice[i * kernel_w + j];
+      const float offset_h_ = offset_slice[i * kernel_w * 2 + j * 2];
+      const float offset_w_ = offset_slice[i * kernel_w * 2 + j * 2 + 1];
+      const float mask_ = mask_slice[i * kernel_w + j];
+      const float grad_ = grad_slice[i * kernel_w + j];
 
-      const T h_im = static_cast<T>(h_in + i * dilation_h) + offset_h_;
-      const T w_im = static_cast<T>(w_in + j * dilation_w) + offset_w_;
+      const float h_im = h_in + i * dilation_h + offset_h_;
+      const float w_im = w_in + j * dilation_w + offset_w_;
 
-      const T top_grad = grad_ * mask_;
+      const float top_grad = grad_ * mask_;
 
       // Mask gradient
-      const T m_grad = grad_ * im2col_bilinear(input_slice, height_in, width_in, channel_in, h_im, w_im);
-      grad_mask_slice[i * kernel_w + j] += m_grad;
+      const float m_grad = grad_ * im2col_bilinear(input_slice, height_in, width_in, channel_in, h_im, w_im);
+      grad_mask_slice[i * kernel_w + j] += static_cast<T>(m_grad);
 
 
       // Offset gradient
-      const T o_h_grad = top_grad * coordinate_weight(input_slice, height_in, width_in, channel_in, h_im, w_im, true);
-      const T o_w_grad = top_grad * coordinate_weight(input_slice, height_in, width_in, channel_in, h_im, w_im, false);
-      grad_offset_slice[i * kernel_w * 2 + j * 2] += o_h_grad;
-      grad_offset_slice[i * kernel_w * 2 + j * 2 + 1] += o_w_grad;
+      const float o_h_grad = top_grad * coordinate_weight(input_slice, height_in, width_in, channel_in, h_im, w_im, true);
+      const float o_w_grad = top_grad * coordinate_weight(input_slice, height_in, width_in, channel_in, h_im, w_im, false);
+      grad_offset_slice[i * kernel_w * 2 + j * 2] += static_cast<T>(o_h_grad);
+      grad_offset_slice[i * kernel_w * 2 + j * 2 + 1] += static_cast<T>(o_w_grad);
 
       // Input gradient
       for (int z=0; z < 4; z++) {
           int i_height, i_width;
-          T i_grad;
+          float i_grad;
 
           const bool update = input_weight(h_im, w_im, height_in, width_in, z, &i_height, &i_width, &i_grad);
           if (update)
           {
             i_grad *= top_grad;
-            grad_input_slice[(i_height * width_out + i_width) * channel_in] += i_grad;
+            grad_input_slice[(i_height * width_out + i_width) * channel_in] += static_cast<T>(i_grad);
           }
       }
     }

@@ -16,7 +16,7 @@ namespace miss {
 
 template <typename T>
 struct ModulatedDeformableColumnBackwardFunctor<CPUDevice, T> {
-  void operator()(OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *grad, 
+  void operator()(OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *grad,
     const int batch_size, const int height_in, const int width_in, const int channel_in, const int height_out, const int width_out, 
     const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w, const int dilation_h, const int dilation_w, 
     const int deformable_group, T *grad_input, T *grad_offset, T *grad_mask) const
@@ -151,7 +151,6 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel {
     const T *mask = mask_tensor->flat<T>().data();
     const T *grad = grad_tensor->flat<T>().data();
 
-
     T *grad_input = grad_input_tensor->flat<T>().data();
     T *grad_offset = grad_offset_tensor->flat<T>().data();
     T *grad_mask = grad_mask_tensor->flat<T>().data();
@@ -160,7 +159,6 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel {
         ctx, input, offset, mask, grad, batch_size, height_in, width_in, channel_in, height_out, width_out, kernel_h,
         kernel_w, pad_hb, pad_wb, stride_h, stride_w, dilation_h, dilation_w,
         deformable_group, grad_input, grad_offset, grad_mask);
-  std::cout << Eigen::NumTraits<T>::dummy_precision() << std::endl;
   }
 };
 
@@ -173,6 +171,7 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel {
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
+TF_CALL_bfloat16(REGISTER);
 
 #undef REGISTER
 

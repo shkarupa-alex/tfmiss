@@ -8,7 +8,6 @@ from absl.testing import parameterized
 from tensorflow.python.framework import test_util
 from tensorflow.python.ops.gradient_checker_v2 import max_error
 from tfmiss.nn.dcnv2 import modulated_deformable_column
-from tfmiss.ops import tfmiss_ops
 
 
 @test_util.run_all_in_graph_and_eager_modes
@@ -36,155 +35,65 @@ class DCNv2Test(tf.test.TestCase, parameterized.TestCase):
         self.assertListEqual([2, 7 * 8, 3 * 3 * 3], result.shape.as_list())
         self.assertListEqual([2, 7 * 8, 3 * 3 * 3], list(self.evaluate(result).shape))
 
-    @parameterized.parameters(('float16', 1e-2), ('float32', 1e-6), ('float64', 1e-6))
-    def test_value(self, dt, tol):
-        input_ = INPUT_3c_7x8.astype(dt)
-        offset_ = OFFSET_2g_7x8.astype(dt)
-        mask_ = MASK_2g_7x8.astype(dt)
+    @parameterized.parameters(
+        ('/cpu:0', 'float16', 1e-2, 2e-2), ('/cpu:0', 'float32', 1e-6, 2e-6), ('/cpu:0', 'float64', 2e-6, 5e-7),
+        ('/gpu:0', 'float16', 1e-2, 2e-2), ('/gpu:0', 'float32', 1e-6, 2e-6), ('/gpu:0', 'float64', 2e-6, 5e-7))
+    def test_value(self, dev, dt, tol, gtol):
+        if 'gpu' in dev and not len(tf.config.list_physical_devices('GPU')):
+            return self.skipTest('No GPU available')
 
-        expected_ = COLUMN_3c_7x8.astype(dt)
-        self.assertLessEqual(np.abs(expected_).max(), np.abs(input_).max() * np.abs(mask_).max())
+        with tf.device(dev):
+            input_ = INPUT_3c_7x8.astype(dt)
+            offset_ = OFFSET_2g_7x8.astype(dt)
+            mask_ = MASK_2g_7x8.astype(dt)
+            expected_ = COLUMN_3c_7x8.astype(dt)
 
-        for d in DEVICES:
-            with tf.device(d):
-                result = modulated_deformable_column(
-                    input_, offset_, mask_, kernel_size=3, strides=1, padding=1, dilation_rate=1, deformable_groups=2)
-                result = self.evaluate(result)
+            result = modulated_deformable_column(
+                input_, offset_, mask_, kernel_size=3, strides=1, padding=1, dilation_rate=1, deformable_groups=2)
+            result = self.evaluate(result)
 
-                self.assertEqual(result.dtype, dt)
-                self.assertTrue(np.all(np.isfinite(result)))
-                self.assertAllClose(expected_, result, rtol=tol, atol=tol)
+            self.assertEqual(result.dtype, dt)
+            self.assertTrue(np.all(np.isfinite(result)))
+            self.assertLessEqual(np.abs(expected_).max(), np.abs(input_).max() * np.abs(mask_).max())
+            self.assertAllClose(expected_, result, rtol=tol, atol=tol)
 
-                # with tf.GradientTape() as g:
-                #     variables = [input_, offset_, mask_]
-                #     g.watch(variables)
-                #     result = modulated_deformable_column(
-                #         input_, offset_, mask_, kernel_size=3, strides=1, padding=1, dilation_rate=1,
-                #         deformable_groups=2)
-                #
-                #     result_input, result_offset, result_mask = g.gradient(result, variables)
-                #     result_input = self.evaluate(result_input)
-                #     result_offset = self.evaluate(result_offset)
-                #     result_mask = self.evaluate(result_mask)
-                #
-                #     self.assertEqual(result_input.dtype, dt)
-                #     self.assertEqual(result_offset.dtype, dt)
-                #     self.assertEqual(result_mask.dtype, dt)
-                #
-                #     self.assertTrue(np.all(np.isfinite(result_input)))
-                #     self.assertTrue(np.all(np.isfinite(result_offset)))
-                #     self.assertTrue(np.all(np.isfinite(result_mask)))
-                #
-                #     self.assertAllClose(expected_input, result_input, rtol=tol, atol=tol)
-                #     self.assertAllClose(expected_offset, result_offset, rtol=tol, atol=tol)
-                #     self.assertAllClose(expected_mask, result_mask, rtol=tol, atol=tol)
+            # grad_ = GRADIENT_3c_7x8.astype(dt)
+            # expected_dinput = INPUT_GRADIENT_3c_7x8.astype(dt)
+            # expected_doffset = OFFSET_GRADIENT_3c_7x8.astype(dt)
+            # expected_dmask = MASK_GRADIENT_3c_7x8.astype(dt)
+            #
+            # with tf.GradientTape() as g:
+            #     variables = [tf.constant(v, dt) for v in [input_, offset_, mask_]]
+            #     g.watch(variables)
+            #     result = modulated_deformable_column(
+            #         variables[0], variables[1], variables[2],
+            #         kernel_size=3, strides=1, padding=1, dilation_rate=1, deformable_groups=2)
+            #
+            #     result_grad = g.gradient(result, variables, output_gradients=tf.constant(grad_, dt))
+            #     result_grad = self.evaluate(result_grad)
+            #
+            #     self.assertEqual(result_grad[0].dtype, dt)
+            #     self.assertEqual(result_grad[1].dtype, dt)
+            #     self.assertEqual(result_grad[2].dtype, dt)
+            #
+            #     self.assertTrue(np.all(np.isfinite(result_grad[0])))
+            #     self.assertTrue(np.all(np.isfinite(result_grad[1])))
+            #     self.assertTrue(np.all(np.isfinite(result_grad[2])))
+            #
+            #     self.assertAllClose(expected_dinput, result_grad[0], rtol=gtol, atol=gtol)
+            #     self.assertAllClose(expected_doffset, result_grad[1], rtol=gtol, atol=gtol)
+            #     self.assertAllClose(expected_dmask, result_grad[2], rtol=gtol, atol=gtol)
 
-                # def _op(inp, off, msk):
-                #     return modulated_deformable_column(
-                #         inp, off, msk, kernel_size=3, strides=1, padding=1, dilation_rate=1, deformable_groups=2)
-                #
-                # theoretical, numerical = tf.test.compute_gradient(_op, [input_, offset_, mask_])
-                # err = max_error(theoretical[1:-1], numerical[1:-1])
-                # self.assertLess(err, tol)
+    def test_grad_smoke(self):
+        pass
+        # def _op(inp, off, msk):
+        #     return modulated_deformable_column(
+        #         inp, off, msk, kernel_size=3, strides=1, padding=1, dilation_rate=1, deformable_groups=2)
+        #
+        # theoretical, numerical = tf.test.compute_gradient(_op, [input_, offset_, mask_])
+        # err = max_error(theoretical[1:-1], numerical[1:-1])
+        # self.assertLess(err, tol)
 
-
-@test_util.run_all_in_graph_and_eager_modes
-class DCNv2BackwardTest(tf.test.TestCase, parameterized.TestCase):
-    def test_shape_inference_valid(self):
-        inputs = tf.zeros((2, 7, 8, 3), 'float32')
-        offset = tf.zeros((2, 5, 6, 36), 'float32')
-        mask = tf.zeros((2, 5, 6, 18), 'float32')
-        grad = tf.zeros((2, 5 * 6, 3 * 3 * 3), 'float32')
-
-        g_input, g_offset, g_mask = tfmiss_ops.miss_modulated_deformable_column_backward(
-            input=inputs, offset=offset, mask=mask, grad=grad, kernel_h=3, kernel_w=3, stride_h=1, stride_w=1,
-            pad_hb=0, pad_ha=0, pad_wb=0, pad_wa=0, dilation_h=1, dilation_w=1, deformable_group=2)
-        self.assertListEqual(inputs.shape.as_list(), g_input.shape.as_list())
-        self.assertListEqual(inputs.shape.as_list(), list(self.evaluate(g_input).shape))
-
-        self.assertListEqual(offset.shape.as_list(), g_offset.shape.as_list())
-        self.assertListEqual(offset.shape.as_list(), list(self.evaluate(g_offset).shape))
-
-        self.assertListEqual(mask.shape.as_list(), g_mask.shape.as_list())
-        self.assertListEqual(mask.shape.as_list(), list(self.evaluate(g_mask).shape))
-
-    def test_shape_inference_same(self):
-        inputs = tf.zeros((2, 7, 8, 3), 'float32')
-        offset = tf.zeros((2, 7, 8, 36), 'float32')
-        mask = tf.zeros((2, 7, 8, 18), 'float32')
-        grad = tf.zeros((2, 7 * 8, 3 * 3 * 3), 'float32')
-
-        g_input, g_offset, g_mask = tfmiss_ops.miss_modulated_deformable_column_backward(
-            input=inputs, offset=offset, mask=mask, grad=grad, kernel_h=3, kernel_w=3, stride_h=1, stride_w=1,
-            pad_hb=1, pad_ha=1, pad_wb=1, pad_wa=1, dilation_h=1, dilation_w=1, deformable_group=2)
-
-        self.assertListEqual(inputs.shape.as_list(), g_input.shape.as_list())
-        self.assertListEqual(inputs.shape.as_list(), list(self.evaluate(g_input).shape))
-
-        self.assertListEqual(offset.shape.as_list(), g_offset.shape.as_list())
-        self.assertListEqual(offset.shape.as_list(), list(self.evaluate(g_offset).shape))
-
-        self.assertListEqual(mask.shape.as_list(), g_mask.shape.as_list())
-        self.assertListEqual(mask.shape.as_list(), list(self.evaluate(g_mask).shape))
-
-    @parameterized.parameters(('float16', 2e-2), ('float32', 9e-5), ('float64', 1e-6))
-    def test_value(self, dt, tol):
-        expected_input = INPUT_GRADIENT_3c_7x8.astype(dt)
-        expected_offset = OFFSET_GRADIENT_3c_7x8.astype(dt)
-        expected_mask = MASK_GRADIENT_3c_7x8.astype(dt)
-        input_ = tf.constant(INPUT_3c_7x8.astype(dt), dt)
-        offset_ = tf.constant(OFFSET_2g_7x8.astype(dt), dt)
-        mask_ = tf.constant(MASK_2g_7x8.astype(dt), dt)
-        grad_ = tf.constant(GRADIENT_3c_7x8.astype(dt), dt)
-
-        for d in DEVICES:
-            with tf.device(d):
-                result_input, result_offset, result_mask = tfmiss_ops.miss_modulated_deformable_column_backward(
-                    input=input_, offset=offset_, mask=mask_, grad=grad_, kernel_h=3, kernel_w=3, stride_h=1,
-                    stride_w=1, pad_hb=1, pad_ha=1, pad_wb=1, pad_wa=1, dilation_h=1, dilation_w=1, deformable_group=2)
-                result_input = self.evaluate(result_input)
-                result_offset = self.evaluate(result_offset)
-                result_mask = self.evaluate(result_mask)
-
-                self.assertEqual(result_input.dtype, dt)
-                self.assertEqual(result_offset.dtype, dt)
-                self.assertEqual(result_mask.dtype, dt)
-
-                self.assertTrue(np.all(np.isfinite(result_input)))
-                self.assertTrue(np.all(np.isfinite(result_offset)))
-                self.assertTrue(np.all(np.isfinite(result_mask)))
-
-                self.assertAllClose(expected_input, result_input, rtol=tol, atol=tol)
-                self.assertAllClose(expected_offset, result_offset, rtol=tol, atol=tol)
-                self.assertAllClose(expected_mask, result_mask, rtol=tol, atol=tol)
-
-                # with tf.GradientTape() as g:
-                #     variables = [input_, offset_, mask_]
-                #     g.watch(variables)
-                #     result = modulated_deformable_column(
-                #         input_, offset_, mask_, kernel_size=3, strides=1, padding=1, dilation_rate=1,
-                #         deformable_groups=2)
-                #
-                #     result_input, result_offset, result_mask = g.gradient(result, variables)
-                #     result_input = self.evaluate(result_input)
-                #     result_offset = self.evaluate(result_offset)
-                #     result_mask = self.evaluate(result_mask)
-                #
-                #     self.assertEqual(result_input.dtype, dt)
-                #     self.assertEqual(result_offset.dtype, dt)
-                #     self.assertEqual(result_mask.dtype, dt)
-                #
-                #     self.assertTrue(np.all(np.isfinite(result_input)))
-                #     self.assertTrue(np.all(np.isfinite(result_offset)))
-                #     self.assertTrue(np.all(np.isfinite(result_mask)))
-                #
-                #     self.assertAllClose(expected_input, result_input, rtol=tol, atol=tol)
-                #     self.assertAllClose(expected_offset, result_offset, rtol=tol, atol=tol)
-                #     self.assertAllClose(expected_mask, result_mask, rtol=tol, atol=tol)
-
-
-DEVICES = ['/cpu:0'] + [
-    d.name.replace('physical_device:', '') for d in tf.config.list_physical_devices() if d.device_type == 'GPU']
 
 INPUT_3c_7x8 = np.array([
     -0.33, -0.41, 1.77, 0.16, 1.52, 0.26, -0.83, 0.5, -1.3, 0.59, 0.85, 1.72, -0.46, 0.55, -1.33, -1.15, -0.27, 0.11,

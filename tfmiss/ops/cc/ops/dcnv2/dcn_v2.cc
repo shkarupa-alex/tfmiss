@@ -23,7 +23,7 @@ REGISTER_OP("Miss>ModulatedDeformableColumn")
     .Attr("dilation_h: int")
     .Attr("dilation_w: int")
     .Attr("deformable_group: int")
-    .Attr("FT: {float16, float32, float64} = DT_FLOAT")
+    .Attr("FT: {half, float32, float64, bfloat16} = DT_FLOAT")
     .Output("output: FT")
     .SetShapeFn([](shape_inference::InferenceContext *c) {
       shape_inference::ShapeHandle input;
