@@ -68,7 +68,10 @@ class WarmHoldCoolAnnihilateScheduler(LearningRateSchedule):
             def _default():
                 return min_lr * self.annih_factor
 
-            return tf.case(pred_fn_pairs, _default, exclusive=True)
+            curr_lr = tf.case(pred_fn_pairs, _default, exclusive=True)
+            tf.summary.scalar('lr', curr_lr)
+
+            return curr_lr
 
     def cool_down(self, min_lr, max_lr, step, total):
         return max_lr - (max_lr - min_lr) * step / total
