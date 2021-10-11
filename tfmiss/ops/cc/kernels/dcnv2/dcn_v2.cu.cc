@@ -2,57 +2,106 @@
 
 #define EIGEN_USE_GPU
 
+#include "dcn_v2.h"
+
 #include "tensorflow/core/framework/register_types.h"
 #include "tensorflow/core/framework/types.h"
 #include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/util/gpu_device_functions.h"
 #include "tensorflow/core/util/gpu_kernel_helper.h"
-#include "dcn_v2.h"
 
-namespace tensorflow {
-namespace miss {
+namespace tensorflow
+{
+namespace miss
+{
+template <typename T, typename PT>
+__global__ void ModulatedDeformableColumnForwardGPUKernel(
+    const T *__restrict__ input, const T *__restrict__ offset, const T *__restrict__ mask, const int batch_size,
+    const int height_in, const int width_in, const int channel_in, const int height_out, const int width_out,
+    const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w,
+    const int dilation_h, const int dilation_w, const int deformable_group, T *__restrict__ column)
+{
+  const int num_kernels = batch_size * channel_in * height_out * width_out;
+  for (int index : GpuGridRangeX<int>(num_kernels))
+  {
+    modulated_deformable_im2col_body<T, PT>(
+        index, input, offset, mask, batch_size, height_in, width_in, channel_in, height_out, width_out, kernel_h,
+        kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group, column);
+  }
+}
 
-namespace functor {
+template <typename T, typename PT>
+struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T, PT>
+{
+  void operator()(
+      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const int batch_size, const int height_in,
+      const int width_in, const int channel_in, const int height_out, const int width_out, const int kernel_h,
+      const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w,
+      const int dilation_h, const int dilation_w, const int deformable_group, T *column) const
+  {
+    const int num_kernels = batch_size * channel_in * height_out * width_out;
+    auto eigen_gpu = ctx->eigen_device<GPUDevice>();
+    GpuLaunchConfig config = GetGpuLaunchConfig(num_kernels, eigen_gpu);
 
-//template <typename T>
-//__global__ void EuclideanDistanceTransformGPUKernel(
-//    const uint8 *__restrict__ input_ptr, T *__restrict__ output_ptr,
-//    const int batch_size, const int height, const int width,
-//    const int channels) {
-//  for (int index : GpuGridRangeX<int>(batch_size * channels)) {
-//    int batch_id = index / channels;
-//    int channel = index % channels;
-//    EuclideanDistanceTransformSample<T>(input_ptr, output_ptr, batch_id,
-//                                        channel, height, width, channels);
-//  }
-//}
-//
-//template <typename T>
-//struct EuclideanDistanceTransformFunctor<GPUDevice, T> {
-//  typedef typename TTypes<uint8, 4>::ConstTensor InputType;
-//  typedef typename TTypes<T, 4>::Tensor OutputType;
-//
-//  void operator()(OpKernelContext *ctx, OutputType *output,
-//                  const InputType &images) const {
-//    auto d = ctx->eigen_device<GPUDevice>();
-//    GpuLaunchConfig config =
-//        GetGpuLaunchConfig(images.dimension(0) * images.dimension(3), d,
-//                           EuclideanDistanceTransformGPUKernel<T>, 0, 256);
-//    TF_CHECK_OK(GpuLaunchKernel(EuclideanDistanceTransformGPUKernel<T>,
-//                                config.block_count, config.thread_per_block, 0,
-//                                d.stream(), images.data(), output->data(),
-//                                images.dimension(0), images.dimension(1),
-//                                images.dimension(2), images.dimension(3)));
-//  }
-//};
-//
-//template struct EuclideanDistanceTransformFunctor<GPUDevice, Eigen::half>;
-//template struct EuclideanDistanceTransformFunctor<GPUDevice, float>;
-//template struct EuclideanDistanceTransformFunctor<GPUDevice, double>;
+    TF_CHECK_OK(GpuLaunchKernel(
+        ModulatedDeformableColumnForwardGPUKernel<T, PT>, config.block_count, config.thread_per_block, 0,
+        eigen_gpu.stream(), input, offset, mask, batch_size, height_in, width_in, channel_in, height_out, width_out,
+        kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group, column));
+  }
+};
 
-}  // end namespace functor
+template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, Eigen::bfloat16, float>;
+template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, Eigen::half, float>;
+template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, float, float>;
+template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, double, double>;
 
-}  // end namespace addons
+template <typename T, typename PT>
+__global__ void ModulatedDeformableColumnBackwardGPUKernel(
+    const T *__restrict__ input, const T *__restrict__ offset, const T *__restrict__ mask, const T *__restrict__ grad,
+    const int batch_size, const int height_in, const int width_in, const int channel_in, const int height_out,
+    const int width_out, const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h,
+    const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group,
+    PT *__restrict__ grad_input, PT *__restrict__ grad_offset, PT *__restrict__ grad_mask)
+{
+  const int num_kernels = batch_size * channel_in * height_out * width_out;
+  for (int index : GpuGridRangeX<int>(num_kernels))
+  {
+    modulated_deformable_col2im_body<T, PT>(
+        index, input, offset, mask, grad, batch_size, height_in, width_in, channel_in, height_out, width_out, kernel_h,
+        kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input, grad_offset,
+        grad_mask);
+  }
+}
+
+template <typename T, typename PT>
+struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>
+{
+  void operator()(
+      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *grad, const int batch_size,
+      const int height_in, const int width_in, const int channel_in, const int height_out, const int width_out,
+      const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w,
+      const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input, PT *grad_offset,
+      PT *grad_mask) const
+  {
+    const int num_kernels = batch_size * channel_in * height_out * width_out;
+
+    auto eigen_gpu = ctx->eigen_device<GPUDevice>();
+    GpuLaunchConfig config = GetGpuLaunchConfig(num_kernels, eigen_gpu);
+
+    TF_CHECK_OK(GpuLaunchKernel(
+        ModulatedDeformableColumnBackwardGPUKernel<T, PT>, config.block_count, config.thread_per_block, 0,
+        eigen_gpu.stream(), input, offset, mask, grad, batch_size, height_in, width_in, channel_in, height_out,
+        width_out, kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group,
+        grad_input, grad_offset, grad_mask));
+  }
+};
+
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::bfloat16, float>;
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::half, float>;
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, float, float>;
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, double, double>;
+
+}  // namespace miss
 }  // end namespace tensorflow
 
 #endif  // GOOGLE_CUDA
