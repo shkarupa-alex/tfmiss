@@ -19,10 +19,8 @@ custom_op_library(
         # dcn v2
         "cc/kernels/dcnv2/dcn_v2.h",
         "cc/kernels/dcnv2/dcn_v2.cc",
-        "cc/kernels/dcnv2/dcn_v2_bwd.cc",
 
         "cc/ops/dcnv2/dcn_v2.cc",
-        "cc/ops/dcnv2/dcn_v2_bwd.cc",
 
 
         # preprocessing

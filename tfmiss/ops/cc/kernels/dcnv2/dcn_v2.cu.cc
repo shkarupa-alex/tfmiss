@@ -14,6 +14,12 @@ namespace tensorflow
 {
 namespace miss
 {
+template <typename GPUDevice, typename T>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value)
+{
+  GpuAtomicAdd(ptr, value);
+}
+
 template <typename T, typename PT>
 __global__ void ModulatedDeformableColumnForwardGPUKernel(
     const T *__restrict__ input, const T *__restrict__ offset, const T *__restrict__ mask, const int batch_size,
@@ -49,11 +55,6 @@ struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T, PT>
         kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group, column));
   }
 };
-
-template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, Eigen::bfloat16, float>;
-template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, Eigen::half, float>;
-template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, float, float>;
-template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, double, double>;
 
 template <typename T, typename PT>
 __global__ void ModulatedDeformableColumnBackwardGPUKernel(
@@ -95,11 +96,6 @@ struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>
         grad_input, grad_offset, grad_mask));
   }
 };
-
-template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::bfloat16, float>;
-template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::half, float>;
-template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, float, float>;
-template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, double, double>;
 
 }  // namespace miss
 }  // end namespace tensorflow

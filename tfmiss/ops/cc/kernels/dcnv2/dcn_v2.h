@@ -14,6 +14,9 @@ namespace miss
 typedef Eigen::ThreadPoolDevice CPUDevice;
 typedef Eigen::GpuDevice GPUDevice;
 
+template <typename Device, typename T>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value);
+
 template <typename T, typename PT>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE PT
 im2col_bilinear(const T *data, const int height, const int width, const int channels, const PT h, const PT w)
@@ -212,28 +215,34 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_im2col_body(
   const int h_in = h * stride_h - pad_h;
   const int w_in = w * stride_w - pad_w;
 
-  const T *input_slice = input + b * height_in * width_in * channel_in +
-                         //          h * width_in * channel_in +
-                         //                     w * channel_in +
-                         c;
+  //  const T *input_slice = input + b * height_in * width_in * channel_in +
+  //                         //                  h * width_in * channel_in +
+  //                         //                             w * channel_in +
+  //                         c;
+  const T *input_slice = input + b * height_in * width_in * channel_in + c;
 
-  const T *offset_slice = offset + b * height_out * width_out * deformable_group * kernel_h * kernel_w * 2 +
-                          h * width_out * deformable_group * kernel_h * kernel_w * 2 +
-                          w * deformable_group * kernel_h * kernel_w * 2 + g * kernel_h * kernel_w * 2;
-  //                                                     i * kernel_w * 2 +
-  //                                                                j * 2 +
-  //                                                                    0;
-  const T *mask_slice = mask + b * height_out * width_out * deformable_group * kernel_h * kernel_w +
-                        h * width_out * deformable_group * kernel_h * kernel_w +
-                        w * deformable_group * kernel_h * kernel_w + g * kernel_h * kernel_w;
-  //                                                     i * kernel_w +
-  //                                                                j;
+  //  const T *offset_slice = offset + b * height_out * width_out * deformable_group * kernel_h * kernel_w * 2 +
+  //                          h * width_out * deformable_group * kernel_h * kernel_w * 2 +
+  //                          w * deformable_group * kernel_h * kernel_w * 2 + g * kernel_h * kernel_w * 2;
+  //  //                                                                                  i * kernel_w * 2 +
+  //  //                                                                                             j * 2 +
+  //  //                                                                                                 0;
+  const T *offset_slice =
+      offset + (((b * height_out + h) * width_out + w) * deformable_group + g) * kernel_h * kernel_w * 2;
 
-  T *output_slice = output + b * height_out * width_out * channel_in * kernel_h * kernel_w +
-                    h * width_out * channel_in * kernel_h * kernel_w + w * channel_in * kernel_h * kernel_w +
-                    c * kernel_h * kernel_w;
-  //                                               i * kernel_w +
-  //                                                          j;
+  //  const T *mask_slice = mask + b * height_out * width_out * deformable_group * kernel_h * kernel_w +
+  //                        h * width_out * deformable_group * kernel_h * kernel_w +
+  //                        w * deformable_group * kernel_h * kernel_w + g * kernel_h * kernel_w;
+  //  //                                                                            i * kernel_w +
+  //  //                                                                                       j;
+  const T *mask_slice = mask + (((b * height_out + h) * width_out + w) * deformable_group + g) * kernel_h * kernel_w;
+
+  //  T *output_slice = output + b * height_out * width_out * channel_in * kernel_h * kernel_w +
+  //                    h * width_out * channel_in * kernel_h * kernel_w + w * channel_in * kernel_h * kernel_w +
+  //                    c * kernel_h * kernel_w;
+  //  //                                                                                           i * kernel_w +
+  //  //                                                                                                      j;
+  T *output_slice = output + (((b * height_out + h) * width_out + w) * channel_in + c) * kernel_h * kernel_w;
 
   for (int i = 0; i < kernel_h; ++i)
   {
@@ -270,46 +279,57 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_col2im_body(
   const int h_in = h * stride_h - pad_h;
   const int w_in = w * stride_w - pad_w;
 
-  const T *input_slice = input + b * height_in * width_in * channel_in +
-                         //          h * width_in * channel_in +
-                         //                     w * channel_in +
-                         c;
+  //  const T *input_slice = input + b * height_in * width_in * channel_in +
+  //                         //                  h * width_in * channel_in +
+  //                         //                             w * channel_in +
+  //                         c;
+  const T *input_slice = input + b * height_in * width_in * channel_in + c;
 
-  const T *offset_slice = offset + b * height_out * width_out * deformable_group * kernel_h * kernel_w * 2 +
-                          h * width_out * deformable_group * kernel_h * kernel_w * 2 +
-                          w * deformable_group * kernel_h * kernel_w * 2 + g * kernel_h * kernel_w * 2;
-  //                                                     i * kernel_w * 2 +
-  //                                                                j * 2 +
-  //                                                                    0;
-  const T *mask_slice = mask + b * height_out * width_out * deformable_group * kernel_h * kernel_w +
-                        h * width_out * deformable_group * kernel_h * kernel_w +
-                        w * deformable_group * kernel_h * kernel_w + g * kernel_h * kernel_w;
-  //                                                     i * kernel_w +
-  //                                                                j;
+  //  const T *offset_slice = offset + b * height_out * width_out * deformable_group * kernel_h * kernel_w * 2 +
+  //                          h * width_out * deformable_group * kernel_h * kernel_w * 2 +
+  //                          w * deformable_group * kernel_h * kernel_w * 2 + g * kernel_h * kernel_w * 2;
+  //  //                                                                                  i * kernel_w * 2 +
+  //  //                                                                                             j * 2 +
+  //  //                                                                                                 0;
+  const T *offset_slice =
+      offset + (((b * height_out + h) * width_out + w) * deformable_group + g) * kernel_h * kernel_w * 2;
 
-  const T *grad_slice = grad + b * height_out * width_out * channel_in * kernel_h * kernel_w +
-                        h * width_out * channel_in * kernel_h * kernel_w + w * channel_in * kernel_h * kernel_w +
-                        c * kernel_h * kernel_w;
-  //                                               i * kernel_w +
-  //                                                          j;
+  //  const T *mask_slice = mask + b * height_out * width_out * deformable_group * kernel_h * kernel_w +
+  //                        h * width_out * deformable_group * kernel_h * kernel_w +
+  //                        w * deformable_group * kernel_h * kernel_w + g * kernel_h * kernel_w;
+  //  //                                                                            i * kernel_w +
+  //  //                                                                                       j;
+  const T *mask_slice = mask + (((b * height_out + h) * width_out + w) * deformable_group + g) * kernel_h * kernel_w;
 
-  PT *grad_input_slice = grad_input + b * height_out * width_out * channel_in +
-                         //                   h * width_out * channel_in +
-                         //                               w * channel_in +
-                         c;
+  //  const T *grad_slice = grad + b * height_out * width_out * channel_in * kernel_h * kernel_w +
+  //                        h * width_out * channel_in * kernel_h * kernel_w + w * channel_in * kernel_h * kernel_w +
+  //                        c * kernel_h * kernel_w;
+  //  //                                                                                               i * kernel_w +
+  //  //                                                                                                          j;
+  const T *grad_slice = grad + (((b * height_out + h) * width_out + w) * channel_in + c) * kernel_h * kernel_w;
 
-  PT *grad_offset_slice = grad_offset + b * height_out * width_out * deformable_group * kernel_h * kernel_w * 2 +
-                          h * width_out * deformable_group * kernel_h * kernel_w * 2 +
-                          w * deformable_group * kernel_h * kernel_w * 2 + g * kernel_h * kernel_w * 2;
-  //                                                     i * kernel_w * 2 +
-  //                                                                j * 2 +
-  //                                                                    0;
+  //  PT *grad_input_slice = grad_input + b * height_out * width_out * channel_in +
+  //                         //                        h * width_out * channel_in +
+  //                         //                                    w * channel_in +
+  //                         c;
+  PT *grad_input_slice = grad_input + b * height_out * width_out * channel_in + c;
 
-  PT *grad_mask_slice = grad_mask + b * height_out * width_out * deformable_group * kernel_h * kernel_w +
-                        h * width_out * deformable_group * kernel_h * kernel_w +
-                        w * deformable_group * kernel_h * kernel_w + g * kernel_h * kernel_w;
-  //                                                     i * kernel_w +
-  //                                                                j;
+  //  PT *grad_offset_slice = grad_offset + b * height_out * width_out * deformable_group * kernel_h * kernel_w * 2 +
+  //                          h * width_out * deformable_group * kernel_h * kernel_w * 2 +
+  //                          w * deformable_group * kernel_h * kernel_w * 2 + g * kernel_h * kernel_w * 2;
+  //  //                                                                                  i * kernel_w * 2 +
+  //  //                                                                                             j * 2 +
+  //  //                                                                                                 0;
+  PT *grad_offset_slice =
+      grad_offset + (((b * height_out + h) * width_out + w) * deformable_group + g) * kernel_h * kernel_w * 2;
+
+  //  PT *grad_mask_slice = grad_mask + b * height_out * width_out * deformable_group * kernel_h * kernel_w +
+  //                        h * width_out * deformable_group * kernel_h * kernel_w +
+  //                        w * deformable_group * kernel_h * kernel_w + g * kernel_h * kernel_w;
+  //  //                                                                            i * kernel_w +
+  //  //                                                                                       j;
+  PT *grad_mask_slice =
+      grad_mask + (((b * height_out + h) * width_out + w) * deformable_group + g) * kernel_h * kernel_w;
 
   for (int i = 0; i < kernel_h; ++i)
   {
@@ -329,26 +349,27 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_col2im_body(
 
       // Mask gradient
       const PT m_grad = grad_ * im2col_bilinear<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im);
-      grad_mask_slice[i * kernel_w + j] += m_grad;
+      atomic_add<PT>(grad_mask_slice + i * kernel_w + j, m_grad);
 
       // Offset gradient
       const PT o_h_grad =
           top_grad * coordinate_weight<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im, true, false);
       const PT o_w_grad =
           top_grad * coordinate_weight<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im, false, false);
-      grad_offset_slice[i * kernel_w * 2 + j * 2] += o_h_grad;
-      grad_offset_slice[i * kernel_w * 2 + j * 2 + 1] += o_w_grad;
+      atomic_add<PT>(grad_offset_slice + i * kernel_w * 2 + j * 2, o_h_grad);
+      atomic_add<PT>(grad_offset_slice + i * kernel_w * 2 + j * 2 + 1, o_w_grad);
 
       // Input gradient
-      int i_height, i_width;
-      PT i_grad;
       for (int z = 0; z < 4; z++)
       {
+        int i_height;
+        int i_width;
+        PT i_grad;
         const bool update = input_weight<PT>(h_im, w_im, height_in, width_in, z, &i_height, &i_width, &i_grad);
         if (update)
         {
           i_grad *= top_grad;
-          grad_input_slice[(i_height * width_out + i_width) * channel_in] += i_grad;
+          atomic_add<PT>(grad_input_slice + (i_height * width_out + i_width) * channel_in, i_grad);
         }
       }
     }
