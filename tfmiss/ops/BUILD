@@ -49,10 +49,7 @@ custom_op_library(
         "cc/kernels/qrnn/fo_pool.h",
         "cc/kernels/qrnn/fo_pool.cc",
 
-        "cc/ops/qrnn/fo_pool_batch_bwd.cc",
-        "cc/ops/qrnn/fo_pool_time_bwd.cc",
-        "cc/ops/qrnn/fo_pool_batch.cc",
-        "cc/ops/qrnn/fo_pool_time.cc",
+        "cc/ops/qrnn/fo_pool.cc",
 
 
         # unicode expand

@@ -4,130 +4,91 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
+from absl.testing import parameterized
 from tensorflow.python.framework import test_util
+from tensorflow.python.ops.gradient_checker_v2 import max_error
 from tfmiss.nn.qrnn import fo_pool
-from tfmiss.ops import tfmiss_ops
 
 
-def np_fo_pooling(x, forget, initial_state, time_major):
-    if not time_major:
-        return np.transpose(np_fo_pooling(
-            np.transpose(x, (1, 0, 2)), np.transpose(forget, (1, 0, 2)), initial_state, time_major=True), (1, 0, 2))
-    timesteps, batch, hidden = x.shape
-    dst = np.zeros((timesteps + 1, batch, hidden), dtype=x.dtype)
-    dst[0] = initial_state
+def np_fo_pooling(x, forget, initial_state):
+    batch, timesteps, hidden = x.shape
+    dst = np.zeros((batch, timesteps + 1, hidden), dtype=x.dtype)
+    dst[:, 0] = initial_state
     for ts in range(1, timesteps + 1):
-        dst[ts] = (forget[ts - 1] * x[ts - 1] + (1.0 - forget[ts - 1]) * dst[ts - 1])
+        dst[:, ts] = forget[:, ts - 1] * x[:, ts - 1] + (1.0 - forget[:, ts - 1]) * dst[:, ts - 1]
 
-    return dst[1:]
+    return dst[:, 1:]
 
 
 @test_util.run_all_in_graph_and_eager_modes
-class FoPoolTest(tf.test.TestCase):
-    def setUp(self):
-        # Obtain a list of GPU device specifications ['/gpu:0', '/gpu:1', ...]
-        self.gpu_devs = [d.name.replace('physical_device:', '') for d in tf.config.list_physical_devices() if d.device_type == 'GPU']
-        super(FoPoolTest, self).setUp()
+class FoPoolTest(tf.test.TestCase, parameterized.TestCase):
+    @parameterized.parameters(
+        ('/cpu:0', 'float16', 1e-6, 4e-3), ('/cpu:0', 'float32', 1e-6, 2e-6), ('/cpu:0', 'float64', 1e-13, 5e-7),
+        ('/gpu:0', 'float16', 1e-6, 4e-3), ('/gpu:0', 'float32', 1e-6, 2e-6), ('/gpu:0', 'float64', 1e-13, 5e-7)
+    )
+    def test_value(self, dev, dt, tol, gtol):
+        if 'gpu' in dev and not len(tf.config.list_physical_devices('GPU')):
+            return self.skipTest('No GPU available')
 
-    def test_fo_pool(self):
-        for FT in [np.float32, np.float64]:
-            for time_major in [False, True]:
-                self._impl_test_fo_pool(FT, time_major)
+        with tf.device(dev):
+            shape = (8, 128, 32)
+            inputs = np.random.random(size=shape).astype(dt)
+            forget = np.random.uniform(0, 1, size=shape).astype(dt)
+            initial_state = np.random.random(size=shape[:1] + shape[2:]).astype(dt)
+            expected = np_fo_pooling(inputs, forget, initial_state)
 
-    def _impl_test_fo_pool(self, FT, time_major):
-        # Create input variables
-        timesteps = 20
-        batch_size = 32
-        channels = 64
-        if time_major:
-            shape = (timesteps, batch_size, channels)
-        else:
-            shape = (batch_size, timesteps, channels)
-        inputs = np.random.random(size=shape).astype(FT)
-        forget = np.random.uniform(0, 1, size=shape).astype(FT)
-        initial_state = np.random.random(size=(batch_size, channels)).astype(FT)
+            result = fo_pool(inputs, forget, initial_state)
+            result = self.evaluate(result)
 
-        # Argument list
-        np_args = [inputs, forget, initial_state]
-        # Argument string name list
-        arg_names = ['inputs', 'forget', 'initial_state']
-        # Constructor tensorflow variables
-        tf_args = [tf.constant(v, name=n) for v, n in zip(np_args, arg_names)]
+            self.assertEqual(result.dtype, dt)
+            self.assertEqual(result.shape, expected.shape)
+            self.assertAllClose(result, expected, rtol=tol, atol=tol)
 
-        def _pin_op(device, *tf_args):
-            """ Pin operation to device """
-            with tf.device(device):
-                return fo_pool(*tf_args, time_major=time_major)
+            grad = np.random.uniform(size=shape)
 
-        # Pin operation to CPU
-        cpu_op = _pin_op("/cpu:0", *tf_args)
+            with tf.GradientTape() as g:
+                variables = [tf.constant(v, dt) for v in [inputs, forget, initial_state]]
+                g.watch(variables)
+                result = fo_pool(variables[0], variables[1], variables[2])
 
-        # Run the op on all GPUs
-        gpu_ops = [_pin_op(d, *tf_args) for d in self.gpu_devs]
+                result_grad = g.gradient(result, variables, output_gradients=tf.constant(grad, dt))
+                result_grad = self.evaluate(result_grad)
 
-        cpu_result = self.evaluate(cpu_op)
-        self.assertEqual(cpu_result.shape, shape)
-        gpu_results = self.evaluate(gpu_ops)
-        for gpu_result in gpu_results:
-            self.assertEqual(gpu_result.shape, shape)
-        expected = np_fo_pooling(inputs, forget, initial_state, time_major=time_major)
-        self.assertTrue(np.allclose(cpu_result, expected))
-        for gpu_result in gpu_results:
-            self.assertTrue(np.allclose(gpu_result, expected))
+                self.assertEqual(result_grad[0].dtype, dt)
+                self.assertEqual(result_grad[1].dtype, dt)
+                self.assertEqual(result_grad[2].dtype, dt)
 
-    def test_time_major_fo_pool_grad(self):
-        # List of type constraint for testing this operator
-        type_permutations = [(np.float32, 1e-2), (np.float64, 1e-4)]
+                self.assertEqual(result_grad[0].shape, inputs.shape)
+                self.assertEqual(result_grad[1].shape, forget.shape)
+                self.assertEqual(result_grad[2].shape, initial_state.shape)
 
-        # Run test with the type combinations above
-        for FT, tolerance in type_permutations:
-            self._impl_test_time_major_fo_pool_grad(FT, tolerance)
+                self.assertTrue(np.all(np.isfinite(result_grad[0])))
+                self.assertTrue(np.all(np.isfinite(result_grad[1])))
+                self.assertTrue(np.all(np.isfinite(result_grad[2])))
 
-    def _impl_test_time_major_fo_pool_grad(self, FT, tolerance):
-        shape = (5, 3, 2)
-        np_args = [np.random.random(size=shape).astype(FT),
-                   np.random.uniform(0, 1, size=shape).astype(FT),
-                   np.random.random(size=shape[1:]).astype(FT)]
-        tf_args = [tf.constant(arg, shape=arg.shape, dtype=FT) for arg in np_args]
+    @parameterized.parameters(
+        ('/cpu:0', 'float16', 9e-4), ('/cpu:0', 'float32', 1e-7), ('/cpu:0', 'float64', 2e-13),
+        ('/gpu:0', 'float16', 4e-3), ('/gpu:0', 'float32', 6e-5), ('/gpu:0', 'float64', 2e-13)
+    )
+    def test_grad(self, dev, dt, tol):
+        if 'gpu' in dev and not len(tf.config.list_physical_devices('GPU')):
+            return self.skipTest('No GPU available')
 
-        def test_func(*args):
-            return tf.reduce_sum(tfmiss_ops.miss_time_major_fo_pool(*args))
+        def _op(inp, frg, ini):
+            with tf.device(dev):
+                return fo_pool(inp, frg, ini)
 
-        for d in ['/cpu:0'] + self.gpu_devs:
-            err = 0
-            with tf.device(d):
-                theoretical, numerical = tf.test.compute_gradient(test_func, tf_args)
-                for j_t, j_n in zip(theoretical, numerical):
-                    if j_t.size or j_n.size:  # Handle zero size tensors correctly
-                        err = np.maximum(err, np.fabs(j_t - j_n).max())
-            self.assertLess(err, tolerance)
+        shape = (2, 16, 3)
+        inputs = np.random.random(size=shape)
+        forget = np.random.uniform(0, 1, size=shape)
+        initial_state = np.random.random(size=shape[:1] + shape[2:])
 
-    def test_batch_major_fo_pool_grad(self):
-        # List of type constraint for testing this operator
-        type_permutations = [(np.float32, 1e-2), (np.float64, 1e-4)]
+        arguments = [inputs, forget, initial_state]
+        theoretical, _ = tf.test.compute_gradient(_op, [a.astype(dt) for a in arguments])
+        _, numerical64 = tf.test.compute_gradient(_op, arguments)
+        grad_err = max_error(theoretical, numerical64)
 
-        # Run test with the type combinations above
-        for FT, tolerance in type_permutations:
-            self._impl_test_batch_major_fo_pool_grad(FT, tolerance)
-
-    def _impl_test_batch_major_fo_pool_grad(self, FT, tolerance):
-        shape = (3, 5, 2)
-        np_args = [np.random.random(size=shape).astype(FT),
-                   np.random.uniform(0, 1, size=shape).astype(FT),
-                   np.random.random(size=(shape[0], shape[-1])).astype(FT)]
-        tf_args = [tf.constant(arg, shape=arg.shape, dtype=FT) for arg in np_args]
-
-        def test_func(*args):
-            return tf.reduce_sum(tfmiss_ops.miss_batch_major_fo_pool(*args))
-
-        for d in ['/cpu:0'] + self.gpu_devs:
-            err = 0
-            with tf.device(d):
-                theoretical, numerical = tf.test.compute_gradient(test_func, tf_args)
-                for j_t, j_n in zip(theoretical, numerical):
-                    if j_t.size or j_n.size:  # Handle zero size tensors correctly
-                        err = np.maximum(err, np.fabs(j_t - j_n).max())
-            self.assertLess(err, tolerance)
+        self.assertLess(grad_err, tol)
 
 
 if __name__ == "__main__":

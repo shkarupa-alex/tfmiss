@@ -85,7 +85,6 @@ struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>
       PT *grad_mask) const
   {
     const int num_kernels = batch_size * channel_in * height_out * width_out;
-
     auto eigen_gpu = ctx->eigen_device<GPUDevice>();
     GpuLaunchConfig config = GetGpuLaunchConfig(num_kernels, eigen_gpu);
 

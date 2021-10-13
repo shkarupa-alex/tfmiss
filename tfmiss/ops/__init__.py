@@ -36,15 +36,9 @@ def _modulated_deformable_column_grad(op, grad):
 
 
 # qrnn
-@tf.RegisterGradient('Miss>TimeMajorFoPool')
-def _time_major_bwd_fo_pool_grad(op, grad):
-    # TODO: same input for h and x?
-    return tfmiss_ops.miss_time_major_bwd_fo_pool(h=op.outputs[0], x=op.inputs[0], forget=op.inputs[1], gh=grad)
-
-
-@tf.RegisterGradient('Miss>BatchMajorFoPool')
-def _batch_major_bwd_fo_pool_grad(op, grad):
-    return tfmiss_ops.miss_batch_major_bwd_fo_pool(h=op.outputs[0], x=op.inputs[0], forget=op.inputs[1], gh=grad)
+@tf.RegisterGradient('Miss>FoPool')
+def _fo_pool_grad(op, grad):
+    return tfmiss_ops.miss_fo_pool_backward(input=op.inputs[0], forget=op.inputs[1], hidden=op.outputs[0], grad=grad)
 
 
 # unicode transform

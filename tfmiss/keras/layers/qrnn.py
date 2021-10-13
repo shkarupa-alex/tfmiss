@@ -39,7 +39,6 @@ class QRNN(layers.Layer):
                  return_sequences=False,
                  return_state=False,
                  go_backwards=False,
-                 time_major=False,
                  **kwargs):
         super(QRNN, self).__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=3)
@@ -63,7 +62,6 @@ class QRNN(layers.Layer):
         self.return_sequences = return_sequences
         self.return_state = return_state
         self.go_backwards = go_backwards
-        self.time_major = time_major
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -101,20 +99,10 @@ class QRNN(layers.Layer):
         if training is None:
             training = backend.learning_phase()
 
-        reverse_sim = [0] if self.time_major else [1]
         if self.go_backwards:
-            inputs = tf.reverse(inputs, reverse_sim)
+            inputs = tf.reverse(inputs, [1])
 
-        inputs_batch_major = inputs
-        if self.time_major:
-            # go to batch_major for convolution if needed
-            inputs_batch_major = tf.transpose(inputs, (1, 0, 2), name='to_batch_major')
-
-        gate_values = self.conv1d(inputs_batch_major)
-        if self.time_major:
-            # return to time_major if needed
-            gate_values = tf.transpose(gate_values, (1, 0, 2), name='to_time_major')
-
+        gate_values = self.conv1d(inputs)
         gate_values = tf.split(gate_values, 3 if self.output_gate else 2, axis=-1)
         if self.output_gate:
             z, f, o = gate_values
@@ -132,16 +120,16 @@ class QRNN(layers.Layer):
                 lambda: f * (1. - self.zoneout)
             )
 
-        c = fo_pool(z, f, initial_state=initial_state, time_major=self.time_major)
+        c = fo_pool(z, f, initial_state=initial_state)
         h = self.gate_act(o) * c if self.output_gate else c
 
         if not self.return_sequences:
-            h = h[:, -1, :] if not self.time_major else h[-1, :, :]
+            h = h[:, -1, :]
         elif self.go_backwards:
-            h = tf.reverse(h, reverse_sim)
+            h = tf.reverse(h, [1])
 
         if self.return_state:
-            last_state = c[:, -1, :] if not self.time_major else c[-1, :, :]
+            last_state = c[:, -1, :]
 
             return h, last_state
 
@@ -150,7 +138,7 @@ class QRNN(layers.Layer):
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
         h_shape = input_shape[:-1] + (self.units,)
-        c_shape = (h_shape[0], h_shape[2]) if not self.time_major else (h_shape[1], h_shape[2])
+        c_shape = (h_shape[0], h_shape[2])
 
         if not self.return_sequences:
             h_shape = c_shape
@@ -184,8 +172,7 @@ class QRNN(layers.Layer):
             'bias_constraint': constraints.serialize(self.bias_constraint),
             'return_sequences': self.return_sequences,
             'return_state': self.return_state,
-            'go_backwards': self.go_backwards,
-            'time_major': self.time_major,
+            'go_backwards': self.go_backwards
         })
 
         return config

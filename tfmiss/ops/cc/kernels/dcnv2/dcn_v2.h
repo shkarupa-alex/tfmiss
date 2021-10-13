@@ -3,9 +3,6 @@
 #define EIGEN_USE_THREADS
 
 #include "tensorflow/core/framework/op_kernel.h"
-#include "tensorflow/core/framework/tensor_types.h"
-#include "tensorflow/core/platform/types.h"
-#include "third_party/eigen3/unsupported/Eigen/CXX11/Tensor"
 
 namespace tensorflow
 {
@@ -348,6 +345,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_col2im_body(
       // TODO: atomic add
 
       // Mask gradient
+      // TODO: use original output?
       const PT m_grad = grad_ * im2col_bilinear<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im);
       atomic_add<PT>(grad_mask_slice + i * kernel_w + j, m_grad);
 
@@ -400,7 +398,7 @@ struct ModulatedDeformableColumnBackwardFunctor
 template <typename Device, typename T>
 struct CastFloatFunctor
 {
-  void operator()(OpKernelContext *ctx, typename TTypes<float>::ConstFlat input, typename TTypes<T>::Flat output);
+  void operator()(OpKernelContext *ctx, typename TTypes<float>::ConstFlat input, typename TTypes<T>::Flat output) const;
 };
 
 }  // end namespace miss

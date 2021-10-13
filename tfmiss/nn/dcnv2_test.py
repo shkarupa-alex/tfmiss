@@ -12,9 +12,6 @@ from tfmiss.nn.dcnv2 import modulated_deformable_column
 
 @test_util.run_all_in_graph_and_eager_modes
 class DCNv2Test(tf.test.TestCase, parameterized.TestCase):
-    def setUp(self):
-        super(DCNv2Test, self).setUp()
-
     def test_shape_inference_valid(self):
         inputs = np.zeros((2, 7, 8, 3), 'float32')
         offset = np.zeros((2, 5, 6, 36), 'float32')

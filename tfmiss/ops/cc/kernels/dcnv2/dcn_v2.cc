@@ -7,8 +7,6 @@
 #include "dcn_v2.h"
 
 #include "tensorflow/core/framework/register_types.h"
-#include "tensorflow/core/framework/types.h"
-#include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/util/work_sharder.h"
 
 namespace tensorflow
@@ -76,7 +74,7 @@ struct ModulatedDeformableColumnBackwardFunctor<CPUDevice, T, PT>
 template <typename T>
 struct CastFloatFunctor<CPUDevice, T>
 {
-  void operator()(OpKernelContext *ctx, typename TTypes<float>::ConstFlat input, typename TTypes<T>::Flat output)
+  void operator()(OpKernelContext *ctx, typename TTypes<float>::ConstFlat input, typename TTypes<T>::Flat output) const
   {
     output.device(ctx->template eigen_device<CPUDevice>()) = input.template cast<T>();
   }
