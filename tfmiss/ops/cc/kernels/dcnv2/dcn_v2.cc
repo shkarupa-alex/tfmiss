@@ -423,19 +423,21 @@ TF_CALL_double(REGISTER);
 
 typedef Eigen::GpuDevice GPUDevice;
 
-#define DECLARE_FUNCTOR(TYPE)                                                                                          \
+#define DECLARE_FUNCTOR(T)                                                                                          \
   template <>                                                                                                          \
-  void ModulatedDeformableColumnForwardFunctor<GPUDevice, TYPE>::operator()(                                           \
+  void ModulatedDeformableColumnForwardFunctor<GPUDevice, T>::operator()(                                           \
       OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const int batch_size, const int height_in, \
       const int width_in, const int channel_in, const int height_out, const int width_out, const int kernel_h,         \
       const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w,                    \
       const int dilation_h, const int dilation_w, const int deformable_group, T *column) const;                        \
-  extern template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, TYPE>
+  extern template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T>
 
 TF_CALL_bfloat16(DECLARE_FUNCTOR);
 TF_CALL_half(DECLARE_FUNCTOR);
 TF_CALL_float(DECLARE_FUNCTOR);
 TF_CALL_double(DECLARE_FUNCTOR);
+
+#undef DECLARE_FUNCTOR
 
 #define REGISTER(TYPE)                                                                      \
   REGISTER_KERNEL_BUILDER(                                                                  \
@@ -449,19 +451,21 @@ TF_CALL_double(REGISTER);
 
 #undef REGISTER
 
-#define DECLARE_FUNCTOR(TYPE)                                                                                     \
+#define DECLARE_FUNCTOR(T)                                                                                     \
   template <>                                                                                                     \
-  void ModulatedDeformableColumnBackwardFunctor<GPUDevice, TYPE>::operator()(                                     \
+  void ModulatedDeformableColumnBackwardFunctor<GPUDevice, T>::operator()(                                     \
       OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *grad, const int batch_size,  \
       const int height_in, const int width_in, const int channel_in, const int height_out, const int width_out,   \
       const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h,               \
       const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input, \
       PT *grad_offset, PT *grad_mask) const;                                                                      \
-  extern template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, TYPE>
+  extern template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T>
 
 TF_CALL_half(DECLARE_FUNCTOR);
 TF_CALL_float(DECLARE_FUNCTOR);
 TF_CALL_double(DECLARE_FUNCTOR);
+
+#undef DECLARE_FUNCTOR
 
 #define REGISTER(TYPE)                                                                              \
   REGISTER_KERNEL_BUILDER(                                                                          \
