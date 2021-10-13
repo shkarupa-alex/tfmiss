@@ -45,9 +45,9 @@ struct FoPoolForwardFunctor<GPUDevice, T>
 
 template <typename T>
 __global__ void FoPoolBackwardGPUKernel(
-    const T *__restrict__input, const T *__restrict__forget, const T *__restrict__hidden, const T *__restrict__grad,
-    const int batch_size, const int time_size, const int channel_size, T *__restrict__grad_input,
-    T *__restrict__grad_forget, T *__restrict__grad_init)
+    const T *__restrict__ input, const T *__restrict__ forget, const T *__restrict__ hidden, const T *__restrict__ grad,
+    const int batch_size, const int time_size, const int channel_size, T *__restrict__ grad_input,
+    T *__restrict__ grad_forget, T *__restrict__ grad_init)
 {
   const int num_kernels = batch_size * channel_size;
   for (int index : GpuGridRangeX<int>(num_kernels))
