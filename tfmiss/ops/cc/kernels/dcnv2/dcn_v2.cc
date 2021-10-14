@@ -17,6 +17,7 @@ template <typename CPUDevice, typename T>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value)
 {
   *ptr += value;
+//  __atomic_add_fetch(ptr, value, __ATOMIC_SEQ_CST);
 }
 
 template <typename T, typename PT>
@@ -48,26 +49,33 @@ template <typename T, typename PT>
 struct ModulatedDeformableColumnBackwardFunctor<CPUDevice, T, PT>
 {
   void operator()(
-      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *grad, const int batch_size,
-      const int height_in, const int width_in, const int channel_in, const int height_out, const int width_out,
-      const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w,
-      const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input, PT *grad_offset,
-      PT *grad_mask) const
+      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *column, const T *grad,
+      const int batch_size, const int height_in, const int width_in, const int channel_in, const int height_out,
+      const int width_out, const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h,
+      const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input,
+      PT *grad_offset, PT *grad_mask) const
   {
     const int num_kernels = batch_size * channel_in * height_out * width_out;
-    auto thread_pool = ctx->device()->tensorflow_cpu_worker_threads()->workers;
-    thread_pool->ParallelFor(
-        num_kernels, kernel_h * kernel_w * 75,
-        [&](int64 start_index, int64 end_index)
-        {
-          for (int index = start_index; index < end_index; index++)
+//    auto thread_pool = ctx->device()->tensorflow_cpu_worker_threads()->workers;
+//    thread_pool->ParallelFor(
+//        num_kernels, kernel_h * kernel_w * 75,
+//        [&](int64 start_index, int64 end_index)
+//        {
+//          for (int index = start_index; index < end_index; index++)
+//          {
+//            modulated_deformable_col2im_body<T, PT>(
+//                index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out,
+//                width_out, kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
+//                deformable_group, grad_input, grad_offset, grad_mask);
+//          }
+//        });
+          for (int index = 0; index < num_kernels; index++)
           {
             modulated_deformable_col2im_body<T, PT>(
-                index, input, offset, mask, grad, batch_size, height_in, width_in, channel_in, height_out, width_out,
-                kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group,
-                grad_input, grad_offset, grad_mask);
+                index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out,
+                width_out, kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
+                deformable_group, grad_input, grad_offset, grad_mask);
           }
-        });
   }
 };
 
@@ -308,15 +316,28 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
         ctx, deformable_group * kernel_h * kernel_w == mask_tensor->shape().dim_size(3),
         errors::InvalidArgument("Wrong mask channel size"));
 
+    const Tensor *column_tensor;
+    OP_REQUIRES_OK(ctx, ctx->input("column", &column_tensor));
+    OP_REQUIRES(ctx, column_tensor->shape().dims() == 3, errors::InvalidArgument("Column tensor must have rank 3"));
+    OP_REQUIRES(
+        ctx, batch_size == column_tensor->shape().dim_size(0),
+        errors::InvalidArgument("Column batch size is different from the input one"));
+    OP_REQUIRES(
+        ctx, height_out * width_out == column_tensor->shape().dim_size(1),
+        errors::InvalidArgument("Column height*width is different from the expected one"));
+    OP_REQUIRES(
+        ctx, channel_out == column_tensor->shape().dim_size(2),
+        errors::InvalidArgument("Column channel size is different from the expected one"));
+
     const Tensor *grad_tensor;
     OP_REQUIRES_OK(ctx, ctx->input("grad", &grad_tensor));
-    OP_REQUIRES(ctx, grad_tensor->shape().dims() == 3, errors::InvalidArgument("Grad tensor must have rank 4"));
+    OP_REQUIRES(ctx, grad_tensor->shape().dims() == 3, errors::InvalidArgument("Grad tensor must have rank 3"));
     OP_REQUIRES(
         ctx, batch_size == grad_tensor->shape().dim_size(0),
         errors::InvalidArgument("Grad batch size is different from the input one"));
     OP_REQUIRES(
         ctx, height_out * width_out == grad_tensor->shape().dim_size(1),
-        errors::InvalidArgument("Grad batch height*width is different from the expected one"));
+        errors::InvalidArgument("Grad height*width is different from the expected one"));
     OP_REQUIRES(
         ctx, channel_out == grad_tensor->shape().dim_size(2),
         errors::InvalidArgument("Grad channel size is different from the expected one"));
@@ -335,6 +356,7 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
     const T *input = input_tensor->flat<T>().data();
     const T *offset = offset_tensor->flat<T>().data();
     const T *mask = mask_tensor->flat<T>().data();
+    const T *column = column_tensor->flat<T>().data();
     const T *grad = grad_tensor->flat<T>().data();
 
     if (!std::is_same<T, Eigen::half>::value && !std::is_same<T, Eigen::bfloat16>::value)
@@ -350,8 +372,8 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
       ModulatedDeformableColumnBackwardFunctor<Device, T, T> col2im_functor;
 
       col2im_functor(
-          ctx, input, offset, mask, grad, batch_size, height_in, width_in, channel_in, height_out, width_out, kernel_h,
-          kernel_w, pad_hb, pad_wb, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
+          ctx, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out, width_out,
+          kernel_h, kernel_w, pad_hb, pad_wb, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
           grad_offset, grad_mask);
     }
     else
@@ -379,8 +401,8 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
       ModulatedDeformableColumnBackwardFunctor<Device, T, float> col2im_functor;
 
       col2im_functor(
-          ctx, input, offset, mask, grad, batch_size, height_in, width_in, channel_in, height_out, width_out, kernel_h,
-          kernel_w, pad_hb, pad_wb, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
+          ctx, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out, width_out,
+          kernel_h, kernel_w, pad_hb, pad_wb, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
           grad_offset, grad_mask);
 
       const Tensor &const_grad_input_tensor = temp_grad_input_tensor;
@@ -461,6 +483,7 @@ TF_CALL_double(REGISTER);
       PT *grad_offset, PT *grad_mask) const;                                                                      \
   extern template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T>
 
+TF_CALL_bfloat16(DECLARE_FUNCTOR);
 TF_CALL_half(DECLARE_FUNCTOR);
 TF_CALL_float(DECLARE_FUNCTOR);
 TF_CALL_double(DECLARE_FUNCTOR);
@@ -472,6 +495,7 @@ TF_CALL_double(DECLARE_FUNCTOR);
       Name("Miss>ModulatedDeformableColumnBackward").Device(DEVICE_GPU).TypeConstraint<TYPE>("FT"), \
       ModulatedDeformableColumnBackwardOp<GPUDevice, TYPE>)
 
+TF_CALL_bfloat16(REGISTER);
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);

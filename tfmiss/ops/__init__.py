@@ -20,6 +20,7 @@ def _modulated_deformable_column_grad(op, grad):
         input=op.inputs[0],
         offset=op.inputs[1],
         mask=op.inputs[2],
+        column=op.outputs[0],
         grad=grad,
         kernel_h=op.get_attr('kernel_h'),
         kernel_w=op.get_attr('kernel_w'),

@@ -90,17 +90,28 @@ class QRNN(layers.Layer):
         if self.zoneout > 0.:
             self.drop = layers.Dropout(self.zoneout)
 
+        self.initial_state = self.add_weight(
+            name='initial_state',
+            shape=(1, self.units),
+            initializer='zeros',
+            trainable=True,
+            dtype=self.dtype)
+
         self.act = layers.Activation(activation=self.activation)
         self.gate_act = layers.Activation(activation=self.gate_activation)
 
         super(QRNN, self).build(input_shape)
 
     def call(self, inputs, training=None, initial_state=None):
+        if self.go_backwards:
+            inputs = tf.reverse(inputs, [1])
+
         if training is None:
             training = backend.learning_phase()
 
-        if self.go_backwards:
-            inputs = tf.reverse(inputs, [1])
+        if initial_state is None:
+            batch_size = tf.shape(inputs)[0]
+            initial_state = tf.repeat(self.initial_state, batch_size, axis=0)
 
         gate_values = self.conv1d(inputs)
         gate_values = tf.split(gate_values, 3 if self.output_gate else 2, axis=-1)
@@ -113,6 +124,11 @@ class QRNN(layers.Layer):
         f = self.gate_act(f)
 
         if self.zoneout > 0.:
+            # keep the previous pooling state for a stochastic subset of channels
+
+            # equivalent to stochastically setting a subset of the QRNN’s f gate channels to 1,
+            # or applying dropout on 1 − f
+
             f = smart_cond(
                 training,
                 # multiply by (1. - self.zoneout) due to dropout scales preserved items
@@ -121,7 +137,15 @@ class QRNN(layers.Layer):
             )
 
         c = fo_pool(z, f, initial_state=initial_state)
-        h = self.gate_act(o) * c if self.output_gate else c
+        h = c if not self.output_gate else self.gate_act(o) * c
+
+        # last_state = None if not self.return_state else c[:, -1, :]
+        # last_hidden = None if self.return_sequences else h[:, -1, :]
+
+        # TODO: masking?
+
+        if self.go_backwards:
+            h = tf.reverse(h, [1])
 
         if not self.return_sequences:
             h = h[:, -1, :]

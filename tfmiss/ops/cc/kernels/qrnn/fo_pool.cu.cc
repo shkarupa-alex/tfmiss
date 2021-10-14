@@ -43,6 +43,11 @@ struct FoPoolForwardFunctor<GPUDevice, T>
   }
 };
 
+template struct FoPoolForwardFunctor<GPUDevice, bfloat16>;
+template struct FoPoolForwardFunctor<GPUDevice, Eigen::half>;
+template struct FoPoolForwardFunctor<GPUDevice, float>;
+template struct FoPoolForwardFunctor<GPUDevice, double>;
+
 template <typename T>
 __global__ void FoPoolBackwardGPUKernel(
     const T *__restrict__ input, const T *__restrict__ forget, const T *__restrict__ hidden, const T *__restrict__ grad,
@@ -73,6 +78,11 @@ struct FoPoolBackwardFunctor<GPUDevice, T>
         hidden, grad, batch_size, time_size, channel_size, grad_input, grad_forget, grad_init));
   }
 };
+
+template struct FoPoolBackwardFunctor<GPUDevice, bfloat16>;
+template struct FoPoolBackwardFunctor<GPUDevice, Eigen::half>;
+template struct FoPoolBackwardFunctor<GPUDevice, float>;
+template struct FoPoolBackwardFunctor<GPUDevice, double>;
 
 }  // namespace miss
 }  // end namespace tensorflow

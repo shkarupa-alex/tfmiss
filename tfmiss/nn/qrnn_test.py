@@ -22,6 +22,16 @@ def np_fo_pooling(x, forget, initial_state):
 
 @test_util.run_all_in_graph_and_eager_modes
 class FoPoolTest(tf.test.TestCase, parameterized.TestCase):
+    def test_shape_inference_valid(self):
+        shape = (8, 128, 32)
+        inputs = np.random.random(size=shape)
+        forget = np.random.uniform(0, 1, size=shape)
+        initial_state = np.random.random(size=shape[:1] + shape[2:])
+
+        result = fo_pool(inputs, forget, initial_state)
+        self.assertListEqual([8, 128, 32], result.shape.as_list())
+        self.assertListEqual([8, 128, 32], list(self.evaluate(result).shape))
+
     @parameterized.parameters(
         ('/cpu:0', 'float16', 1e-6, 4e-3), ('/cpu:0', 'float32', 1e-6, 2e-6), ('/cpu:0', 'float64', 1e-13, 5e-7),
         ('/gpu:0', 'float16', 1e-6, 4e-3), ('/gpu:0', 'float32', 1e-6, 2e-6), ('/gpu:0', 'float64', 1e-13, 5e-7)

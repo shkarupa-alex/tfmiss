@@ -8,7 +8,7 @@ namespace tensorflow
 {
 namespace miss
 {
-typedef Eigen::ThreadPoolDevice CPUDevice;
+typedef Eigen::ThreadPoolDevice CPUDevice; // TODO
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename Device, typename T>
@@ -67,8 +67,8 @@ im2col_bilinear(const T *data, const int height, const int width, const int chan
 
 template <typename T, typename PT>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE PT coordinate_weight(
-    const T *data, const int height, const int width, const int channels, const PT h, const PT w, const bool horizontal,
-    const bool recursive)
+    const T *data, const int height, const int width, const int channels, const PT h, const PT w, const bool recursive,
+    const bool horizontal)
 {
   const PT zero = static_cast<PT>(0.);
   const PT one = static_cast<PT>(1.);
@@ -84,8 +84,8 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE PT coordinate_weight(
 
   if (!recursive && horizontal && (zero == lh || one == lh))
   {
-    weight += coordinate_weight(data, height, width, channels, h - epsilon, w, horizontal, true);
-    weight += coordinate_weight(data, height, width, channels, h + epsilon, w, horizontal, true);
+    weight += coordinate_weight(data, height, width, channels, h - epsilon, w, true, horizontal);
+    weight += coordinate_weight(data, height, width, channels, h + epsilon, w, true, horizontal);
     weight /= two;
 
     return weight;
@@ -93,8 +93,8 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE PT coordinate_weight(
 
   if (!recursive && !horizontal && (zero == lw || one == lw))
   {
-    weight += coordinate_weight(data, height, width, channels, h, w - epsilon, horizontal, true);
-    weight += coordinate_weight(data, height, width, channels, h, w + epsilon, horizontal, true);
+    weight += coordinate_weight(data, height, width, channels, h, w - epsilon, true, horizontal);
+    weight += coordinate_weight(data, height, width, channels, h, w + epsilon, true, horizontal);
     weight /= two;
 
     return weight;
@@ -243,29 +243,34 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_im2col_body(
 
   for (int i = 0; i < kernel_h; ++i)
   {
+    const int kernel_h_shift = i * kernel_w;
+
     for (int j = 0; j < kernel_w; ++j)
     {
-      const PT offset_h_ = static_cast<PT>(offset_slice[i * kernel_w * 2 + j * 2]);
-      const PT offset_w_ = static_cast<PT>(offset_slice[i * kernel_w * 2 + j * 2 + 1]);
-      const PT mask_ = static_cast<PT>(mask_slice[i * kernel_w + j]);
+      const int kernel_hw_shift = kernel_h_shift + j;
+      const int kernel_hw_shift_x2 = kernel_hw_shift * 2;
+
+      const PT offset_h_ = static_cast<PT>(offset_slice[kernel_hw_shift_x2]);
+      const PT offset_w_ = static_cast<PT>(offset_slice[kernel_hw_shift_x2 + 1]);
+      const PT mask_ = static_cast<PT>(mask_slice[kernel_hw_shift]);
 
       const PT h_im = static_cast<PT>(h_in + i * dilation_h) + offset_h_;
       const PT w_im = static_cast<PT>(w_in + j * dilation_w) + offset_w_;
 
-      const PT value = mask_ * im2col_bilinear<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im);
+      const PT value = im2col_bilinear<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im);
 
-      output_slice[i * kernel_w + j] = static_cast<T>(value);
+      output_slice[i * kernel_w + j] = static_cast<T>(value * mask_);
     }
   }
 }
 
 template <typename T, typename PT>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_col2im_body(
-    const int index, const T *input, const T *offset, const T *mask, const T *grad, const int batch_size,
-    const int height_in, const int width_in, const int channel_in, const int height_out, const int width_out,
-    const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w,
-    const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input, PT *grad_offset,
-    PT *grad_mask)
+    const int index, const T *input, const T *offset, const T *mask, const T *column, const T *grad,
+    const int batch_size, const int height_in, const int width_in, const int channel_in, const int height_out,
+    const int width_out, const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h,
+    const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input,
+    PT *grad_offset, PT *grad_mask)
 {
   const int b = index / channel_in / width_out / height_in;
   const int h = index / channel_in / width_out % height_in;
@@ -297,6 +302,13 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_col2im_body(
   //  //                                                                            i * kernel_w +
   //  //                                                                                       j;
   const T *mask_slice = mask + (((b * height_out + h) * width_out + w) * deformable_group + g) * kernel_h * kernel_w;
+
+  //  const T *column_slice = column + b * height_out * width_out * channel_in * kernel_h * kernel_w +
+  //                        h * width_out * channel_in * kernel_h * kernel_w + w * channel_in * kernel_h * kernel_w +
+  //                        c * kernel_h * kernel_w;
+  //  //                                                                                               i * kernel_w +
+  //  //                                                                                                          j;
+  const T *column_slice = column + (((b * height_out + h) * width_out + w) * channel_in + c) * kernel_h * kernel_w;
 
   //  const T *grad_slice = grad + b * height_out * width_out * channel_in * kernel_h * kernel_w +
   //                        h * width_out * channel_in * kernel_h * kernel_w + w * channel_in * kernel_h * kernel_w +
@@ -330,44 +342,48 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_col2im_body(
 
   for (int i = 0; i < kernel_h; ++i)
   {
+    const int kernel_h_shift = i * kernel_w;
+
     for (int j = 0; j < kernel_w; ++j)
     {
-      const PT offset_h_ = offset_slice[i * kernel_w * 2 + j * 2];
-      const PT offset_w_ = offset_slice[i * kernel_w * 2 + j * 2 + 1];
-      const PT mask_ = mask_slice[i * kernel_w + j];
-      const PT grad_ = grad_slice[i * kernel_w + j];
+      const int kernel_hw_shift = kernel_h_shift + j;
+      const int kernel_hw_shift_x2 = kernel_hw_shift * 2;
+
+      const PT offset_h_ = offset_slice[kernel_hw_shift_x2];
+      const PT offset_w_ = offset_slice[kernel_hw_shift_x2 + 1];
+      const PT mask_ = mask_slice[kernel_hw_shift];
+      const PT column_ = column_slice[kernel_hw_shift];
+      const PT grad_ = grad_slice[kernel_hw_shift];
 
       const PT h_im = static_cast<PT>(h_in + i * dilation_h) + offset_h_;
       const PT w_im = static_cast<PT>(w_in + j * dilation_w) + offset_w_;
 
       const PT top_grad = grad_ * mask_;
 
-      // TODO: atomic add
-
       // Mask gradient
-      // TODO: use original output?
-      const PT m_grad = grad_ * im2col_bilinear<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im);
-      atomic_add<PT>(grad_mask_slice + i * kernel_w + j, m_grad);
+      const PT value = (0. == mask_)
+        ? im2col_bilinear<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im)
+        : column_ / mask_;
+      atomic_add<PT>(grad_mask_slice + kernel_hw_shift, grad_ * value);
 
       // Offset gradient
-      const PT o_h_grad =
-          top_grad * coordinate_weight<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im, true, false);
-      const PT o_w_grad =
-          top_grad * coordinate_weight<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im, false, false);
-      atomic_add<PT>(grad_offset_slice + i * kernel_w * 2 + j * 2, o_h_grad);
-      atomic_add<PT>(grad_offset_slice + i * kernel_w * 2 + j * 2 + 1, o_w_grad);
+      const PT o_h_weight =
+          coordinate_weight<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im, false, true);
+      const PT o_w_weight =
+          coordinate_weight<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im, false, false);
+      atomic_add<PT>(grad_offset_slice + kernel_hw_shift_x2, top_grad * o_h_weight);
+      atomic_add<PT>(grad_offset_slice + kernel_hw_shift_x2 + 1, top_grad * o_w_weight);
 
       // Input gradient
       for (int z = 0; z < 4; z++)
       {
         int i_height;
         int i_width;
-        PT i_grad;
-        const bool update = input_weight<PT>(h_im, w_im, height_in, width_in, z, &i_height, &i_width, &i_grad);
+        PT i_weight;
+        const bool update = input_weight<PT>(h_im, w_im, height_in, width_in, z, &i_height, &i_width, &i_weight);
         if (update)
         {
-          i_grad *= top_grad;
-          atomic_add<PT>(grad_input_slice + (i_height * width_out + i_width) * channel_in, i_grad);
+          atomic_add<PT>(grad_input_slice + (i_height * width_out + i_width) * channel_in, top_grad * i_weight);
         }
       }
     }
@@ -388,11 +404,11 @@ template <typename Device, typename T, typename PT>
 struct ModulatedDeformableColumnBackwardFunctor
 {
   void operator()(
-      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *grad, const int batch_size,
-      const int height_in, const int width_in, const int channel_in, const int height_out, const int width_out,
-      const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w,
-      const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input, PT *grad_offset,
-      PT *grad_mask) const;
+      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *column, const T *grad,
+      const int batch_size, const int height_in, const int width_in, const int channel_in, const int height_out,
+      const int width_out, const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h,
+      const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input,
+      PT *grad_offset, PT *grad_mask) const;
 };
 
 template <typename Device, typename T>

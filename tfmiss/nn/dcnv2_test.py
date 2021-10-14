@@ -99,9 +99,12 @@ class DCNv2Test(tf.test.TestCase, parameterized.TestCase):
     #     offset_ = OFFSET_2g_7x8.astype(dt)
     #     mask_ = MASK_2g_7x8.astype(dt)
     #
-    #     theoretical, numerical = tf.test.compute_gradient(_op, [input_, offset_, mask_])
-    #     err = max_error(theoretical, numerical)
-    #     self.assertLess(err, tol)
+    #     arguments = [input_, offset_, mask_]
+    #     theoretical, _ = tf.test.compute_gradient(_op, [a.astype(dt) for a in arguments])
+    #     _, numerical64 = tf.test.compute_gradient(_op, arguments)
+    #     grad_err = max_error(theoretical, numerical64)
+    #
+    #     self.assertLess(grad_err, tol)
 
 
 INPUT_3c_7x8 = np.array([
