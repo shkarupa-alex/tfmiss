@@ -441,6 +441,7 @@ TF_CALL_double(REGISTER);
 
 #undef REGISTER
 
+/*
 #if GOOGLE_CUDA
 
 typedef Eigen::GpuDevice GPUDevice;
@@ -503,6 +504,7 @@ TF_CALL_double(REGISTER);
 #undef REGISTER
 
 #endif  // GOOGLE_CUDA
+*/
 
 }  // namespace miss
 }  // end namespace tensorflow

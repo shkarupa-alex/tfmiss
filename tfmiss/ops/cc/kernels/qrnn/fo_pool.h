@@ -8,6 +8,9 @@ namespace tensorflow
 {
 namespace miss
 {
+typedef Eigen::ThreadPoolDevice CPUDevice;
+typedef Eigen::GpuDevice GPUDevice;
+
 template <typename T>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void fo_pool_forward_body(
     const int index, const T *input, const T *forget, const T *init, const int batch_size, const int time_size,

@@ -13,8 +13,6 @@ namespace tensorflow
 {
 namespace miss
 {
-typedef Eigen::ThreadPoolDevice CPUDevice;
-
 template <typename T>
 struct FoPoolForwardFunctor<CPUDevice, T>
 {
@@ -224,8 +222,6 @@ TF_CALL_double(REGISTER);
 #undef REGISTER
 
 #if GOOGLE_CUDA
-
-typedef Eigen::GpuDevice GPUDevice;
 
 #define DECLARE_FUNCTOR(T)                                                                                          \
   template <>                                                                                                          \
