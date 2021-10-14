@@ -5,9 +5,6 @@
 #include "fo_pool.h"
 
 #include "tensorflow/core/framework/register_types.h"
-#include "tensorflow/core/framework/types.h"
-#include "tensorflow/core/platform/types.h"
-#include "tensorflow/core/util/gpu_device_functions.h"
 #include "tensorflow/core/util/gpu_kernel_helper.h"
 
 namespace tensorflow
