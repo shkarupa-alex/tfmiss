@@ -5,8 +5,6 @@
 #include "dcn_v2.h"
 
 #include "tensorflow/core/framework/register_types.h"
-#include "tensorflow/core/framework/types.h"
-#include "tensorflow/core/platform/types.h"
 #include "tensorflow/core/util/gpu_device_functions.h"
 #include "tensorflow/core/util/gpu_kernel_helper.h"
 
@@ -56,6 +54,14 @@ struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T, PT>
   }
 };
 
+template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, bfloat16, bfloat16>;
+template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, Eigen::half, Eigen::half>;
+template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, float, float>;
+template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, double, double>;
+template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, bfloat16, float>;
+template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, Eigen::half, float>;
+template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, double, float>;
+
 template <typename T, typename PT>
 __global__ void ModulatedDeformableColumnBackwardGPUKernel(
     const T *__restrict__ input, const T *__restrict__ offset, const T *__restrict__ mask, const T *__restrict__ grad,
@@ -95,6 +101,14 @@ struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>
         grad_input, grad_offset, grad_mask));
   }
 };
+
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, bfloat16, bfloat16>;
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::half, Eigen::half>;
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, float, float>;
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, double, double>;
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, bfloat16, float>;
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::half, float>;
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, double, double>;
 
 }  // namespace miss
 }  // end namespace tensorflow

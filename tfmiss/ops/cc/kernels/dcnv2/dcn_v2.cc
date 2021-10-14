@@ -17,7 +17,7 @@ template <typename CPUDevice, typename T>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value)
 {
   *ptr += value;
-//  __atomic_add_fetch(ptr, value, __ATOMIC_SEQ_CST);
+  //  __atomic_add_fetch(ptr, value, __ATOMIC_SEQ_CST);
 }
 
 template <typename T, typename PT>
@@ -56,26 +56,26 @@ struct ModulatedDeformableColumnBackwardFunctor<CPUDevice, T, PT>
       PT *grad_offset, PT *grad_mask) const
   {
     const int num_kernels = batch_size * channel_in * height_out * width_out;
-//    auto thread_pool = ctx->device()->tensorflow_cpu_worker_threads()->workers;
-//    thread_pool->ParallelFor(
-//        num_kernels, kernel_h * kernel_w * 75,
-//        [&](int64 start_index, int64 end_index)
-//        {
-//          for (int index = start_index; index < end_index; index++)
-//          {
-//            modulated_deformable_col2im_body<T, PT>(
-//                index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out,
-//                width_out, kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
-//                deformable_group, grad_input, grad_offset, grad_mask);
-//          }
-//        });
-          for (int index = 0; index < num_kernels; index++)
-          {
-            modulated_deformable_col2im_body<T, PT>(
-                index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out,
-                width_out, kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
-                deformable_group, grad_input, grad_offset, grad_mask);
-          }
+    //    auto thread_pool = ctx->device()->tensorflow_cpu_worker_threads()->workers;
+    //    thread_pool->ParallelFor(
+    //        num_kernels, kernel_h * kernel_w * 75,
+    //        [&](int64 start_index, int64 end_index)
+    //        {
+    //          for (int index = start_index; index < end_index; index++)
+    //          {
+    //            modulated_deformable_col2im_body<T, PT>(
+    //                index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out,
+    //                width_out, kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
+    //                deformable_group, grad_input, grad_offset, grad_mask);
+    //          }
+    //        });
+    for (int index = 0; index < num_kernels; index++)
+    {
+      modulated_deformable_col2im_body<T, PT>(
+          index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out, width_out,
+          kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
+          grad_offset, grad_mask);
+    }
   }
 };
 
@@ -202,7 +202,6 @@ class ModulatedDeformableColumnOp : public OpKernel
     if (!std::is_same<T, Eigen::half>::value && !std::is_same<T, Eigen::bfloat16>::value)
     {
       ModulatedDeformableColumnForwardFunctor<Device, T, T> im2col_functor;
-
       im2col_functor(
           ctx, input, offset, mask, batch_size, height_in, width_in, channel_in, height_out, width_out, kernel_h,
           kernel_w, pad_hb, pad_wb, stride_h, stride_w, dilation_h, dilation_w, deformable_group, output);
@@ -210,7 +209,6 @@ class ModulatedDeformableColumnOp : public OpKernel
     else
     {
       ModulatedDeformableColumnForwardFunctor<Device, T, float> im2col_functor;
-
       im2col_functor(
           ctx, input, offset, mask, batch_size, height_in, width_in, channel_in, height_out, width_out, kernel_h,
           kernel_w, pad_hb, pad_wb, stride_h, stride_w, dilation_h, dilation_w, deformable_group, output);
@@ -370,7 +368,6 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
       T *grad_mask = grad_mask_tensor->flat<T>().data();
 
       ModulatedDeformableColumnBackwardFunctor<Device, T, T> col2im_functor;
-
       col2im_functor(
           ctx, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out, width_out,
           kernel_h, kernel_w, pad_hb, pad_wb, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
@@ -399,7 +396,6 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
       float *grad_mask = temp_grad_mask_tensor.flat<float>().data();
 
       ModulatedDeformableColumnBackwardFunctor<Device, T, float> col2im_functor;
-
       col2im_functor(
           ctx, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out, width_out,
           kernel_h, kernel_w, pad_hb, pad_wb, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
@@ -426,7 +422,6 @@ TF_CALL_bfloat16(REGISTER);
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
-
 #undef REGISTER
 
 #define REGISTER(TYPE)                                                                              \
@@ -438,28 +433,38 @@ TF_CALL_bfloat16(REGISTER);
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
-
 #undef REGISTER
 
-/*
 #if GOOGLE_CUDA
 
-typedef Eigen::GpuDevice GPUDevice;
-
-#define DECLARE_FUNCTOR(T)                                                                                          \
+#define DECLARE_FUNCTOR(T)                                                                                             \
   template <>                                                                                                          \
-  void ModulatedDeformableColumnForwardFunctor<GPUDevice, T>::operator()(                                           \
+  void ModulatedDeformableColumnForwardFunctor<GPUDevice, T, T>::operator()(                                           \
       OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const int batch_size, const int height_in, \
       const int width_in, const int channel_in, const int height_out, const int width_out, const int kernel_h,         \
       const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w,                    \
       const int dilation_h, const int dilation_w, const int deformable_group, T *column) const;                        \
-  extern template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T>
+  extern template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T, T>
 
 TF_CALL_bfloat16(DECLARE_FUNCTOR);
 TF_CALL_half(DECLARE_FUNCTOR);
 TF_CALL_float(DECLARE_FUNCTOR);
 TF_CALL_double(DECLARE_FUNCTOR);
+#undef DECLARE_FUNCTOR
 
+#define DECLARE_FUNCTOR(T)                                                                                             \
+  template <>                                                                                                          \
+  void ModulatedDeformableColumnForwardFunctor<GPUDevice, T, float>::operator()(                                       \
+      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const int batch_size, const int height_in, \
+      const int width_in, const int channel_in, const int height_out, const int width_out, const int kernel_h,         \
+      const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w,                    \
+      const int dilation_h, const int dilation_w, const int deformable_group, T *column) const;                        \
+  extern template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T, float>
+
+TF_CALL_bfloat16(DECLARE_FUNCTOR);
+TF_CALL_half(DECLARE_FUNCTOR);
+// TF_CALL_float(DECLARE_FUNCTOR);
+TF_CALL_double(DECLARE_FUNCTOR);
 #undef DECLARE_FUNCTOR
 
 #define REGISTER(TYPE)                                                                      \
@@ -471,24 +476,38 @@ TF_CALL_bfloat16(REGISTER);
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
-
 #undef REGISTER
 
-#define DECLARE_FUNCTOR(T)                                                                                     \
+#define DECLARE_FUNCTOR(T)                                                                                        \
   template <>                                                                                                     \
-  void ModulatedDeformableColumnBackwardFunctor<GPUDevice, T>::operator()(                                     \
+  void ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, T>::operator()(                                     \
       OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *grad, const int batch_size,  \
       const int height_in, const int width_in, const int channel_in, const int height_out, const int width_out,   \
       const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h,               \
       const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input, \
       PT *grad_offset, PT *grad_mask) const;                                                                      \
-  extern template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T>
+  extern template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, T>
 
 TF_CALL_bfloat16(DECLARE_FUNCTOR);
 TF_CALL_half(DECLARE_FUNCTOR);
 TF_CALL_float(DECLARE_FUNCTOR);
 TF_CALL_double(DECLARE_FUNCTOR);
+#undef DECLARE_FUNCTOR
 
+#define DECLARE_FUNCTOR(T)                                                                                        \
+  template <>                                                                                                     \
+  void ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, float>::operator()(                                 \
+      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *grad, const int batch_size,  \
+      const int height_in, const int width_in, const int channel_in, const int height_out, const int width_out,   \
+      const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h,               \
+      const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input, \
+      PT *grad_offset, PT *grad_mask) const;                                                                      \
+  extern template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, float>
+
+TF_CALL_bfloat16(DECLARE_FUNCTOR);
+TF_CALL_half(DECLARE_FUNCTOR);
+// TF_CALL_float(DECLARE_FUNCTOR);
+TF_CALL_double(DECLARE_FUNCTOR);
 #undef DECLARE_FUNCTOR
 
 #define REGISTER(TYPE)                                                                              \
@@ -500,11 +519,9 @@ TF_CALL_bfloat16(REGISTER);
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
-
 #undef REGISTER
 
 #endif  // GOOGLE_CUDA
-*/
 
 }  // namespace miss
 }  // end namespace tensorflow

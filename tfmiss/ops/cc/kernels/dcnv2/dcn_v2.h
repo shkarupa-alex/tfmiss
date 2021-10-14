@@ -8,7 +8,7 @@ namespace tensorflow
 {
 namespace miss
 {
-typedef Eigen::ThreadPoolDevice CPUDevice; // TODO
+typedef Eigen::ThreadPoolDevice CPUDevice;
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename Device, typename T>
@@ -361,9 +361,8 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_col2im_body(
       const PT top_grad = grad_ * mask_;
 
       // Mask gradient
-      const PT value = (0. == mask_)
-        ? im2col_bilinear<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im)
-        : column_ / mask_;
+      const PT value = (0. == mask_) ? im2col_bilinear<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im)
+                                     : column_ / mask_;
       atomic_add<PT>(grad_mask_slice + kernel_hw_shift, grad_ * value);
 
       // Offset gradient

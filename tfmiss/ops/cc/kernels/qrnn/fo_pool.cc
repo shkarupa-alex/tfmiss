@@ -207,7 +207,6 @@ TF_CALL_bfloat16(REGISTER);
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
-
 #undef REGISTER
 
 #define REGISTER(TYPE)     \
@@ -218,14 +217,13 @@ TF_CALL_bfloat16(REGISTER);
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
-
 #undef REGISTER
 
 #if GOOGLE_CUDA
 
-#define DECLARE_FUNCTOR(T)                                                                                          \
+#define DECLARE_FUNCTOR(T)                                                                                             \
   template <>                                                                                                          \
-  void FoPoolForwardFunctor<GPUDevice, T>::operator()(                                                              \
+  void FoPoolForwardFunctor<GPUDevice, T>::operator()(                                                                 \
       OpKernelContext *ctx, const T *input, const T *forget, const T *init, const int batch_size, const int time_size, \
       const int channel_size, T *output) const;                                                                        \
   extern template struct FoPoolForwardFunctor<GPUDevice, T>
@@ -234,7 +232,6 @@ TF_CALL_bfloat16(DECLARE_FUNCTOR);
 TF_CALL_half(DECLARE_FUNCTOR);
 TF_CALL_float(DECLARE_FUNCTOR);
 TF_CALL_double(DECLARE_FUNCTOR);
-
 #undef DECLARE_FUNCTOR
 
 #define REGISTER(TYPE) \
@@ -244,12 +241,11 @@ TF_CALL_bfloat16(REGISTER);
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
-
 #undef REGISTER
 
-#define DECLARE_FUNCTOR(T)                                                                                      \
+#define DECLARE_FUNCTOR(T)                                                                                         \
   template <>                                                                                                      \
-  void FoPoolBackwardFunctor<GPUDevice, T>::operator()(                                                         \
+  void FoPoolBackwardFunctor<GPUDevice, T>::operator()(                                                            \
       OpKernelContext *ctx, const T *input, const T *forget, const T *hidden, const T *grad, const int batch_size, \
       const int time_size, const int channel_size, T *grad_input, T *grad_forget, T *grad_init) const;             \
   extern template struct FoPoolBackwardFunctor<GPUDevice, T>
@@ -258,7 +254,6 @@ TF_CALL_bfloat16(DECLARE_FUNCTOR);
 TF_CALL_half(DECLARE_FUNCTOR);
 TF_CALL_float(DECLARE_FUNCTOR);
 TF_CALL_double(DECLARE_FUNCTOR);
-
 #undef DECLARE_FUNCTOR
 
 #define REGISTER(TYPE)     \
@@ -269,7 +264,6 @@ TF_CALL_bfloat16(REGISTER);
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
-
 #undef REGISTER
 
 #endif  // GOOGLE_CUDA
