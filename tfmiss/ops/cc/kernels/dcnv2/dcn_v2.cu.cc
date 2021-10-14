@@ -84,11 +84,11 @@ template <typename T, typename PT>
 struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>
 {
   void operator()(
-      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *grad, const int batch_size,
-      const int height_in, const int width_in, const int channel_in, const int height_out, const int width_out,
-      const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w,
-      const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input, PT *grad_offset,
-      PT *grad_mask) const
+      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *column, const T *grad,
+      const int batch_size, const int height_in, const int width_in, const int channel_in, const int height_out,
+      const int width_out, const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h,
+      const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input,
+      PT *grad_offset, PT *grad_mask) const
   {
     const int num_kernels = batch_size * channel_in * height_out * width_out;
     auto eigen_gpu = ctx->eigen_device<GPUDevice>();
@@ -96,7 +96,7 @@ struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>
 
     TF_CHECK_OK(GpuLaunchKernel(
         ModulatedDeformableColumnBackwardGPUKernel<T, PT>, config.block_count, config.thread_per_block, 0,
-        eigen_gpu.stream(), input, offset, mask, grad, batch_size, height_in, width_in, channel_in, height_out,
+        eigen_gpu.stream(), input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out,
         width_out, kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group,
         grad_input, grad_offset, grad_mask));
   }
