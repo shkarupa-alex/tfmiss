@@ -437,14 +437,14 @@ TF_CALL_double(REGISTER);
 
 #if GOOGLE_CUDA
 
-#define DECLARE_FUNCTOR(T)                                                                                             \
+#define DECLARE_FUNCTOR(T, PT)                                                                                         \
   template <>                                                                                                          \
-  void ModulatedDeformableColumnForwardFunctor<GPUDevice, T, T>::operator()(                                           \
+  void ModulatedDeformableColumnForwardFunctor<GPUDevice, T, PT>::operator()(                                          \
       OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const int batch_size, const int height_in, \
       const int width_in, const int channel_in, const int height_out, const int width_out, const int kernel_h,         \
       const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w,                    \
       const int dilation_h, const int dilation_w, const int deformable_group, T *column) const;                        \
-  extern template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T, T>
+  extern template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T, PT>
 #define DECLARE_FUNCTOR_SAME(T) DECLARE_FUNCTOR(T, T)
 #define DECLARE_FUNCTOR_FLOAT(T) DECLARE_FUNCTOR(T, float)
 
@@ -470,14 +470,14 @@ TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
 #undef REGISTER
 
-#define DECLARE_FUNCTOR(T, PT)                                                                                    \
-  template <>                                                                                                     \
-  void ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>::operator()(                                    \
-      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *grad, const int batch_size,  \
-      const int height_in, const int width_in, const int channel_in, const int height_out, const int width_out,   \
-      const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h,               \
-      const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input, \
-      PT *grad_offset, PT *grad_mask) const;                                                                      \
+#define DECLARE_FUNCTOR(T, PT)                                                                                        \
+  template <>                                                                                                         \
+  void ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>::operator()(                                        \
+      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *column, const T *grad,           \
+      const int batch_size, const int height_in, const int width_in, const int channel_in, const int height_out,      \
+      const int width_out, const int kernel_h, const int kernel_w, const int pad_h, const int pad_w,                  \
+      const int stride_h, const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group, \
+      PT *grad_input, PT *grad_offset, PT *grad_mask) const;                                                          \
   extern template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>
 #define DECLARE_FUNCTOR_SAME(T) DECLARE_FUNCTOR(T, T)
 #define DECLARE_FUNCTOR_FLOAT(T) DECLARE_FUNCTOR(T, float)
