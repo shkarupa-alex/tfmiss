@@ -54,17 +54,15 @@ struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T, PT>
   }
 };
 
-template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, bfloat16, bfloat16>;
 template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, Eigen::half, Eigen::half>;
 template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, float, float>;
 template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, double, double>;
-template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, bfloat16, float>;
 template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, Eigen::half, float>;
 template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, double, float>;
 
 template <typename T, typename PT>
 __global__ void ModulatedDeformableColumnBackwardGPUKernel(
-    const T *__restrict__ input, const T *__restrict__ offset, const T *__restrict__ mask, const T *__restrict__ grad,
+    const T *__restrict__ input, const T *__restrict__ offset, const T *__restrict__ mask, const T *__restrict__ column, const T *__restrict__ grad,
     const int batch_size, const int height_in, const int width_in, const int channel_in, const int height_out,
     const int width_out, const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h,
     const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group,
@@ -74,7 +72,7 @@ __global__ void ModulatedDeformableColumnBackwardGPUKernel(
   for (int index : GpuGridRangeX<int>(num_kernels))
   {
     modulated_deformable_col2im_body<T, PT>(
-        index, input, offset, mask, grad, batch_size, height_in, width_in, channel_in, height_out, width_out, kernel_h,
+        index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out, width_out, kernel_h,
         kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input, grad_offset,
         grad_mask);
   }
@@ -102,13 +100,11 @@ struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>
   }
 };
 
-template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, bfloat16, bfloat16>;
 template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::half, Eigen::half>;
 template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, float, float>;
 template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, double, double>;
-template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, bfloat16, float>;
 template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::half, float>;
-template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, double, double>;
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, double, float>;
 
 }  // namespace miss
 }  // end namespace tensorflow

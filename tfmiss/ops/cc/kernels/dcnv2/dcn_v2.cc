@@ -199,7 +199,7 @@ class ModulatedDeformableColumnOp : public OpKernel
     const T *mask = mask_tensor->flat<T>().data();
     T *output = output_tensor->flat<T>().data();
 
-    if (!std::is_same<T, Eigen::half>::value && !std::is_same<T, Eigen::bfloat16>::value)
+    if (!std::is_same<T, Eigen::half>::value)
     {
       ModulatedDeformableColumnForwardFunctor<Device, T, T> im2col_functor;
       im2col_functor(
@@ -357,7 +357,7 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
     const T *column = column_tensor->flat<T>().data();
     const T *grad = grad_tensor->flat<T>().data();
 
-    if (!std::is_same<T, Eigen::half>::value && !std::is_same<T, Eigen::bfloat16>::value)
+    if (!std::is_same<T, Eigen::half>::value)
     {
       grad_input_tensor->flat<T>().setZero();
       grad_offset_tensor->flat<T>().setZero();
@@ -418,7 +418,6 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
       Name("Miss>ModulatedDeformableColumn").Device(DEVICE_CPU).TypeConstraint<TYPE>("FT"), \
       ModulatedDeformableColumnOp<CPUDevice, TYPE>)
 
-TF_CALL_bfloat16(REGISTER);
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
@@ -429,7 +428,6 @@ TF_CALL_double(REGISTER);
       Name("Miss>ModulatedDeformableColumnBackward").Device(DEVICE_CPU).TypeConstraint<TYPE>("FT"), \
       ModulatedDeformableColumnBackwardOp<CPUDevice, TYPE>)
 
-TF_CALL_bfloat16(REGISTER);
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
@@ -448,11 +446,9 @@ TF_CALL_double(REGISTER);
 #define DECLARE_FUNCTOR_SAME(T) DECLARE_FUNCTOR(T, T)
 #define DECLARE_FUNCTOR_FLOAT(T) DECLARE_FUNCTOR(T, float)
 
-TF_CALL_bfloat16(DECLARE_FUNCTOR_SAME);
 TF_CALL_half(DECLARE_FUNCTOR_SAME);
 TF_CALL_float(DECLARE_FUNCTOR_SAME);
 TF_CALL_double(DECLARE_FUNCTOR_SAME);
-TF_CALL_bfloat16(DECLARE_FUNCTOR_FLOAT);
 TF_CALL_half(DECLARE_FUNCTOR_FLOAT);
 TF_CALL_double(DECLARE_FUNCTOR_FLOAT);
 #undef DECLARE_FUNCTOR
@@ -464,7 +460,6 @@ TF_CALL_double(DECLARE_FUNCTOR_FLOAT);
       Name("Miss>ModulatedDeformableColumn").Device(DEVICE_GPU).TypeConstraint<TYPE>("FT"), \
       ModulatedDeformableColumnOp<GPUDevice, TYPE>)
 
-TF_CALL_bfloat16(REGISTER);
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);
@@ -482,11 +477,9 @@ TF_CALL_double(REGISTER);
 #define DECLARE_FUNCTOR_SAME(T) DECLARE_FUNCTOR(T, T)
 #define DECLARE_FUNCTOR_FLOAT(T) DECLARE_FUNCTOR(T, float)
 
-TF_CALL_bfloat16(DECLARE_FUNCTOR_SAME);
 TF_CALL_half(DECLARE_FUNCTOR_SAME);
 TF_CALL_float(DECLARE_FUNCTOR_SAME);
 TF_CALL_double(DECLARE_FUNCTOR_SAME);
-TF_CALL_bfloat16(DECLARE_FUNCTOR_FLOAT);
 TF_CALL_half(DECLARE_FUNCTOR_FLOAT);
 TF_CALL_double(DECLARE_FUNCTOR_FLOAT);
 #undef DECLARE_FUNCTOR
@@ -498,7 +491,6 @@ TF_CALL_double(DECLARE_FUNCTOR_FLOAT);
       Name("Miss>ModulatedDeformableColumnBackward").Device(DEVICE_GPU).TypeConstraint<TYPE>("FT"), \
       ModulatedDeformableColumnBackwardOp<GPUDevice, TYPE>)
 
-TF_CALL_bfloat16(REGISTER);
 TF_CALL_half(REGISTER);
 TF_CALL_float(REGISTER);
 TF_CALL_double(REGISTER);

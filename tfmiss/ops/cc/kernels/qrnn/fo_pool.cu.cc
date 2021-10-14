@@ -40,7 +40,6 @@ struct FoPoolForwardFunctor<GPUDevice, T>
   }
 };
 
-template struct FoPoolForwardFunctor<GPUDevice, bfloat16>;
 template struct FoPoolForwardFunctor<GPUDevice, Eigen::half>;
 template struct FoPoolForwardFunctor<GPUDevice, float>;
 template struct FoPoolForwardFunctor<GPUDevice, double>;
@@ -76,7 +75,6 @@ struct FoPoolBackwardFunctor<GPUDevice, T>
   }
 };
 
-template struct FoPoolBackwardFunctor<GPUDevice, bfloat16>;
 template struct FoPoolBackwardFunctor<GPUDevice, Eigen::half>;
 template struct FoPoolBackwardFunctor<GPUDevice, float>;
 template struct FoPoolBackwardFunctor<GPUDevice, double>;
