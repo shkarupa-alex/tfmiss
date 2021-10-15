@@ -16,7 +16,7 @@ class QRNNTest(keras_parameterized.TestCase):
     def test_layer(self):
         testing_utils.layer_test(
             QRNN,
-            kwargs={'units': 8, 'window': 2, 'zoneout': 0., 'output_gate': True,
+            kwargs={'units': 8, 'window': 2, 'zoneout': 0., 'output_gate': True, 'zero_output_for_mask': True,
                     'return_sequences': False, 'return_state': False, 'go_backwards': False},
             input_shape=(10, 5, 3),
             input_dtype='float32',
@@ -179,6 +179,48 @@ class QRNNTest(keras_parameterized.TestCase):
         h, c = self.evaluate(layer(data, initial_state=c))
         self.assertTupleEqual((10, 3, 8), h.shape)
         self.assertTupleEqual((10, 8), c.shape)
+
+    def test_mask(self):
+        data = np.random.random((3, 10, 2))
+        data[0, 7:] = 0.
+        data[1, 8:] = 0.
+
+        m = layers.Masking()(data)
+        h = QRNN(1, 2, output_gate=False, return_sequences=True)(m)
+        h = self.evaluate(h)
+        self.assertTupleEqual((3, 10, 1), h.shape)
+        self.assertEqual(h[0, 6, 0], h[0, 7, 0])
+        self.assertEqual(h[0, 6, 0], h[0, 8, 0])
+        self.assertEqual(h[0, 6, 0], h[0, 9, 0])
+        self.assertEqual(h[1, 7, 0], h[1, 8, 0])
+        self.assertEqual(h[1, 7, 0], h[1, 9, 0])
+
+        m = layers.Masking()(data)
+        h = QRNN(1, 2, zero_output_for_mask=True, return_sequences=True)(m)
+        h = self.evaluate(h)
+        self.assertTupleEqual((3, 10, 1), h.shape)
+        self.assertEqual(h[0, 7, 0], 0.)
+        self.assertEqual(h[0, 8, 0], 0.)
+        self.assertEqual(h[0, 9, 0], 0.)
+        self.assertEqual(h[1, 8, 0], 0.)
+        self.assertEqual(h[1, 9, 0], 0.)
+
+    def test_zoneout(self):
+        data = np.random.random((3, 10, 2))
+        init = np.random.random((3, 1))
+
+        h = QRNN(1, 2, zoneout=.9999, output_gate=False, return_sequences=True)(data, initial_state=init, training=True)
+        h = self.evaluate(h)
+        self.assertTupleEqual((3, 10, 1), h.shape)
+        self.assertLess(np.abs(h - np.repeat(init[:, None], 10, axis=1)).max(), 1e-6)
+
+        h = QRNN(1, 2, zoneout=.3, output_gate=False, return_sequences=True)(data, training=True)
+        h = self.evaluate(h)
+        self.assertBetween(np.sum(h[:, 1:] == h[:, :-1]), 4, 6)
+
+        h = QRNN(1, 2, zoneout=.7, output_gate=False, return_sequences=True)(data, training=True)
+        h = self.evaluate(h)
+        self.assertBetween(np.sum(h[:, 1:] == h[:, :-1]), 15, 17)
 
     def test_model(self):
         model = models.Sequential()

@@ -39,6 +39,7 @@ class QRNN(layers.Layer):
                  return_sequences=False,
                  return_state=False,
                  go_backwards=False,
+                 zero_output_for_mask=False,
                  **kwargs):
         super(QRNN, self).__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=3)
@@ -62,6 +63,8 @@ class QRNN(layers.Layer):
         self.return_sequences = return_sequences
         self.return_state = return_state
         self.go_backwards = go_backwards
+
+        self.zero_output_for_mask = zero_output_for_mask
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -102,62 +105,63 @@ class QRNN(layers.Layer):
 
         super(QRNN, self).build(input_shape)
 
-    def call(self, inputs, training=None, initial_state=None):
+    def call(self, inputs, training=None, mask=None, initial_state=None):
         if self.go_backwards:
             inputs = tf.reverse(inputs, [1])
 
         if training is None:
             training = backend.learning_phase()
 
+        if mask is not None:
+            mask = mask[..., None]
+            if self.go_backwards:
+                mask = tf.reverse(mask, [1])
+
         if initial_state is None:
             batch_size = tf.shape(inputs)[0]
             initial_state = tf.repeat(self.initial_state, batch_size, axis=0)
 
-        gate_values = self.conv1d(inputs)
-        gate_values = tf.split(gate_values, 3 if self.output_gate else 2, axis=-1)
+        gates = self.conv1d(inputs)
+        gates = tf.split(gates, 3 if self.output_gate else 2, axis=-1)
         if self.output_gate:
-            z, f, o = gate_values
+            sequence, forget, output = gates
         else:
-            z, f = gate_values
+            sequence, forget = gates
 
-        z = self.act(z)
-        f = self.gate_act(f)
+        sequence = self.act(sequence)
+        forget = self.gate_act(forget)
 
         if self.zoneout > 0.:
-            # keep the previous pooling state for a stochastic subset of channels
-
-            # equivalent to stochastically setting a subset of the QRNN’s f gate channels to 1,
-            # or applying dropout on 1 − f
-
-            f = smart_cond(
+            # Zoneout stochastically chooses a new subset of channels to “zone out” at each timestep;
+            # for these channels the network copies states from one timestep to the next without modification
+            # By preserving instead of dropping hidden units, gradient information and state information are more
+            # readily propagated through time.
+            forget = smart_cond(
                 training,
-                # multiply by (1. - self.zoneout) due to dropout scales preserved items
-                lambda: self.drop(f) * (1. - self.zoneout),
-                lambda: f * (1. - self.zoneout)
+                # multiply by (1 - .zoneout) due to dropout scales preserved items
+                lambda: self.drop(forget) * (1. - self.zoneout),
+                lambda: forget  # TODO: try f * (1 - self.zoneout)
             )
 
-        c = fo_pool(z, f, initial_state=initial_state)
-        h = c if not self.output_gate else self.gate_act(o) * c
+        if mask is not None:
+            forget = tf.where(mask, forget, 0.)
 
-        # last_state = None if not self.return_state else c[:, -1, :]
-        # last_hidden = None if self.return_sequences else h[:, -1, :]
-
-        # TODO: masking?
-
-        if self.go_backwards:
-            h = tf.reverse(h, [1])
+        recurrent = fo_pool(sequence, forget, initial_state=initial_state)
+        hidden = recurrent if not self.output_gate else self.gate_act(output) * recurrent
 
         if not self.return_sequences:
-            h = h[:, -1, :]
-        elif self.go_backwards:
-            h = tf.reverse(h, [1])
+            hidden = hidden[:, -1, :]
+        else:
+            if mask is not None and self.zero_output_for_mask:
+                hidden = tf.where(mask, hidden, 0.)
+
+            if self.go_backwards:
+                hidden = tf.reverse(hidden, [1])
 
         if self.return_state:
-            last_state = c[:, -1, :]
+            return hidden, recurrent[:, -1, :]
 
-            return h, last_state
-
-        return h
+        return hidden
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
@@ -196,7 +200,8 @@ class QRNN(layers.Layer):
             'bias_constraint': constraints.serialize(self.bias_constraint),
             'return_sequences': self.return_sequences,
             'return_state': self.return_state,
-            'go_backwards': self.go_backwards
+            'go_backwards': self.go_backwards,
+            'zero_output_for_mask': self.zero_output_for_mask
         })
 
         return config
