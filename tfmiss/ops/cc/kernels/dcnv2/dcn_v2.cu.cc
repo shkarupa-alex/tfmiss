@@ -65,7 +65,7 @@ __global__ void ModulatedDeformableColumnBackwardGPUKernel(
   const int num_kernels = batch_size * channel_in * height_out * width_out;
   for (int index : GpuGridRangeX<int>(num_kernels))
   {
-    modulated_deformable_col2im_body<T, PT>(
+    modulated_deformable_col2im_body<GPUDevice, T, PT>(
         index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out, width_out,
         kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
         grad_offset, grad_mask);
