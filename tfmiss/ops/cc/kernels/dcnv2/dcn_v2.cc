@@ -14,8 +14,8 @@ namespace tensorflow
 {
 namespace miss
 {
-template <typename CPUDevice, typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value)
+template <typename T>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add<CPUDevice, T>(T *ptr, const T value)
 {
   *ptr += value;
   //  __atomic_add_fetch(ptr, value, __ATOMIC_SEQ_CST);
@@ -436,8 +436,8 @@ TF_CALL_double(REGISTER);
 
 #if GOOGLE_CUDA
 
-template <typename GPUDevice, typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value)
+template <typename T>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add<GPUDevice, T>(T *ptr, const T value)
 {
   GpuAtomicAdd(ptr, value);
 }
