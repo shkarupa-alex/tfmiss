@@ -425,11 +425,5 @@ struct ModulatedDeformableColumnBackwardFunctor
       PT *grad_offset, PT *grad_mask) const;
 };
 
-template <typename Device, typename T>
-struct CastFloatFunctor
-{
-  void operator()(OpKernelContext *ctx, typename TTypes<float>::ConstFlat input, typename TTypes<T>::Flat output) const;
-};
-
 }  // end namespace miss
 }  // namespace tensorflow

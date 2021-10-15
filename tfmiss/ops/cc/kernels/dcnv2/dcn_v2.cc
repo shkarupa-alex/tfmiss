@@ -80,8 +80,8 @@ struct ModulatedDeformableColumnBackwardFunctor<CPUDevice, T, PT>
   }
 };
 
-template <typename T>
-struct CastFloatFunctor<CPUDevice, T>
+template <typename Device, typename T>
+struct CastFloatFunctor
 {
   void operator()(OpKernelContext *ctx, typename TTypes<float>::ConstFlat input, typename TTypes<T>::Flat output) const
   {
@@ -436,6 +436,18 @@ TF_CALL_double(REGISTER);
 
 #if GOOGLE_CUDA
 
+template <typename T>
+struct CastFloatFunctor<GPUDevice, T>
+{
+  void operator()(OpKernelContext *ctx, typename TTypes<float>::ConstFlat input, typename TTypes<T>::Flat output) const
+  {
+    functor::CastFunctor<GPUDevice, T, float> cast;
+    auto eigen_gpu = ctx->eigen_device<GPUDevice>();
+
+    cast(eigen_gpu, output, input);
+  }
+};
+
 #define DECLARE_FUNCTOR(T, PT)                                                                                         \
   template <>                                                                                                          \
   void ModulatedDeformableColumnForwardFunctor<GPUDevice, T, PT>::operator()(                                          \
@@ -487,29 +499,14 @@ TF_CALL_double(DECLARE_FUNCTOR_FLOAT);
 #undef DECLARE_FUNCTOR_SAME
 #undef DECLARE_FUNCTOR_FLOAT
 
-#define DECLARE_FUNCTOR(T)                                                                             \
-  template <>                                                                                          \
-  void CastFloatFunctor<GPUDevice, T>::operator()(                                                     \
-      OpKernelContext *ctx, typename TTypes<float>::ConstFlat input, typename TTypes<T>::Flat output); \
-  extern template struct CastFloatFunctor<GPUDevice, T>
-
-struct CastFloatFunctor<GPUDevice, T>
-{
-  void operator()(OpKernelContext *ctx, typename TTypes<float>::ConstFlat input, typename TTypes<T>::Flat output)
-
-      TF_CALL_half(DECLARE_FUNCTOR);
-  TF_CALL_float(DECLARE_FUNCTOR);
-  TF_CALL_double(DECLARE_FUNCTOR);
-#undef DECLARE_FUNCTOR
-
 #define REGISTER(TYPE)                                                                              \
   REGISTER_KERNEL_BUILDER(                                                                          \
       Name("Miss>ModulatedDeformableColumnBackward").Device(DEVICE_GPU).TypeConstraint<TYPE>("FT"), \
       ModulatedDeformableColumnBackwardOp<GPUDevice, TYPE>)
 
-  TF_CALL_half(REGISTER);
-  TF_CALL_float(REGISTER);
-  TF_CALL_double(REGISTER);
+TF_CALL_half(REGISTER);
+TF_CALL_float(REGISTER);
+TF_CALL_double(REGISTER);
 #undef REGISTER
 
 #endif  // GOOGLE_CUDA
