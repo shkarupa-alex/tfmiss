@@ -72,7 +72,7 @@ struct ModulatedDeformableColumnBackwardFunctor<CPUDevice, T, PT>
     //        });
     for (int index = 0; index < num_kernels; index++)
     {
-      modulated_deformable_col2im_body<T, PT>(
+      modulated_deformable_col2im_body<CPUDevice, T, PT>(
           index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out, width_out,
           kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
           grad_offset, grad_mask);
