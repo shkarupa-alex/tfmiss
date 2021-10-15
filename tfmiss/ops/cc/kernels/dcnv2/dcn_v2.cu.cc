@@ -5,12 +5,19 @@
 #include "dcn_v2.h"
 
 #include "tensorflow/core/framework/register_types.h"
+#include "tensorflow/core/util/gpu_device_functions.h"
 #include "tensorflow/core/util/gpu_kernel_helper.h"
 
 namespace tensorflow
 {
 namespace miss
 {
+template <typename T>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value)
+{
+  GpuAtomicAdd(ptr, value);
+}
+
 template <typename T, typename PT>
 __global__ void ModulatedDeformableColumnForwardGPUKernel(
     const T *__restrict__ input, const T *__restrict__ offset, const T *__restrict__ mask, const int batch_size,

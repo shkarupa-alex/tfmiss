@@ -3,7 +3,6 @@
 #define EIGEN_USE_THREADS
 
 #include "tensorflow/core/framework/op_kernel.h"
-#include "tensorflow/core/util/gpu_device_functions.h"
 
 namespace tensorflow
 {
@@ -13,14 +12,7 @@ typedef Eigen::ThreadPoolDevice CPUDevice;
 typedef Eigen::GpuDevice GPUDevice;
 
 template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value) {
-#if GOOGLE_CUDA
-  GpuAtomicAdd(ptr, value);
-#else
-  *ptr += value;
-  //  __atomic_add_fetch(ptr, value, __ATOMIC_SEQ_CST);
-#endif
-}
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value);
 
 template <typename T, typename PT>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE PT

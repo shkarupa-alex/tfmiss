@@ -14,6 +14,13 @@ namespace tensorflow
 {
 namespace miss
 {
+template <typename T>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value)
+{
+  *ptr += value;
+  //  __atomic_add_fetch(ptr, value, __ATOMIC_SEQ_CST);
+}
+
 template <typename T, typename PT>
 struct ModulatedDeformableColumnForwardFunctor<CPUDevice, T, PT>
 {
