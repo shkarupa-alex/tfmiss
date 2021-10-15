@@ -12,12 +12,6 @@ namespace tensorflow
 {
 namespace miss
 {
-template <typename GPUDevice, typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value)
-{
-  GpuAtomicAdd(ptr, value);
-}
-
 template <typename T, typename PT>
 __global__ void ModulatedDeformableColumnForwardGPUKernel(
     const T *__restrict__ input, const T *__restrict__ offset, const T *__restrict__ mask, const int batch_size,
@@ -62,19 +56,19 @@ template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, double, float
 
 template <typename T, typename PT>
 __global__ void ModulatedDeformableColumnBackwardGPUKernel(
-    const T *__restrict__ input, const T *__restrict__ offset, const T *__restrict__ mask, const T *__restrict__ column, const T *__restrict__ grad,
-    const int batch_size, const int height_in, const int width_in, const int channel_in, const int height_out,
-    const int width_out, const int kernel_h, const int kernel_w, const int pad_h, const int pad_w, const int stride_h,
-    const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group,
+    const T *__restrict__ input, const T *__restrict__ offset, const T *__restrict__ mask, const T *__restrict__ column,
+    const T *__restrict__ grad, const int batch_size, const int height_in, const int width_in, const int channel_in,
+    const int height_out, const int width_out, const int kernel_h, const int kernel_w, const int pad_h, const int pad_w,
+    const int stride_h, const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group,
     PT *__restrict__ grad_input, PT *__restrict__ grad_offset, PT *__restrict__ grad_mask)
 {
   const int num_kernels = batch_size * channel_in * height_out * width_out;
   for (int index : GpuGridRangeX<int>(num_kernels))
   {
     modulated_deformable_col2im_body<T, PT>(
-        index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out, width_out, kernel_h,
-        kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input, grad_offset,
-        grad_mask);
+        index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out, width_out,
+        kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
+        grad_offset, grad_mask);
   }
 }
 

@@ -66,42 +66,19 @@ im2col_bilinear(const T *data, const int height, const int width, const int chan
 }
 
 template <typename T, typename PT>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE PT coordinate_weight(
-    const T *data, const int height, const int width, const int channels, const PT h, const PT w, const bool recursive,
-    const bool horizontal)
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE PT coordinate_weight_default(
+    const T *data, const int height, const int width, const int channels, const PT h, const PT w, const bool horizontal)
 {
   const PT zero = static_cast<PT>(0.);
   const PT one = static_cast<PT>(1.);
-  const PT two = static_cast<PT>(2.);
-  const PT epsilon = Eigen::NumTraits<PT>::dummy_precision();
 
   const int h_low = floor(h);
   const int w_low = floor(w);
-  const PT lh = h - static_cast<PT>(h_low);
-  const PT lw = w - static_cast<PT>(w_low);
-
-  PT weight = zero;
-
-  if (!recursive && horizontal && (zero == lh || one == lh))
-  {
-    weight += coordinate_weight(data, height, width, channels, h - epsilon, w, true, horizontal);
-    weight += coordinate_weight(data, height, width, channels, h + epsilon, w, true, horizontal);
-    weight /= two;
-
-    return weight;
-  }
-
-  if (!recursive && !horizontal && (zero == lw || one == lw))
-  {
-    weight += coordinate_weight(data, height, width, channels, h, w - epsilon, true, horizontal);
-    weight += coordinate_weight(data, height, width, channels, h, w + epsilon, true, horizontal);
-    weight /= two;
-
-    return weight;
-  }
-
   const int h_high = h_low + 1;
   const int w_high = w_low + 1;
+
+  const PT lh = h - static_cast<PT>(h_low);
+  const PT lw = w - static_cast<PT>(w_low);
   const PT hh = one - lh;
   const PT hw = one - lw;
 
@@ -109,6 +86,8 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE PT coordinate_weight(
   const bool w_low_within = 0 <= w_low && w_low < width;
   const bool h_high_within = 0 <= h_high && h_high < height;
   const bool w_high_within = 0 <= w_high && w_high < width;
+
+  PT weight = zero;
 
   if (h_low_within && w_low_within)
   {
@@ -132,6 +111,44 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE PT coordinate_weight(
   }
 
   return weight;
+}
+
+template <typename T, typename PT>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE PT coordinate_weight(
+    const T *data, const int height, const int width, const int channels, const PT h, const PT w, const bool horizontal)
+{
+  const PT zero = static_cast<PT>(0.);
+  const PT one = static_cast<PT>(1.);
+  const PT two = static_cast<PT>(2.);
+  const PT epsilon = Eigen::NumTraits<PT>::dummy_precision();
+
+  const int h_low = floor(h);
+  const PT lh = h - static_cast<PT>(h_low);
+
+  PT weight = zero;
+
+  if (horizontal && (zero == lh || one == lh))
+  {
+    weight += coordinate_weight_default<T, PT>(data, height, width, channels, h - epsilon, w, horizontal);
+    weight += coordinate_weight_default<T, PT>(data, height, width, channels, h + epsilon, w, horizontal);
+    weight /= two;
+
+    return weight;
+  }
+
+  const int w_low = floor(w);
+  const PT lw = w - static_cast<PT>(w_low);
+
+  if (!horizontal && (zero == lw || one == lw))
+  {
+    weight += coordinate_weight_default<T, PT>(data, height, width, channels, h, w - epsilon, horizontal);
+    weight += coordinate_weight_default<T, PT>(data, height, width, channels, h, w + epsilon, horizontal);
+    weight /= two;
+
+    return weight;
+  }
+
+  return coordinate_weight_default<T, PT>(data, height, width, channels, h, w, horizontal);
 }
 
 template <typename PT>
@@ -366,10 +383,8 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_col2im_body(
       atomic_add<PT>(grad_mask_slice + kernel_hw_shift, grad_ * value);
 
       // Offset gradient
-      const PT o_h_weight =
-          coordinate_weight<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im, false, true);
-      const PT o_w_weight =
-          coordinate_weight<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im, false, false);
+      const PT o_h_weight = coordinate_weight<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im, true);
+      const PT o_w_weight = coordinate_weight<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im, false);
       atomic_add<PT>(grad_offset_slice + kernel_hw_shift_x2, top_grad * o_h_weight);
       atomic_add<PT>(grad_offset_slice + kernel_hw_shift_x2 + 1, top_grad * o_w_weight);
 

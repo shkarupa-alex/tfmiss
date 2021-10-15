@@ -7,6 +7,7 @@
 #include "dcn_v2.h"
 
 #include "tensorflow/core/framework/register_types.h"
+#include "tensorflow/core/kernels/cast_op.h"
 #include "tensorflow/core/util/work_sharder.h"
 
 namespace tensorflow
@@ -434,6 +435,24 @@ TF_CALL_double(REGISTER);
 #undef REGISTER
 
 #if GOOGLE_CUDA
+
+template <typename GPUDevice, typename T>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value)
+{
+  GpuAtomicAdd(ptr, value);
+}
+
+template <typename T>
+struct CastFloatFunctor<GPUDevice, T>
+{
+  void operator()(OpKernelContext *ctx, typename TTypes<float>::ConstFlat input, typename TTypes<T>::Flat output)
+  {
+    functor::CastFunctor<GPUDevice, T, float> cast;
+    auto eigen_gpu = ctx->eigen_device<GPUDevice>();
+
+    cast(eigen_gpu, output, input);
+  }
+};
 
 #define DECLARE_FUNCTOR(T, PT)                                                                                         \
   template <>                                                                                                          \
