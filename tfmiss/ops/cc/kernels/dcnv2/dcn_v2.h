@@ -3,6 +3,7 @@
 #define EIGEN_USE_THREADS
 
 #include "tensorflow/core/framework/op_kernel.h"
+#include "tensorflow/core/util/gpu_device_functions.h"
 
 namespace tensorflow
 {
@@ -11,8 +12,15 @@ namespace miss
 typedef Eigen::ThreadPoolDevice CPUDevice;
 typedef Eigen::GpuDevice GPUDevice;
 
-template <typename Device, typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value);
+template <typename T>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value) {
+#if GOOGLE_CUDA
+  GpuAtomicAdd(ptr, value);
+#else
+  *ptr += value;
+  //  __atomic_add_fetch(ptr, value, __ATOMIC_SEQ_CST);
+#endif
+}
 
 template <typename T, typename PT>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE PT
@@ -281,7 +289,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_im2col_body(
   }
 }
 
-template <typename Device, typename T, typename PT>
+template <typename T, typename PT>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_col2im_body(
     const int index, const T *input, const T *offset, const T *mask, const T *column, const T *grad,
     const int batch_size, const int height_in, const int width_in, const int channel_in, const int height_out,
@@ -380,13 +388,13 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_col2im_body(
       // Mask gradient
       const PT value = (0. == mask_) ? im2col_bilinear<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im)
                                      : column_ / mask_;
-      atomic_add<Device, PT>(grad_mask_slice + kernel_hw_shift, grad_ * value);
+      atomic_add<PT>(grad_mask_slice + kernel_hw_shift, grad_ * value);
 
       // Offset gradient
       const PT o_h_weight = coordinate_weight<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im, true);
       const PT o_w_weight = coordinate_weight<T, PT>(input_slice, height_in, width_in, channel_in, h_im, w_im, false);
-      atomic_add<Device, PT>(grad_offset_slice + kernel_hw_shift_x2, top_grad * o_h_weight);
-      atomic_add<Device, PT>(grad_offset_slice + kernel_hw_shift_x2 + 1, top_grad * o_w_weight);
+      atomic_add<PT>(grad_offset_slice + kernel_hw_shift_x2, top_grad * o_h_weight);
+      atomic_add<PT>(grad_offset_slice + kernel_hw_shift_x2 + 1, top_grad * o_w_weight);
 
       // Input gradient
       for (int z = 0; z < 4; z++)
@@ -397,7 +405,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_col2im_body(
         const bool update = input_weight<PT>(h_im, w_im, height_in, width_in, z, &i_height, &i_width, &i_weight);
         if (update)
         {
-          atomic_add<Device, PT>(grad_input_slice + (i_height * width_out + i_width) * channel_in, top_grad * i_weight);
+          atomic_add<PT>(grad_input_slice + (i_height * width_out + i_width) * channel_in, top_grad * i_weight);
         }
       }
     }

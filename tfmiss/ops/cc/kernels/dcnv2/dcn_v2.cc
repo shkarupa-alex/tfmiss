@@ -14,13 +14,6 @@ namespace tensorflow
 {
 namespace miss
 {
-template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add<CPUDevice, T>(T *ptr, const T value)
-{
-  *ptr += value;
-  //  __atomic_add_fetch(ptr, value, __ATOMIC_SEQ_CST);
-}
-
 template <typename T, typename PT>
 struct ModulatedDeformableColumnForwardFunctor<CPUDevice, T, PT>
 {
@@ -64,7 +57,7 @@ struct ModulatedDeformableColumnBackwardFunctor<CPUDevice, T, PT>
     //        {
     //          for (int index = start_index; index < end_index; index++)
     //          {
-    //            modulated_deformable_col2im_body<CPUDevice, T, PT>(
+    //            modulated_deformable_col2im_body<T, PT>(
     //                index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out,
     //                width_out, kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
     //                deformable_group, grad_input, grad_offset, grad_mask);
@@ -72,7 +65,7 @@ struct ModulatedDeformableColumnBackwardFunctor<CPUDevice, T, PT>
     //        });
     for (int index = 0; index < num_kernels; index++)
     {
-      modulated_deformable_col2im_body<CPUDevice, T, PT>(
+      modulated_deformable_col2im_body<T, PT>(
           index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out, width_out,
           kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
           grad_offset, grad_mask);
@@ -435,12 +428,6 @@ TF_CALL_double(REGISTER);
 #undef REGISTER
 
 #if GOOGLE_CUDA
-
-template <typename T>
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add<GPUDevice, T>(T *ptr, const T value)
-{
-  GpuAtomicAdd(ptr, value);
-}
 
 template <typename T>
 struct CastFloatFunctor<GPUDevice, T>
