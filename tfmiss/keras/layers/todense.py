@@ -27,6 +27,7 @@ class ToDense(layers.Layer):
 
     def __init__(self, pad_value, mask=False, **kwargs):
         super(ToDense, self).__init__(**kwargs)
+        self.input_spec = layers.InputSpec(min_ndim=2)
         self._supports_ragged_inputs = True
         self.pad_value = pad_value
         self.mask = mask
