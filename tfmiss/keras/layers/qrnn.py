@@ -106,6 +106,8 @@ class QRNN(layers.Layer):
         super(QRNN, self).build(input_shape)
 
     def call(self, inputs, training=None, mask=None, initial_state=None):
+        shape = tf.shape(inputs)
+
         if self.go_backwards:
             inputs = tf.reverse(inputs, [1])
 
@@ -118,24 +120,22 @@ class QRNN(layers.Layer):
                 mask = tf.reverse(mask, [1])
 
         if initial_state is None:
-            batch_size = tf.shape(inputs)[0]
-            initial_state = tf.repeat(self.initial_state, batch_size, axis=0)
+            initial_state = tf.repeat(self.initial_state, shape[0], axis=0)
 
         gates = self.conv1d(inputs)
         gates = tf.split(gates, 3 if self.output_gate else 2, axis=-1)
+
         if self.output_gate:
             sequence, forget, output = gates
+            output = self.gate_act(output)
         else:
             sequence, forget = gates
+            output = None
 
         sequence = self.act(sequence)
         forget = self.gate_act(forget)
 
         if self.zoneout > 0.:
-            # Zoneout stochastically chooses a new subset of channels to “zone out” at each timestep;
-            # for these channels the network copies states from one timestep to the next without modification
-            # By preserving instead of dropping hidden units, gradient information and state information are more
-            # readily propagated through time.
             forget = smart_cond(
                 training,
                 # multiply by (1 - .zoneout) due to dropout scales preserved items
@@ -147,16 +147,20 @@ class QRNN(layers.Layer):
             forget = tf.where(mask, forget, 0.)
 
         recurrent = fo_pool(sequence, forget, initial_state=initial_state)
-        hidden = recurrent if not self.output_gate else self.gate_act(output) * recurrent
+        hidden = recurrent if not self.output_gate else recurrent * output
 
-        if not self.return_sequences:
-            hidden = hidden[:, -1, :]
-        else:
+        if self.return_sequences:
             if mask is not None and self.zero_output_for_mask:
                 hidden = tf.where(mask, hidden, 0.)
 
             if self.go_backwards:
                 hidden = tf.reverse(hidden, [1])
+        else:
+            if mask is None or not self.output_gate:
+                hidden = hidden[:, -1, :]
+            else:
+                last_idx = shape[1] - 1 - tf.argmax(tf.reverse(mask, [1]), axis=1, output_type='int32')
+                hidden = tf.gather(hidden, last_idx[..., 0], batch_dims=1)
 
         if self.return_state:
             return hidden, recurrent[:, -1, :]
@@ -165,16 +169,16 @@ class QRNN(layers.Layer):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        h_shape = input_shape[:-1] + (self.units,)
-        c_shape = (h_shape[0], h_shape[2])
+        hidden_shape = input_shape[:-1] + (self.units,)
+        state_shape = (hidden_shape[0], hidden_shape[2])
 
         if not self.return_sequences:
-            h_shape = c_shape
+            hidden_shape = state_shape
 
         if self.return_state:
-            return h_shape, c_shape
-        else:
-            return h_shape
+            return hidden_shape, state_shape
+
+        return hidden_shape
 
     def compute_mask(self, inputs, mask=None):
         if not self.return_sequences:

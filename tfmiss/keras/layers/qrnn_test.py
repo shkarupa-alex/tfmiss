@@ -205,6 +205,20 @@ class QRNNTest(keras_parameterized.TestCase):
         self.assertEqual(h[1, 8, 0], 0.)
         self.assertEqual(h[1, 9, 0], 0.)
 
+        q_sec = QRNN(1, 2, return_sequences=True)
+        q_sec(data)
+        q_lst = QRNN(1, 2, return_sequences=False)
+        q_lst(data)
+        q_lst.set_weights(q_sec.get_weights())
+        m = layers.Masking()(data)
+        h_sec, h_lst = q_sec(m), q_lst(m)
+        h_sec, h_lst = self.evaluate([h_sec, h_lst])
+        self.assertTupleEqual((3, 10, 1), h_sec.shape)
+        self.assertTupleEqual((3, 1), h_lst.shape)
+        self.assertEqual(h_sec[0, 6, 0], h_lst[0, 0])
+        self.assertEqual(h_sec[1, 7, 0], h_lst[1, 0])
+        self.assertEqual(h_sec[2, 9, 0], h_lst[2, 0])
+
     def test_zoneout(self):
         data = np.random.random((3, 10, 2))
         init = np.random.random((3, 1))
@@ -221,6 +235,24 @@ class QRNNTest(keras_parameterized.TestCase):
         h = QRNN(1, 2, zoneout=.7, output_gate=False, return_sequences=True)(data, training=True)
         h = self.evaluate(h)
         self.assertBetween(np.sum(h[:, 1:] == h[:, :-1]), 15, 17)
+
+    def test_go_backward(self):
+        data = np.random.random((3, 10, 2))
+        data[0, 7:] = 0.
+        data[1, 8:] = 0.
+
+        q_fwd = QRNN(1, 2, go_backwards=False)
+        q_fwd(data)
+        q_bwd = QRNN(1, 2, go_backwards=True)
+        q_bwd(data)
+        q_bwd.set_weights(q_fwd.get_weights())
+        m_fwd = layers.Masking()(data)
+        m_bwd = layers.Masking()(data[:, ::-1, :])
+        h_fwd, h_bwd = q_fwd(m_fwd), q_bwd(m_bwd)
+        h_fwd, h_bwd = self.evaluate([h_fwd, h_bwd])
+        self.assertTupleEqual((3, 1), h_fwd.shape)
+        self.assertTupleEqual((3, 1), h_bwd.shape)
+        self.assertListEqual(h_fwd.tolist(), h_bwd.tolist())
 
     def test_model(self):
         model = models.Sequential()
