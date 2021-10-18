@@ -39,7 +39,7 @@ if __name__ == "__main__":
     }
 
     histories = {}
-    for core in [ImdbModel.CORE_QRNN, ImdbModel.CORE_LSTM]:
+    for core in [ImdbModel.CORE_LSTM, ImdbModel.CORE_QRNN]:
         model = ImdbModel(
             vocab_size=vocab_size,
             embed_size=argv.embed_size,
@@ -69,7 +69,8 @@ if __name__ == "__main__":
     colors = cmap(np.linspace(0, 1, len(histories.items())))
 
     for (core, m), color in zip(histories.items(), colors):
-        pyplot.plot(interval, m['loss'], color=color, label='{} ({} sec)'.format(core, m['time']))
+        pyplot.plot(interval, m['loss'], color=color, dashes=[6, 2], label='{} ({} min)'.format(core, m['time']))
+        pyplot.plot(interval, m['val_loss'], color=color, label='{} ({} min)'.format(core, m['time']))
 
     pyplot.title('IMBD')
     pyplot.xlabel('Epoch')
@@ -79,7 +80,8 @@ if __name__ == "__main__":
     pyplot.close()
 
     for (core, m), color in zip(histories.items(), colors):
-        pyplot.plot(interval, m['accuracy'], color=color, label='{} ({} sec)'.format(core, m['time']))
+        pyplot.plot(interval, m['accuracy'], color=color, dashes=[6, 2], label='{} ({} min)'.format(core, m['time']))
+        pyplot.plot(interval, m['val_accuracy'], color=color, label='{} ({} min)'.format(core, m['time']))
 
     pyplot.title('IMBD')
     pyplot.xlabel('Epoch')
