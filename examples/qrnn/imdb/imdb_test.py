@@ -14,14 +14,14 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Sequence Modeling - Character Level Language Model')
     parser.add_argument('--batch_size', type=int, default=24, help='Batch size')
     parser.add_argument('--dropout', type=float, default=0.0, help='Dropout applied to layers')
-    parser.add_argument('--embed_dropout', type=float, default=0.0, help='Dropout applied to the embedded layer')
+    parser.add_argument('--layer_dropout', type=float, default=0.3, help='Dropout applied between layers')
     parser.add_argument('--epochs', type=int, default=15, help='Upper epoch limit')
     parser.add_argument('--lr', type=float, default=0.001, help='Initial learning rate')
     parser.add_argument('--embed_size', type=int, default=300, help='Dimension of character embeddings')
     parser.add_argument('--seed', type=int, default=1111, help='Random seed')
     parser.add_argument('--qrnn_layers', type=int, default=4, help='Number of QRNN layers')
     parser.add_argument('--qrnn_units', type=int, default=256, help='Number of hidden units for QRNN layer')
-    parser.add_argument('--lstm_layers', type=int, default=2, help='Number of LSTM layers')
+    parser.add_argument('--lstm_layers', type=int, default=4, help='Number of LSTM layers')
     parser.add_argument('--lstm_units', type=int, default=256, help='Number of hidden units for LSTM layer')
     argv, _ = parser.parse_known_args()
 
@@ -44,10 +44,10 @@ if __name__ == "__main__":
             vocab_size=vocab_size,
             embed_size=argv.embed_size,
             core=core,
-            layers=layers[core],
+            n_layers=layers[core],
             units=filters[core],
             dropout=argv.dropout,
-            embed_dropout=argv.embed_dropout
+            layer_dropout=argv.layer_dropout
         )
         model.compile(
             run_eagerly=False,
