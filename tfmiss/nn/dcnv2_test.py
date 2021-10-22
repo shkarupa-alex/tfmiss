@@ -102,9 +102,6 @@ class DCNv2Test(tf.test.TestCase, parameterized.TestCase):
         arguments = [input_, offset_, mask_]
         theoretical, _ = tf.test.compute_gradient(_op, [a.astype(dt) for a in arguments])
         _, numerical64 = tf.test.compute_gradient(_op, arguments)
-        print(dev, dt, max_error(theoretical[:1], numerical64[:1]))
-        print(max_error(theoretical[1:-1], numerical64[1:-1]))
-        print(max_error(theoretical[-1:], numerical64[-1:]))
         grad_err = max_error(theoretical, numerical64)
 
         self.assertLess(grad_err, tol)
