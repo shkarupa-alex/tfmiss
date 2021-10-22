@@ -84,7 +84,7 @@ class DCNv2Test(tf.test.TestCase, parameterized.TestCase):
 
     @parameterized.parameters(
         ('/cpu:0', 'float16', 5e-0), ('/cpu:0', 'float32', 5e-4), ('/cpu:0', 'float64', 6e-13),
-        ('/gpu:0', 'float16', 4e-3), ('/gpu:0', 'float32', 2e-6), ('/gpu:0', 'float64', 5e-7)
+        ('/gpu:0', 'float16', 5e-0), ('/gpu:0', 'float32', 5e-4), ('/gpu:0', 'float64', 6e-13)
     )
     def test_grad(self, dev, dt, tol):
         if 'gpu' in dev and not len(tf.config.list_physical_devices('GPU')):
@@ -102,6 +102,9 @@ class DCNv2Test(tf.test.TestCase, parameterized.TestCase):
         arguments = [input_, offset_, mask_]
         theoretical, _ = tf.test.compute_gradient(_op, [a.astype(dt) for a in arguments])
         _, numerical64 = tf.test.compute_gradient(_op, arguments)
+        print(dev, dt, max_error(theoretical[:1], numerical64[:1]))
+        print(max_error(theoretical[1:-1], numerical64[1:-1]))
+        print(max_error(theoretical[-1:], numerical64[-1:]))
         grad_err = max_error(theoretical, numerical64)
 
         self.assertLess(grad_err, tol)
