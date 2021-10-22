@@ -79,6 +79,16 @@ struct ModulatedDeformableColumnBackwardFunctor<CPUDevice, T, PT>
   }
 };
 
+template <typename T>
+struct SetZeroFunctor<CPUDevice, T>
+{
+  void operator()(OpKernelContext *ctx, typename TTypes<T>::Flat output)
+  {
+    const auto &device = ctx->eigen_device<CPUDevice>();
+    output.device(device) = output.constant(T(0));
+  }
+};
+
 template <typename T, typename PT>
 struct CastToFunctor<CPUDevice, T, PT>
 {
@@ -193,7 +203,6 @@ class ModulatedDeformableColumnOp : public OpKernel
     Tensor *output_tensor;
     TensorShape output_shape({batch_size, height_out * width_out, channel_out});
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, output_shape, &output_tensor));
-    output_tensor->flat<T>().setZero();
 
     // Do calculations
     const T *input = input_tensor->flat<T>().data();
@@ -222,6 +231,7 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
   int dilation_h;
   int dilation_w;
   int deformable_group;
+  SetZeroFunctor<Device, PT> zero_functor;
   ModulatedDeformableColumnBackwardFunctor<Device, T, PT> col2im_functor;
 
  public:
@@ -350,9 +360,9 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
 
     if (!std::is_same<T, Eigen::half>::value)  // T == PT == float/double
     {
-      grad_input_tensor->flat<PT>().setZero();
-      grad_offset_tensor->flat<PT>().setZero();
-      grad_mask_tensor->flat<PT>().setZero();
+      zero_functor(ctx, grad_input_tensor->flat<PT>());
+      zero_functor(ctx, grad_offset_tensor->flat<PT>());
+      zero_functor(ctx, grad_mask_tensor->flat<PT>());
 
       PT *grad_input = grad_input_tensor->flat<PT>().data();
       PT *grad_offset = grad_offset_tensor->flat<PT>().data();
@@ -377,9 +387,9 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
       Tensor temp_grad_mask_tensor;
       OP_REQUIRES_OK(ctx, ctx->allocate_temp(DT_FLOAT, mask_tensor->shape(), &temp_grad_mask_tensor));
 
-      temp_grad_input_tensor.flat<PT>().setZero();
-      temp_grad_offset_tensor.flat<PT>().setZero();
-      temp_grad_mask_tensor.flat<PT>().setZero();
+      zero_functor(ctx, temp_grad_input_tensor.flat<PT>());
+      zero_functor(ctx, temp_grad_offset_tensor.flat<PT>());
+      zero_functor(ctx, temp_grad_mask_tensor.flat<PT>());
 
       PT *grad_input = temp_grad_input_tensor.flat<PT>().data();
       PT *grad_offset = temp_grad_offset_tensor.flat<PT>().data();
@@ -477,6 +487,15 @@ TF_CALL_float(DECLARE_SAME);
 TF_CALL_double(DECLARE_SAME);
 #undef DECLARE_SAME
 #undef DECLARE_FLOAT
+#undef DECLARE
+
+#define DECLARE(T)                                                                                      \
+  template <>                                                                                           \
+  void SetZeroFunctor<GPUDevice, T>::operator()(OpKernelContext *ctx, typename TTypes<T>::Flat output); \
+  extern template struct SetZeroFunctor<GPUDevice, T>
+
+TF_CALL_float(DECLARE);
+TF_CALL_double(DECLARE);
 #undef DECLARE
 
 #define DECLARE(T)                                                                                \

@@ -102,6 +102,18 @@ template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::half,
 template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, float, float>;
 template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, double, double>;
 
+template <typename T>
+struct SetZeroFunctor<GPUDevice, T>
+{
+  void operator()(OpKernelContext *ctx, typename TTypes<T>::Flat output)
+  {
+    const auto &device = ctx->eigen_device<GPUDevice>();
+    output.device(device) = output.constant(T(0));
+  }
+};
+template struct SetZeroFunctor<GPUDevice, float>;
+template struct SetZeroFunctor<GPUDevice, double>;
+
 template <typename T, typename PT>
 struct CastToFunctor<GPUDevice, T, PT>
 {

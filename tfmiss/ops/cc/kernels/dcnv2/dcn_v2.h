@@ -425,6 +425,12 @@ struct ModulatedDeformableColumnBackwardFunctor
       PT *grad_offset, PT *grad_mask) const;
 };
 
+template <typename Device, typename T>
+struct SetZeroFunctor
+{
+  void operator()(OpKernelContext *ctx, typename TTypes<T>::Flat output);
+};
+
 template <typename Device, typename T, typename PT>
 struct CastToFunctor
 {
