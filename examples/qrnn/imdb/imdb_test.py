@@ -70,7 +70,7 @@ if __name__ == "__main__":
 
     for (core, m), color in zip(histories.items(), colors):
         pyplot.plot(interval, m['loss'], color=color, dashes=[6, 2], label='{} ({} min)'.format(core, m['time']))
-        pyplot.plot(interval, m['val_loss'], color=color, label='{} ({} min)'.format(core, m['time']))
+        pyplot.plot(interval, m['val_loss'], color=color, label='{} val ({} min)'.format(core, m['time']))
 
     pyplot.title('IMBD')
     pyplot.xlabel('Epoch')
@@ -81,7 +81,7 @@ if __name__ == "__main__":
 
     for (core, m), color in zip(histories.items(), colors):
         pyplot.plot(interval, m['accuracy'], color=color, dashes=[6, 2], label='{} ({} min)'.format(core, m['time']))
-        pyplot.plot(interval, m['val_accuracy'], color=color, label='{} ({} min)'.format(core, m['time']))
+        pyplot.plot(interval, m['val_accuracy'], color=color, label='{} val ({} min)'.format(core, m['time']))
 
     pyplot.title('IMBD')
     pyplot.xlabel('Epoch')

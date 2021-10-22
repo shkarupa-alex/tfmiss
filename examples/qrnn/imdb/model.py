@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 from keras import layers, models
-from tfmiss.keras.layers import QRNN, ToDense
+from tfmiss.keras.layers import QRNN, ToDense, MapFlat
 
 
 class ImdbModel(models.Model):
@@ -13,8 +13,8 @@ class ImdbModel(models.Model):
     def __init__(self, vocab_size, embed_size, core, n_layers, units, dropout, layer_dropout):
         inputs = layers.Input(shape=(None,), ragged=True)
 
-        outputs = layers.Embedding(vocab_size, embed_size)(inputs)
-        outputs = ToDense(pad_value=0, mask=True)(outputs)
+        outputs = MapFlat(layers.Embedding(vocab_size, embed_size))(inputs)
+        outputs = ToDense(pad_value=0., mask=True)(outputs)
 
         for i in range(n_layers):
             not_last = i != n_layers - 1
