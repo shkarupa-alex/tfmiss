@@ -17,7 +17,8 @@ REGISTER_OP("Miss>FoPool")
         {
           shape_inference::ShapeHandle input;
           TF_RETURN_WITH_CONTEXT_IF_ERROR(
-              c->WithRank(c->input(0), 3, &input), "input rank must equals 3, but provided shape is " + c->DebugString(input));
+              c->WithRank(c->input(0), 3, &input),
+              "input rank must equals 3, but provided shape is " + c->DebugString(input));
 
           shape_inference::ShapeHandle forget;
           TF_RETURN_WITH_CONTEXT_IF_ERROR(
@@ -58,7 +59,8 @@ REGISTER_OP("Miss>FoPoolBackward")
         {
           shape_inference::ShapeHandle input;
           TF_RETURN_WITH_CONTEXT_IF_ERROR(
-              c->WithRank(c->input(0), 3, &input), "input rank must equals 3, but provided shape is " + c->DebugString(input));
+              c->WithRank(c->input(0), 3, &input),
+              "input rank must equals 3, but provided shape is " + c->DebugString(input));
 
           shape_inference::ShapeHandle forget;
           TF_RETURN_WITH_CONTEXT_IF_ERROR(
@@ -67,11 +69,13 @@ REGISTER_OP("Miss>FoPoolBackward")
 
           shape_inference::ShapeHandle hidden;
           TF_RETURN_WITH_CONTEXT_IF_ERROR(
-              c->WithRank(c->input(2), 3, &hidden), "hidden rank must equals 3, but provided shape is " + c->DebugString(hidden));
+              c->WithRank(c->input(2), 3, &hidden),
+              "hidden rank must equals 3, but provided shape is " + c->DebugString(hidden));
 
           shape_inference::ShapeHandle grad;
           TF_RETURN_WITH_CONTEXT_IF_ERROR(
-              c->WithRank(c->input(3), 3, &grad), "grad rank must equals 3, but provided shape is " + c->DebugString(grad));
+              c->WithRank(c->input(3), 3, &grad),
+              "grad rank must equals 3, but provided shape is " + c->DebugString(grad));
 
           std::vector<shape_inference::DimensionHandle> init_dims({c->Dim(input, 0), c->Dim(input, 2)});
 
