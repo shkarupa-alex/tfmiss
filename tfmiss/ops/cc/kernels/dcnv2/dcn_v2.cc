@@ -18,7 +18,6 @@ template <typename T>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void atomic_add(T *ptr, const T value)
 {
   *ptr += value;
-  //  __atomic_add_fetch(ptr, value, __ATOMIC_SEQ_CST);
 }
 
 template <typename T, typename PT>
@@ -56,39 +55,39 @@ struct ModulatedDeformableColumnBackwardFunctor<CPUDevice, T, PT>
       const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group, PT *grad_input,
       PT *grad_offset, PT *grad_mask) const
   {
-    const int num_kernels = batch_size * channel_in * height_out * width_out;
-    //    auto thread_pool = ctx->device()->tensorflow_cpu_worker_threads()->workers;
-    //    thread_pool->ParallelFor(
-    //        num_kernels, kernel_h * kernel_w * 75,
-    //        [&](int64 start_index, int64 end_index)
-    //        {
-    //          for (int index = start_index; index < end_index; index++)
-    //          {
-    //            modulated_deformable_col2im_body<T, PT>(
-    //                index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out,
-    //                width_out, kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
-    //                deformable_group, grad_input, grad_offset, grad_mask);
-    //          }
-    //        });
-    for (int index = 0; index < num_kernels; index++)
-    {
-      modulated_deformable_col2im_body<T, PT>(
-          index, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in, height_out, width_out,
-          kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
-          grad_offset, grad_mask);
-    }
+    const int num_kernels = batch_size;
+    const int batch_kernels = channel_in * height_out * width_out;
+
+    auto thread_pool = ctx->device()->tensorflow_cpu_worker_threads()->workers;
+    thread_pool->ParallelFor(
+        num_kernels, batch_kernels * kernel_h * kernel_w * 75,
+        [&](int64 start_index, int64 end_index)
+        {
+          for (int index = start_index; index < end_index; index++)
+          {
+            const int batch_shift = index * batch_kernels;
+
+            for (int chw = 0; chw < batch_kernels; chw++)
+            {
+              modulated_deformable_col2im_body<T, PT>(
+                  batch_shift + chw, input, offset, mask, column, grad, batch_size, height_in, width_in, channel_in,
+                  height_out, width_out, kernel_h, kernel_w, pad_h, pad_w, stride_h, stride_w, dilation_h, dilation_w,
+                  deformable_group, grad_input, grad_offset, grad_mask);
+            }
+          }
+        });
   }
 };
 
 template <typename T, typename PT>
 struct CastToFunctor<CPUDevice, T, PT>
 {
-  void operator()(OpKernelContext *ctx, typename TTypes<T>::Flat output, typename TTypes<PT>::Flat input) {
+  void operator()(OpKernelContext *ctx, typename TTypes<T>::Flat output, typename TTypes<PT>::Flat input)
+  {
     const auto &device = ctx->eigen_device<CPUDevice>();
     output.device(device) = input.template cast<T>();
   }
 };
-
 
 template <typename Device, typename T, typename PT>
 class ModulatedDeformableColumnOp : public OpKernel
@@ -391,21 +390,10 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
           kernel_h, kernel_w, pad_hb, pad_wb, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
           grad_offset, grad_mask);
 
-//      const Device &device = ctx->eigen_device<Device>();
-//      grad_input_tensor->flat<T>().device(device) = temp_grad_input_tensor.flat<PT>().template cast<T>();
-
       CastToFunctor<Device, T, PT> cast_functor;
-
       cast_functor(ctx, grad_input_tensor->flat<T>(), temp_grad_input_tensor.flat<PT>());
       cast_functor(ctx, grad_offset_tensor->flat<T>(), temp_grad_offset_tensor.flat<PT>());
       cast_functor(ctx, grad_mask_tensor->flat<T>(), temp_grad_mask_tensor.flat<PT>());
-
-      //      cast_functor(
-      //          ctx->template eigen_device<Device>(), grad_offset_tensor->template flat<T>(),
-      //          const_cast<const Tensor *>(&temp_grad_offset_tensor)->template flat<PT>());
-      //      cast_functor(
-      //          ctx->template eigen_device<Device>(), grad_mask_tensor->template flat<T>(),
-      //          const_cast<const Tensor *>(&temp_grad_mask_tensor)->template flat<PT>());
     }
   }
 };
@@ -491,17 +479,13 @@ TF_CALL_double(DECLARE_SAME);
 #undef DECLARE_FLOAT
 #undef DECLARE
 
-#define DECLARE(T, PT)                                                                                                \
-  template <>                                                                                                         \
-  void CastToFunctor<GPUDevice, T, PT>::operator()(OpKernelContext *ctx, typename TTypes<T>::Flat output, typename TTypes<PT>::Flat input);                                                          \
-  extern template struct CastToFunctor<GPUDevice, T, PT>
-#define DECLARE_FLOAT(T) DECLARE(T, float)
-#define DECLARE_SAME(T) DECLARE(T, T)
+#define DECLARE(T)                                                                                \
+  template <>                                                                                     \
+  void CastToFunctor<GPUDevice, T, float>::operator()(                                            \
+      OpKernelContext *ctx, typename TTypes<T>::Flat output, typename TTypes<float>::Flat input); \
+  extern template struct CastToFunctor<GPUDevice, T, float>
 
-
-TF_CALL_half(DECLARE_FLOAT);
-TF_CALL_float(DECLARE_SAME);
-TF_CALL_double(DECLARE_SAME);
+TF_CALL_half(DECLARE);
 #undef DECLARE
 
 #define REGISTER(T, PT)                                                                          \

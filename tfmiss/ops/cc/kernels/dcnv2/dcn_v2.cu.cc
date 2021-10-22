@@ -105,15 +105,14 @@ template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, double, doub
 template <typename T, typename PT>
 struct CastToFunctor<GPUDevice, T, PT>
 {
-  void operator()(OpKernelContext *ctx, typename TTypes<T>::Flat output, typename TTypes<PT>::Flat input) {
+  void operator()(OpKernelContext *ctx, typename TTypes<T>::Flat output, typename TTypes<PT>::Flat input)
+  {
     const auto &device = ctx->eigen_device<GPUDevice>();
     output.device(device) = input.template cast<T>();
   }
 };
 
 template struct CastToFunctor<GPUDevice, Eigen::half, float>;
-template struct CastToFunctor<GPUDevice, float, float>;
-template struct CastToFunctor<GPUDevice, double, float>;
 
 }  // namespace miss
 }  // end namespace tensorflow
