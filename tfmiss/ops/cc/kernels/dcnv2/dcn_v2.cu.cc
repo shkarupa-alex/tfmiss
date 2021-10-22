@@ -54,11 +54,9 @@ struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T, PT>
   }
 };
 
-template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, Eigen::half, Eigen::half>;
+template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, Eigen::half, float>;
 template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, float, float>;
 template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, double, double>;
-template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, Eigen::half, float>;
-template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, double, float>;
 
 template <typename T, typename PT>
 __global__ void ModulatedDeformableColumnBackwardGPUKernel(
@@ -100,11 +98,23 @@ struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>
   }
 };
 
-template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::half, Eigen::half>;
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::half, float>;
 template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, float, float>;
 template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, double, double>;
-template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::half, float>;
-template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, double, float>;
+
+template <typename T, typename PT>
+struct CastToFunctor<GPUDevice, T, PT>
+{
+  void operator()(OpKernelContext *ctx, typename TTypes<T>::Flat output, typename TTypes<PT>::Flat input) {
+    const auto &device = ctx->eigen_device<GPUDevice>();
+    output.device(device) = input.template cast<T>();
+  }
+};
+
+template struct CastToFunctor<GPUDevice, Eigen::half, float>;
+template struct CastToFunctor<GPUDevice, float, float>;
+template struct CastToFunctor<GPUDevice, double, float>;
+
 }  // namespace miss
 }  // end namespace tensorflow
 

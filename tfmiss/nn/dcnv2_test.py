@@ -82,6 +82,7 @@ class DCNv2Test(tf.test.TestCase, parameterized.TestCase):
                 self.assertAllClose(expected_doffset, result_grad[1], rtol=gtol, atol=gtol)
                 self.assertAllClose(expected_dmask, result_grad[2], rtol=gtol, atol=gtol)
 
+    # TODO: enable
     # @parameterized.parameters(
     #     ('/cpu:0', 'float16', 5e-0), ('/cpu:0', 'float32', 5e-4), ('/cpu:0', 'float64', 6e-13),
     #     ('/gpu:0', 'float16', 4e-3), ('/gpu:0', 'float32', 2e-6), ('/gpu:0', 'float64', 5e-7)
