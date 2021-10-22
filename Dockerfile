@@ -17,6 +17,7 @@ RUN mv /usr/bin/lsb_release2 /usr/bin/lsb_release
 
 ARG PY_VERSION
 RUN ln -sf /usr/local/bin/python$PY_VERSION /usr/bin/python
+RUN ln -sf /usr/local/bin/python$PY_VERSION /usr/bin/python3
 
 ARG TF_VERSION
 RUN python -m pip install --default-timeout=1000 tensorflow==$TF_VERSION
