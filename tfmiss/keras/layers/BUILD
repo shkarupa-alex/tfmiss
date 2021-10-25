@@ -5,6 +5,7 @@ py_library(
     srcs = [
         "__init__.py",
         "attention.py",
+        "dcnv2.py",
         "dropout.py",
         "embedding.py",
         "preprocessing.py",
@@ -27,6 +28,15 @@ py_library(
 py_test(
     name = "attention_test",
     srcs = ["attention_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [
+        ":layers"
+    ],
+)
+
+py_test(
+    name = "dcnv2_test",
+    srcs = ["dcnv2_test.py"],
     srcs_version = "PY2AND3",
     deps = [
         ":layers"

@@ -1,0 +1,120 @@
+import numpy as np
+import tensorflow as tf
+from keras import layers
+from keras.initializers.initializers_v2 import RandomUniform
+from keras.utils.generic_utils import register_keras_serializable
+from keras.utils.conv_utils import normalize_tuple
+from keras.utils.tf_utils import shape_type_conversion
+from tfmiss.nn import modulated_deformable_column
+
+
+@register_keras_serializable(package='SegMe')
+class DCNv2(layers.Layer):
+    def __init__(self, filters, kernel_size, strides=(1, 1), padding='valid', dilation_rate=(1, 1), deformable_groups=1,
+                 use_bias=True, **kwargs):
+        super().__init__(**kwargs)
+        self.input_spec = layers.InputSpec(ndim=4)
+
+        self.filters = filters
+        self.kernel_size = normalize_tuple(kernel_size, 2, 'kernel_size')
+        self.strides = normalize_tuple(strides, 2, 'strides')
+        self.padding = padding
+        self.dilation_rate = normalize_tuple(dilation_rate, 2, 'dilation_rate')
+        self.deformable_groups = deformable_groups
+        self.use_bias = use_bias
+
+        if 'valid' == str(self.padding).lower():
+            self._padding = (0, 0, 0, 0)
+        elif 'same' == str(self.padding).lower():
+            pad_h = self.dilation_rate[0] * (self.kernel_size[0] - 1)
+            pad_w = self.dilation_rate[1] * (self.kernel_size[1] - 1)
+            self._padding = (pad_h - pad_h // 2, pad_h // 2, pad_w - pad_w // 2, pad_w // 2)
+        else:
+            raise ValueError('The `padding` argument must be one of "valid" or "same". Received: {}'.format(padding))
+
+    @shape_type_conversion
+    def build(self, input_shape):
+        channels = input_shape[-1]
+        if channels is None:
+            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+        if channels < self.deformable_groups:
+            raise ValueError('Number of deformable groups should be less or equals to channel dimension size')
+        self.input_spec = layers.InputSpec(ndim=4, axes={-1: channels})
+
+        kernel_shape = (self.kernel_size[0] * self.kernel_size[1] * channels, self.filters)
+        kernel_stdv = 1.0 / np.sqrt(np.prod((channels,) + self.kernel_size))
+        kernel_init = RandomUniform(-kernel_stdv, kernel_stdv)
+        self.kernel = self.add_weight(
+            name='kernel',
+            shape=kernel_shape,
+            initializer=kernel_init,
+            trainable=True,
+            dtype=self.dtype)
+        if self.use_bias:
+            self.bias = self.add_weight(
+                name='bias',
+                shape=(self.filters,),
+                initializer='zeros',
+                trainable=True,
+                dtype=self.dtype)
+
+        self.offset_size = self.deformable_groups * 2 * self.kernel_size[0] * self.kernel_size[1]
+        self.offset_mask = layers.Conv2D(
+            self.offset_size * 3 // 2,
+            kernel_size=self.kernel_size,
+            strides=self.strides,
+            padding=self.padding,
+            dilation_rate=self.dilation_rate,
+            kernel_initializer='zeros')
+
+        self.sigmoid = layers.Activation('sigmoid')
+
+        super().build(input_shape)
+
+    def call(self, inputs, **kwargs):
+        offset_mask = self.offset_mask(inputs)
+
+        offset, mask = offset_mask[..., : self.offset_size], offset_mask[..., self.offset_size:]
+        mask = self.sigmoid(mask) * 2.  # (0.; 2.) with mean == 1.
+
+        columns = modulated_deformable_column(
+            inputs, offset, mask,
+            kernel_size=self.kernel_size,
+            strides=self.strides,
+            padding=self._padding,
+            dilation_rate=self.dilation_rate,
+            deformable_groups=self.deformable_groups)
+
+        outputs = tf.matmul(columns, self.kernel)
+        out_shape = tf.concat([tf.shape(offset_mask)[:-1], [self.filters]], axis=-1)
+
+        outputs = tf.reshape(outputs, out_shape)
+        if self.use_bias:
+            outputs = tf.nn.bias_add(outputs, self.bias)
+
+        # if not tf.executing_eagerly():
+        #     # Infer the static output shape:
+        #     out_shape = self.compute_output_shape(input_shape)
+        #     outputs.set_shape(out_shape)
+
+        return outputs
+
+    @shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        offset_mask_shape = self.offset_mask.compute_output_shape(input_shape)
+        
+        return offset_mask_shape[:-1] + (self.filters,)
+
+    def get_config(self):
+        config = super().get_config()
+        config.update({
+            'filters': self.filters,
+            'kernel_size': self.kernel_size,
+            'strides': self.strides,
+            'padding': self.padding,
+            'dilation_rate': self.dilation_rate,
+            'deformable_groups': self.deformable_groups,
+            'use_bias': self.use_bias
+        })
+
+        return config

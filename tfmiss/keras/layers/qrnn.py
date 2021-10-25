@@ -39,7 +39,7 @@ class QRNN(layers.Layer):
                  return_sequences=False,
                  return_state=False,
                  go_backwards=False,
-                 time_major=False,
+                 zero_output_for_mask=False,
                  **kwargs):
         super(QRNN, self).__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=3)
@@ -63,7 +63,8 @@ class QRNN(layers.Layer):
         self.return_sequences = return_sequences
         self.return_state = return_state
         self.go_backwards = go_backwards
-        self.time_major = time_major
+
+        self.zero_output_for_mask = zero_output_for_mask
 
     @shape_type_conversion
     def build(self, input_shape):
@@ -92,73 +93,92 @@ class QRNN(layers.Layer):
         if self.zoneout > 0.:
             self.drop = layers.Dropout(self.zoneout)
 
+        self.initial_state = self.add_weight(
+            name='initial_state',
+            shape=(1, self.units),
+            initializer='zeros',
+            trainable=True,
+            dtype=self.dtype)
+
         self.act = layers.Activation(activation=self.activation)
         self.gate_act = layers.Activation(activation=self.gate_activation)
 
         super(QRNN, self).build(input_shape)
 
-    def call(self, inputs, training=None, initial_state=None):
+    def call(self, inputs, training=None, mask=None, initial_state=None):
+        shape = tf.shape(inputs)
+
+        if self.go_backwards:
+            inputs = tf.reverse(inputs, [1])
+
         if training is None:
             training = backend.learning_phase()
 
-        reverse_sim = [0] if self.time_major else [1]
-        if self.go_backwards:
-            inputs = tf.reverse(inputs, reverse_sim)
+        if mask is not None:
+            mask = mask[..., None]
+            if self.go_backwards:
+                mask = tf.reverse(mask, [1])
 
-        inputs_batch_major = inputs
-        if self.time_major:
-            # go to batch_major for convolution if needed
-            inputs_batch_major = tf.transpose(inputs, (1, 0, 2), name='to_batch_major')
+        if initial_state is None:
+            initial_state = tf.repeat(self.initial_state, shape[0], axis=0)
 
-        gate_values = self.conv1d(inputs_batch_major)
-        if self.time_major:
-            # return to time_major if needed
-            gate_values = tf.transpose(gate_values, (1, 0, 2), name='to_time_major')
+        gates = self.conv1d(inputs)
+        gates = tf.split(gates, 3 if self.output_gate else 2, axis=-1)
 
-        gate_values = tf.split(gate_values, 3 if self.output_gate else 2, axis=-1)
         if self.output_gate:
-            z, f, o = gate_values
+            sequence, forget, output = gates
+            output = self.gate_act(output)
         else:
-            z, f = gate_values
+            sequence, forget = gates
+            output = None
 
-        z = self.act(z)
-        f = self.gate_act(f)
+        sequence = self.act(sequence)
+        forget = self.gate_act(forget)
 
         if self.zoneout > 0.:
-            f = smart_cond(
+            forget = smart_cond(
                 training,
-                # multiply by (1. - self.zoneout) due to dropout scales preserved items
-                lambda: self.drop(f) * (1. - self.zoneout),
-                lambda: f * (1. - self.zoneout)
+                # multiply by (1 - .zoneout) due to dropout scales preserved items
+                lambda: self.drop(forget) * (1. - self.zoneout),
+                lambda: forget  # TODO: try f * (1 - self.zoneout)
             )
 
-        c = fo_pool(z, f, initial_state=initial_state, time_major=self.time_major)
-        h = self.gate_act(o) * c if self.output_gate else c
+        if mask is not None:
+            forget = tf.where(mask, forget, 0.)
 
-        if not self.return_sequences:
-            h = h[:, -1, :] if not self.time_major else h[-1, :, :]
-        elif self.go_backwards:
-            h = tf.reverse(h, reverse_sim)
+        recurrent = fo_pool(sequence, forget, initial_state=initial_state)
+        hidden = recurrent if not self.output_gate else recurrent * output
+
+        if self.return_sequences:
+            if mask is not None and self.zero_output_for_mask:
+                hidden = tf.where(mask, hidden, 0.)
+
+            if self.go_backwards:
+                hidden = tf.reverse(hidden, [1])
+        else:
+            if mask is None or not self.output_gate:
+                hidden = hidden[:, -1, :]
+            else:
+                last_idx = shape[1] - 1 - tf.argmax(tf.reverse(mask, [1]), axis=1, output_type='int32')
+                hidden = tf.gather(hidden, last_idx[..., 0], batch_dims=1)
 
         if self.return_state:
-            last_state = c[:, -1, :] if not self.time_major else c[-1, :, :]
+            return hidden, recurrent[:, -1, :]
 
-            return h, last_state
-
-        return h
+        return hidden
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        h_shape = input_shape[:-1] + (self.units,)
-        c_shape = (h_shape[0], h_shape[2]) if not self.time_major else (h_shape[1], h_shape[2])
+        hidden_shape = input_shape[:-1] + (self.units,)
+        state_shape = (hidden_shape[0], hidden_shape[2])
 
         if not self.return_sequences:
-            h_shape = c_shape
+            hidden_shape = state_shape
 
         if self.return_state:
-            return h_shape, c_shape
-        else:
-            return h_shape
+            return hidden_shape, state_shape
+
+        return hidden_shape
 
     def compute_mask(self, inputs, mask=None):
         if not self.return_sequences:
@@ -185,7 +205,7 @@ class QRNN(layers.Layer):
             'return_sequences': self.return_sequences,
             'return_state': self.return_state,
             'go_backwards': self.go_backwards,
-            'time_major': self.time_major,
+            'zero_output_for_mask': self.zero_output_for_mask
         })
 
         return config

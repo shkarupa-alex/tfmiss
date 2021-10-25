@@ -1,2 +1,2 @@
 include README.md LICENSE
-recursive-include tfmiss/ *.so
+recursive-include tfmiss *.so

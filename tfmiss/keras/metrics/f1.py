@@ -44,9 +44,9 @@ class F1Binary(Metric):
             precision + recall
         )
 
-    def reset_states(self):
-        self.precision.reset_states()
-        self.recall.reset_states()
+    def reset_state(self):
+        self.precision.reset_state()
+        self.recall.reset_state()
 
     def get_config(self):
         config = super(F1Binary, self).get_config()
