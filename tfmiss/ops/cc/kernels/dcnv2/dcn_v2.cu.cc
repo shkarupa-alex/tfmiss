@@ -111,6 +111,7 @@ struct SetZeroFunctor<GPUDevice, T>
     output.device(device) = output.constant(T(0));
   }
 };
+template struct SetZeroFunctor<GPUDevice, Eigen::half>;
 template struct SetZeroFunctor<GPUDevice, float>;
 template struct SetZeroFunctor<GPUDevice, double>;
 

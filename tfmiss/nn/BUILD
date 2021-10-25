@@ -17,6 +17,7 @@ py_library(
 
 py_test(
     name = "dcnv2_test",
+    size = "large",
     srcs = ["dcnv2_test.py"],
     srcs_version = "PY2AND3",
     deps = [":nn"],

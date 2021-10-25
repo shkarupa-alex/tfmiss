@@ -1,9 +1,9 @@
-import math
+import numpy as np
 import tensorflow as tf
 from keras import layers
 from keras.initializers.initializers_v2 import RandomUniform
 from keras.utils.generic_utils import register_keras_serializable
-from keras.utils.conv_utils import normalize_tuple, conv_output_length
+from keras.utils.conv_utils import normalize_tuple
 from keras.utils.tf_utils import shape_type_conversion
 from tfmiss.nn import modulated_deformable_column
 
@@ -26,8 +26,6 @@ class DCNv2(layers.Layer):
         if 'valid' == str(self.padding).lower():
             self._padding = (0, 0, 0, 0)
         elif 'same' == str(self.padding).lower():
-            # kh, kw = self.kernel_size # TODO: check small order
-            # self._padding = (kh // 2 + kh % 2 - 1, kh // 2, kw // 2 + kw % 2 - 1, kw // 2)
             pad_h = self.dilation_rate[0] * (self.kernel_size[0] - 1)
             pad_w = self.dilation_rate[1] * (self.kernel_size[1] - 1)
             self._padding = (pad_h - pad_h // 2, pad_h // 2, pad_w - pad_w // 2, pad_w // 2)
@@ -44,7 +42,7 @@ class DCNv2(layers.Layer):
         self.input_spec = layers.InputSpec(ndim=4, axes={-1: channels})
 
         kernel_shape = (self.kernel_size[0] * self.kernel_size[1] * channels, self.filters)
-        kernel_stdv = 1.0 / math.sqrt(math.prod((channels,) + self.kernel_size))
+        kernel_stdv = 1.0 / np.sqrt(np.prod((channels,) + self.kernel_size))
         kernel_init = RandomUniform(-kernel_stdv, kernel_stdv)
         self.kernel = self.add_weight(
             name='kernel',

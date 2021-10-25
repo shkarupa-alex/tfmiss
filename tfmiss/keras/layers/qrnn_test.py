@@ -5,6 +5,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from keras import layers, models, keras_parameterized, testing_utils
+from keras.mixed_precision import policy as mixed_precision
 from tensorflow.python.util import object_identity
 from tensorflow.python.training.tracking import util as trackable_util
 from tfmiss.keras.layers.qrnn import QRNN
@@ -13,6 +14,14 @@ from tfmiss.keras.testing_utils import layer_multi_io_test
 
 @keras_parameterized.run_all_keras_modes
 class QRNNTest(keras_parameterized.TestCase):
+    def setUp(self):
+        super(QRNNTest, self).setUp()
+        self.default_policy = mixed_precision.global_policy()
+
+    def tearDown(self):
+        super(QRNNTest, self).tearDown()
+        mixed_precision.set_policy(self.default_policy)
+
     def test_layer(self):
         testing_utils.layer_test(
             QRNN,
@@ -107,6 +116,18 @@ class QRNNTest(keras_parameterized.TestCase):
             input_dtype='float32',
             expected_output_dtype='float32',
             expected_output_shape=(None, 5, 8)
+        )
+
+    def test_layer_fp16(self):
+        mixed_precision.set_policy('mixed_float16')
+        testing_utils.layer_test(
+            QRNN,
+            kwargs={'units': 8, 'window': 2, 'zoneout': 0., 'output_gate': True, 'zero_output_for_mask': True,
+                    'return_sequences': False, 'return_state': False, 'go_backwards': False},
+            input_shape=(10, 5, 3),
+            input_dtype='float16',
+            expected_output_dtype='float16',
+            expected_output_shape=(None, 8)
         )
 
     def test_layer_state(self):

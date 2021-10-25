@@ -116,6 +116,7 @@ class ModulatedDeformableColumnOp : public OpKernel
   int dilation_h;
   int dilation_w;
   int deformable_group;
+  SetZeroFunctor<Device, T> zero_functor;
   ModulatedDeformableColumnForwardFunctor<Device, T, PT> im2col_functor;
 
  public:
@@ -209,6 +210,8 @@ class ModulatedDeformableColumnOp : public OpKernel
     const T *offset = offset_tensor->flat<T>().data();
     const T *mask = mask_tensor->flat<T>().data();
     T *output = output_tensor->flat<T>().data();
+
+    zero_functor(ctx, output_tensor->flat<T>());
 
     im2col_functor(
         ctx, input, offset, mask, batch_size, height_in, width_in, channel_in, height_out, width_out, kernel_h,
@@ -494,6 +497,7 @@ TF_CALL_double(DECLARE_SAME);
   void SetZeroFunctor<GPUDevice, T>::operator()(OpKernelContext *ctx, typename TTypes<T>::Flat output); \
   extern template struct SetZeroFunctor<GPUDevice, T>
 
+TF_CALL_half(DECLARE);
 TF_CALL_float(DECLARE);
 TF_CALL_double(DECLARE);
 #undef DECLARE
