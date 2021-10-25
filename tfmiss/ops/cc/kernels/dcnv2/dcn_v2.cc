@@ -60,7 +60,7 @@ struct ModulatedDeformableColumnBackwardFunctor<CPUDevice, T, PT>
 
     auto thread_pool = ctx->device()->tensorflow_cpu_worker_threads()->workers;
     thread_pool->ParallelFor(
-        num_kernels, batch_kernels * kernel_h * kernel_w * 75,
+        num_kernels, batch_kernels * kernel_h * kernel_w * 25,
         [&](int64 start_index, int64 end_index)
         {
           for (int index = start_index; index < end_index; index++)

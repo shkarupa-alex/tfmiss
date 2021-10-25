@@ -6,6 +6,7 @@ import tensorflow as tf
 from keras.mixed_precision import policy as mixed_precision
 from keras import keras_parameterized, testing_utils
 from tfmiss.keras.layers.dcnv2 import DCNv2
+from tfmiss.keras.testing_utils import layer_multi_io_test
 
 
 @keras_parameterized.run_all_keras_modes
@@ -81,6 +82,18 @@ class DCNv2Test(keras_parameterized.TestCase):
             input_dtype='float16',
             expected_output_dtype='float16',
             expected_output_shape=[None, 3, 4, 4]
+        )
+
+    def test_custom_alignment(self):
+        layer_multi_io_test(
+            DCNv2,
+            kwargs={
+                'filters': 4, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'dilation_rate': 1,
+                'deformable_groups': 2, 'use_bias': True, 'custom_alignment': True},
+            input_shapes=[(2, 3, 4, 3), (2, 3, 4, 3)],
+            input_dtypes=['float32'] * 2,
+            expected_output_dtypes=['float32'],
+            expected_output_shapes=[(None, 3, 4, 4)]
         )
 
 
