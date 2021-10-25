@@ -11,9 +11,15 @@ from tfmiss.nn import modulated_deformable_column
 @register_keras_serializable(package='SegMe')
 class DCNv2(layers.Layer):
     def __init__(self, filters, kernel_size, strides=(1, 1), padding='valid', dilation_rate=(1, 1), deformable_groups=1,
-                 use_bias=True, **kwargs):
+                 use_bias=True, custom_alignment=False, **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=4)
+
+        self.input_spec = layers.InputSpec(ndim=4)  # inputs
+        if custom_alignment:
+            self.input_spec = [
+                layers.InputSpec(ndim=4),  # inputs
+                layers.InputSpec(ndim=4)  # alignments
+            ]
 
         self.filters = filters
         self.kernel_size = normalize_tuple(kernel_size, 2, 'kernel_size')
@@ -22,6 +28,7 @@ class DCNv2(layers.Layer):
         self.dilation_rate = normalize_tuple(dilation_rate, 2, 'dilation_rate')
         self.deformable_groups = deformable_groups
         self.use_bias = use_bias
+        self.custom_alignment = custom_alignment
 
         if 'valid' == str(self.padding).lower():
             self._padding = (0, 0, 0, 0)
@@ -35,11 +42,13 @@ class DCNv2(layers.Layer):
     @shape_type_conversion
     def build(self, input_shape):
         channels = input_shape[-1]
+        if self.custom_alignment:
+            channels = input_shape[1][-1]
+
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
         if channels < self.deformable_groups:
             raise ValueError('Number of deformable groups should be less or equals to channel dimension size')
-        self.input_spec = layers.InputSpec(ndim=4, axes={-1: channels})
 
         kernel_shape = (self.kernel_size[0] * self.kernel_size[1] * channels, self.filters)
         kernel_stdv = 1.0 / np.sqrt(np.prod((channels,) + self.kernel_size))
@@ -72,7 +81,11 @@ class DCNv2(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        offset_mask = self.offset_mask(inputs)
+        alignments = inputs
+        if self.custom_alignment:
+            inputs, alignments = inputs
+
+        offset_mask = self.offset_mask(alignments)
 
         offset, mask = offset_mask[..., : self.offset_size], offset_mask[..., self.offset_size:]
         mask = self.sigmoid(mask) * 2.  # (0.; 2.) with mean == 1.
@@ -92,17 +105,25 @@ class DCNv2(layers.Layer):
         if self.use_bias:
             outputs = tf.nn.bias_add(outputs, self.bias)
 
-        # if not tf.executing_eagerly():
-        #     # Infer the static output shape:
-        #     out_shape = self.compute_output_shape(input_shape)
-        #     outputs.set_shape(out_shape)
+        if not tf.executing_eagerly():
+            # Infer the static output shape
+            if self.custom_alignment:
+                source_shape = [inputs.shape, alignments.shape]
+            else:
+                source_shape = inputs.shape
+            out_shape = self.compute_output_shape(source_shape)
+            outputs.set_shape(out_shape)
 
         return outputs
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        offset_mask_shape = self.offset_mask.compute_output_shape(input_shape)
-        
+        source_shape = input_shape
+        if self.custom_alignment:
+            source_shape = input_shape[1]
+
+        offset_mask_shape = self.offset_mask.compute_output_shape(source_shape)
+
         return offset_mask_shape[:-1] + (self.filters,)
 
     def get_config(self):
@@ -114,7 +135,8 @@ class DCNv2(layers.Layer):
             'padding': self.padding,
             'dilation_rate': self.dilation_rate,
             'deformable_groups': self.deformable_groups,
-            'use_bias': self.use_bias
+            'use_bias': self.use_bias,
+            'custom_alignment': self.custom_alignment
         })
 
         return config

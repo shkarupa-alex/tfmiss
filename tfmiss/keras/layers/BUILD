@@ -39,6 +39,7 @@ py_test(
     srcs = ["dcnv2_test.py"],
     srcs_version = "PY2AND3",
     deps = [
+        "//tfmiss/keras:testing_utils",
         ":layers"
     ],
 )
