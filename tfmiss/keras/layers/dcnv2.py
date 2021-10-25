@@ -43,7 +43,7 @@ class DCNv2(layers.Layer):
     def build(self, input_shape):
         channels = input_shape[-1]
         if self.custom_alignment:
-            channels = input_shape[1][-1]
+            channels = input_shape[0][-1]
 
         if channels is None:
             raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
