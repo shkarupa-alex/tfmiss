@@ -224,7 +224,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_im2col_body(
   const int h = index / channel_in / width_out % height_in;
   const int w = index / channel_in % width_out;
   const int c = index % channel_in;
-  const int g = c % deformable_group;
+  const int g = c * deformable_group / channel_in;
 
   const int h_in = h * stride_h - pad_h;
   const int w_in = w * stride_w - pad_w;
@@ -293,7 +293,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void modulated_deformable_col2im_body(
   const int h = index / channel_in / width_out % height_in;
   const int w = index / channel_in % width_out;
   const int c = index % channel_in;
-  const int g = c % deformable_group;
+  const int g = c * deformable_group / channel_in;
 
   const int h_in = h * stride_h - pad_h;
   const int w_in = w * stride_w - pad_w;
