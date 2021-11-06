@@ -33,7 +33,7 @@ def modulated_deformable_column(
 
         kernel_size = normalize_tuple(kernel_size, 2, 'kernel_size')
         strides = normalize_tuple(strides, 2, 'strides')
-        padding = normalize_tuple(padding, 4, 'padding')
+        padding = normalize_tuple(padding, 4, 'padding', allow_zero=True)
         dilation_rate = normalize_tuple(dilation_rate, 2, 'dilation_rate')
 
         outputs = tfmiss_ops.miss_modulated_deformable_column(

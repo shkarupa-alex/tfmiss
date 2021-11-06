@@ -20,7 +20,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(AdaptiveSoftmaxTest, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         layer_multi_io_test(
@@ -58,7 +58,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
             expected_output_shapes=[(None, 2, 10, 20)]
         )
 
-        mixed_precision.set_policy(self.mf16_policy)
+        mixed_precision.set_global_policy(self.mf16_policy)
         layer_multi_io_test(
             AdaptiveSoftmax,
             kwargs={
@@ -70,7 +70,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
             expected_output_dtypes=['float32'],
             expected_output_shapes=[(None, 20)]
         )
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_actual_shape_2d(self):
         layer = AdaptiveSoftmax(units=20, cutoff=[3])
@@ -245,7 +245,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(NoiseContrastiveEstimationTest, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         layer_multi_io_test(
@@ -279,7 +279,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
             expected_output_dtypes=['float32']
         )
 
-        mixed_precision.set_policy(self.mf16_policy)
+        mixed_precision.set_global_policy(self.mf16_policy)
         layer_multi_io_test(
             NoiseContrastiveEstimation,
             kwargs={
@@ -290,7 +290,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
             input_dtypes=['float16', 'int32'],
             expected_output_dtypes=['float32']
         )
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_actual_shape_2d(self):
         layer = NoiseContrastiveEstimation(units=20, negatives=5)
@@ -403,7 +403,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(SampledSofmaxTest, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         layer_multi_io_test(
@@ -437,7 +437,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
             expected_output_dtypes=['float32']
         )
 
-        mixed_precision.set_policy(self.mf16_policy)
+        mixed_precision.set_global_policy(self.mf16_policy)
         layer_multi_io_test(
             SampledSofmax,
             kwargs={
@@ -448,7 +448,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
             input_dtypes=['float16', 'int32'],
             expected_output_dtypes=['float32']
         )
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_actual_shape_2d(self):
         layer = SampledSofmax(units=20, negatives=5)
