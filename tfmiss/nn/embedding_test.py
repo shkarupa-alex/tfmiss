@@ -2,6 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
 from tfmiss.nn.embedding import adaptive_embedding_lookup
@@ -130,12 +131,13 @@ class AdaptiveEmbeddingLookupTest(tf.test.TestCase):
         ids = tf.ragged.constant([[0, 8], [3]])
 
         transforms = [lambda embed: _transform_embedding(4, embed)] * len(params)
-        embeddings = adaptive_embedding_lookup(params, ids, transforms)
-        expected = [
+        embeddings = adaptive_embedding_lookup(params, ids, transforms).to_tensor()
+        expected = np.array([
             [[1.0, 1.0, 1.0, 1.0],
              [3.1, 3.1, 0.0, 0.0]],
-            [[1.3, 1.3, 1.3, 1.3]]
-        ]
+            [[1.3, 1.3, 1.3, 1.3],
+             [0.0, 0.0, 0.0, 0.0]]
+        ])
         self.assertAllClose(self.evaluate(embeddings), expected)
 
 

@@ -190,7 +190,6 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
 
     def test_ragged_input(self):
         layer = AdaptiveSoftmax(units=16, cutoff=[1], factor=2)
-        # TODO: find why this doesn't work with logits channels == 1
         logits_data = tf.ragged.constant([
             [[1., 1.], [2., 2.], [2., 2.]],
             [[0., 0.]],
