@@ -357,7 +357,8 @@ class SpacesAfterTest(tf.test.TestCase):
         tokens, spaces = self.evaluate([tokens.to_tensor(''), spaces.to_tensor('')])
 
         self.assertAllEqual([[b'W', b'W']] * 34, tokens.tolist())
-        self.assertAllEqual([[s, '{} {} '.format(s, s)] for s in sure_spaces], spaces.tolist())
+        self.assertAllEqual([[s.encode('utf-8'), '{} {} '.format(s, s).encode('utf-8')]
+                             for s in sure_spaces], spaces.tolist())
 
 
 if __name__ == "__main__":

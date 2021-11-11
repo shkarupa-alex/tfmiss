@@ -18,7 +18,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(AdaptiveEmbeddingTest, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         testing_utils.layer_test(
@@ -98,7 +98,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             expected_output_shape=(None, 3, 7, 128)
         )
 
-        mixed_precision.set_policy(self.mf16_policy)
+        mixed_precision.set_global_policy(self.mf16_policy)
         testing_utils.layer_test(
             AdaptiveEmbedding,
             kwargs={
@@ -111,7 +111,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float16',
             expected_output_shape=(None, 3, 128)
         )
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_embedding_correctness(self):
         layer = AdaptiveEmbedding(cutoff=[1], output_dim=16, input_dim=2, factor=2)

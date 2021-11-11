@@ -60,7 +60,7 @@ class WordShape(layers.Layer):
 
             self.cat_lookup = layers.StringLookup(
                 num_oov_indices=self.oov_indices, oov_token='Cn', vocabulary=self.ccat_vocab)
-            if self.cat_lookup.vocab_size() != len(self.ccat_vocab) + self.oov_indices:
+            if self.cat_lookup.vocabulary_size() != len(self.ccat_vocab) + self.oov_indices:
                 raise ValueError('Wrong vocabulary size')
 
         super(WordShape, self).build(input_shape)

@@ -63,6 +63,11 @@ class WithRagged(layers.Wrapper):
 
 @register_keras_serializable(package='Miss')
 class MapFlat(layers.Wrapper):
+    """ Calls layer on the flat values of ragged tensor.
+
+    Arguments:
+      layer: The `Layer` instance to be wrapped.
+    """
     def __init__(self, layer, **kwargs):
         super().__init__(layer, **kwargs)
         self._supports_ragged_inputs = True

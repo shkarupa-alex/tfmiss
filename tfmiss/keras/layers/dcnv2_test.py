@@ -17,7 +17,7 @@ class DCNv2Test(keras_parameterized.TestCase):
 
     def tearDown(self):
         super(DCNv2Test, self).tearDown()
-        mixed_precision.set_policy(self.default_policy)
+        mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
         testing_utils.layer_test(
@@ -72,7 +72,7 @@ class DCNv2Test(keras_parameterized.TestCase):
         )
 
     def test_layer_fp16(self):
-        mixed_precision.set_policy('mixed_float16')
+        mixed_precision.set_global_policy('mixed_float16')
         testing_utils.layer_test(
             DCNv2,
             kwargs={

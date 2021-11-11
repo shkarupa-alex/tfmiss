@@ -10,10 +10,10 @@ py_library(
         "embedding.py",
         "preprocessing.py",
         "qrnn.py",
+        "reduction.py",
         "scale.py",
         "softmax.py",
         "tcn.py",
-        "temp.py",
         "todense.py",
         "wordvec.py",
         "wrappers.py",
@@ -82,6 +82,13 @@ py_test(
 )
 
 py_test(
+    name = "reduction_test",
+    srcs = ["reduction_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [":layers"],
+)
+
+py_test(
     name = "scale_test",
     srcs = ["scale_test.py"],
     srcs_version = "PY2AND3",
@@ -103,13 +110,6 @@ py_test(
 py_test(
     name = "tcn_test",
     srcs = ["tcn_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [":layers"],
-)
-
-py_test(
-    name = "temp_test",
-    srcs = ["temp_test.py"],
     srcs_version = "PY2AND3",
     deps = [":layers"],
 )
