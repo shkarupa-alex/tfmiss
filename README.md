@@ -28,7 +28,7 @@ bazel-bin/build_pip_pkg wheels
 ### Build release with Linux docker container
 ```bash
 # Requires about 4Gb of RAM allocated to Docker
-DOCKER_BUILDKIT=1 docker build -t miss --output type=local,dest=wheels --build-arg TF_VERSION=2.6.0 --build-arg PY_VERSION=3.8 ./
+DOCKER_BUILDKIT=1 docker build -t miss --output type=local,dest=wheels --build-arg PY_VERSION=3.8 ./
 ```
 
 ### Install and test PIP package
