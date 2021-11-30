@@ -335,9 +335,11 @@ class CharCnnEmbedding(WordEmbedding):
             reserved_words=_reserved_words, **kwargs)
         self.max_len = _max_len
 
-        if not filters or not isinstance(filters, list) or not all(map(lambda x: isinstance(x, int), filters)):
+        if not filters or not isinstance(filters, (list, tuple)) or \
+                not all(map(lambda x: isinstance(x, int), filters)):
             raise ValueError('Expected "filters" argument to be a list of integers')
-        if not kernels or not isinstance(kernels, list) or not all(map(lambda x: isinstance(x, int), kernels)):
+        if not kernels or not isinstance(kernels, (list, tuple)) or \
+                not all(map(lambda x: isinstance(x, int), kernels)):
             raise ValueError('Expected "kernels" argument to be a list of integers')
         if len(filters) != len(kernels):
             raise ValueError('Sizes of "filters" and "kernels" should be equal')

@@ -35,43 +35,43 @@ class WarmHoldCoolAnnihilateScheduler(LearningRateSchedule):
         self.annih_factor = annih_factor
         self.name = name
 
+    @tf.function
     def __call__(self, step):
-        with tf.name_scope(self.name or 'WarmHoldCoolAnnihilate'):
-            step = tf.cast(tf.convert_to_tensor(step), 'float32')
-            min_lr = tf.convert_to_tensor(self.min_lr, 'float32')
-            max_lr = tf.convert_to_tensor(self.max_lr, 'float32')
-            warm_stop = float(self.warm_steps)
-            hold_stop = self.hold_steps + warm_stop
-            cool_stop = self.cool_steps + hold_stop
-            annih_stop = self.annih_steps + cool_stop
+        step = tf.cast(tf.convert_to_tensor(step), 'float32')
+        min_lr = tf.convert_to_tensor(self.min_lr, 'float32')
+        max_lr = tf.convert_to_tensor(self.max_lr, 'float32')
+        warm_stop = float(self.warm_steps)
+        hold_stop = self.hold_steps + warm_stop
+        cool_stop = self.cool_steps + hold_stop
+        annih_stop = self.annih_steps + cool_stop
 
-            pred_fn_pairs = [
-                # Warm up from min_lr to max_lr
-                (step <= warm_stop,
-                 lambda: min_lr + (max_lr - min_lr) * step / warm_stop),
+        pred_fn_pairs = [
+            # Warm up from min_lr to max_lr
+            (step <= warm_stop,
+             lambda: min_lr + (max_lr - min_lr) * step / warm_stop),
 
-                # Hold on max_lr
-                ((warm_stop < step) & (step <= hold_stop),
-                 lambda: max_lr),
+            # Hold on max_lr
+            ((warm_stop < step) & (step <= hold_stop),
+             lambda: max_lr),
 
-                # Cool down from max_lr to min_lr
-                ((hold_stop < step) & (step <= cool_stop),
-                 lambda: self.cool_down(min_lr, max_lr, step - hold_stop, cool_stop - hold_stop)),
+            # Cool down from max_lr to min_lr
+            ((hold_stop < step) & (step <= cool_stop),
+             lambda: self.cool_down(min_lr, max_lr, step - hold_stop, cool_stop - hold_stop)),
 
-                # Annihilate from min_lr to min_lr * annih_factor
-                ((cool_stop < step) & (step <= annih_stop),
-                 lambda: min_lr * (1 - (1 - self.annih_factor) * (step - cool_stop) / (annih_stop - cool_stop))),
-            ]
+            # Annihilate from min_lr to min_lr * annih_factor
+            ((cool_stop < step) & (step <= annih_stop),
+             lambda: min_lr * (1 - (1 - self.annih_factor) * (step - cool_stop) / (annih_stop - cool_stop))),
+        ]
 
-            # The default isn't needed here because our conditions are mutually
-            # exclusive and exhaustive, but tf.case requires it.
-            def _default():
-                return min_lr * self.annih_factor
+        # The default isn't needed here because our conditions are mutually
+        # exclusive and exhaustive, but tf.case requires it.
+        def _default():
+            return min_lr * self.annih_factor
 
-            curr_lr = tf.case(pred_fn_pairs, _default, exclusive=True)
-            tf.summary.scalar('lr', curr_lr)
+        curr_lr = tf.case(pred_fn_pairs, _default, exclusive=True)
+        tf.summary.scalar('learning_rate', data=curr_lr, step=tf.cast(step, 'int64'))
 
-            return curr_lr
+        return curr_lr
 
     def cool_down(self, min_lr, max_lr, step, total):
         return max_lr - (max_lr - min_lr) * step / total

@@ -19,9 +19,6 @@ ARG PY_VERSION
 RUN ln -sf /usr/local/bin/python$PY_VERSION /usr/bin/python
 RUN ln -sf /usr/local/bin/python$PY_VERSION /usr/bin/python3
 
-ARG TF_VERSION
-RUN python -m pip install --default-timeout=1000 tensorflow==$TF_VERSION
-
 COPY requirements.txt .
 RUN python -m pip install -r requirements.txt
 
@@ -51,9 +48,6 @@ RUN ls -al wheelhouse/
 # -------------------------------------------------------------------
 
 FROM python:$PY_VERSION as test_wheel_in_fresh_environment
-
-ARG TF_VERSION
-RUN python -m pip install --default-timeout=1000 tensorflow==$TF_VERSION
 
 COPY --from=make_wheel /tfmiss/wheelhouse/ /tfmiss/wheelhouse/
 RUN pip install /tfmiss/wheelhouse/*.whl
