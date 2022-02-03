@@ -229,6 +229,6 @@ def estimate_bucket_pipeline(bucket_boundaries, num_samples, safe=True):
 
             return bucket_boundaries[:len(batch_sizes) - 1], batch_sizes, bucket_boundaries[len(batch_sizes) - 1]
 
-        batch_sizes.append(max(batch_step, batch_size.astype(np.int)))
+        batch_sizes.append(max(batch_step, batch_size.astype(int)))
 
     return bucket_boundaries[:-1], batch_sizes, bucket_boundaries[-1]
