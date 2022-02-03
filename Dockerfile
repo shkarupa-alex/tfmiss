@@ -19,12 +19,14 @@ ARG PY_VERSION
 RUN ln -sf /usr/local/bin/python$PY_VERSION /usr/bin/python
 RUN ln -sf /usr/local/bin/python$PY_VERSION /usr/bin/python3
 
-COPY requirements.txt .
+COPY ./ /tfmiss
+WORKDIR /tfmiss
+
 RUN python -m pip install -r requirements.txt
 
-COPY ./ /tfmiss
-RUN rm /tfmiss/.bazelversion
-WORKDIR /tfmiss
+RUN export BAZEL_VERSION=$(cat /tfmiss/.bazelversion) && \
+  wget -O basel-installer.sh https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh && \
+  bash basel-installer.sh
 
 # -------------------------------------------------------------------
 FROM base_install as make_wheel
@@ -46,7 +48,6 @@ RUN python -m auditwheel repair --plat manylinux2010_x86_64 artifacts/*.whl
 RUN ls -al wheelhouse/
 
 # -------------------------------------------------------------------
-
 FROM python:$PY_VERSION as test_wheel_in_fresh_environment
 
 COPY --from=make_wheel /tfmiss/wheelhouse/ /tfmiss/wheelhouse/
