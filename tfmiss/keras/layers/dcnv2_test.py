@@ -4,13 +4,13 @@ from __future__ import print_function
 
 import tensorflow as tf
 from keras.mixed_precision import policy as mixed_precision
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from tfmiss.keras.layers.dcnv2 import DCNv2
 from tfmiss.keras.testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class DCNv2Test(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class DCNv2Test(test_combinations.TestCase):
     def setUp(self):
         super(DCNv2Test, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -20,7 +20,7 @@ class DCNv2Test(keras_parameterized.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             DCNv2,
             kwargs={
                 'filters': 1, 'kernel_size': 1, 'strides': 1, 'padding': 'valid', 'dilation_rate': 1,
@@ -30,7 +30,7 @@ class DCNv2Test(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 3, 4, 1]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             DCNv2,
             kwargs={
                 'filters': 4, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'dilation_rate': 1,
@@ -40,7 +40,7 @@ class DCNv2Test(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 3, 4, 4]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             DCNv2,
             kwargs={
                 'filters': 2, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'dilation_rate': 2,
@@ -50,7 +50,7 @@ class DCNv2Test(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 3, 4, 2]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             DCNv2,
             kwargs={
                 'filters': 2, 'kernel_size': 3, 'strides': 2, 'padding': 'same', 'dilation_rate': 1,
@@ -60,7 +60,7 @@ class DCNv2Test(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 2, 2, 2]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             DCNv2,
             kwargs={
                 'filters': 1, 'kernel_size': 1, 'strides': 1, 'padding': 'same', 'dilation_rate': 1,
@@ -73,7 +73,7 @@ class DCNv2Test(keras_parameterized.TestCase):
 
     def test_layer_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
-        testing_utils.layer_test(
+        test_utils.layer_test(
             DCNv2,
             kwargs={
                 'filters': 4, 'kernel_size': 3, 'strides': 1, 'padding': 'same', 'dilation_rate': 1,

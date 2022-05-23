@@ -3,22 +3,23 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from keras import layers, models, keras_parameterized, testing_utils
+from keras import layers, models
+from keras.testing_infra import test_combinations, test_utils
 from tfmiss.keras.layers.scale import L2Scale
 from tfmiss.keras.layers.wrappers import WithRagged
 
 
-@keras_parameterized.run_all_keras_modes
-class L2ScaleTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class L2ScaleTest(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             L2Scale,
             kwargs={'alpha': 10},
             input_shape=(10, 5),
             input_dtype='float32',
             expected_output_dtype='float32'
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             L2Scale,
             kwargs={'alpha': 30, 'dtype': 'float16'},
             input_shape=(2, 10, 5),
@@ -37,7 +38,7 @@ class L2ScaleTest(keras_parameterized.TestCase):
         outputs = layer(inputs)
 
         model = models.Model(inputs=inputs, outputs=outputs)
-        model.run_eagerly = testing_utils.should_run_eagerly()
+        model.run_eagerly = test_utils.should_run_eagerly()
         predictions = model.predict(logits)
         self.assertAllClose(
             predictions,
@@ -66,7 +67,7 @@ class L2ScaleTest(keras_parameterized.TestCase):
         outputs = layer(inputs)
 
         model = models.Model(inputs=inputs, outputs=outputs)
-        model.run_eagerly = testing_utils.should_run_eagerly()
+        model.run_eagerly = test_utils.should_run_eagerly()
         predictions = model.predict(logits)
         self.assertAllClose(
             predictions,

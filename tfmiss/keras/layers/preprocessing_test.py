@@ -4,12 +4,12 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from tfmiss.keras.layers.preprocessing import WordShape
 
 
-@keras_parameterized.run_all_keras_modes
-class WordShapeTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class WordShapeTest(test_combinations.TestCase):
     def setUp(self):
         super(WordShapeTest, self).setUp()
         self.data = np.array(['1234567', 'low', 'UP', 'Title', 'MiX', '27km']).astype('str')
@@ -17,7 +17,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         self.ccat = np.array(['1', 'z', ' ', '\n', '💥', '❤️']).astype('str')
 
     def test_has_case(self):
-        outputs = testing_utils.layer_test(
+        outputs = test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_HAS_CASE},
             input_data=self.data,
@@ -29,7 +29,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         ], outputs)
 
     def test_lower_case(self):
-        outputs = testing_utils.layer_test(
+        outputs = test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_LOWER_CASE},
             input_data=self.data,
@@ -41,7 +41,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         ], outputs)
 
     def test_upper_case(self):
-        outputs = testing_utils.layer_test(
+        outputs = test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_UPPER_CASE},
             input_data=self.data,
@@ -53,7 +53,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         ], outputs)
 
     def test_title_case(self):
-        outputs = testing_utils.layer_test(
+        outputs = test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_TITLE_CASE},
             input_data=self.data,
@@ -65,7 +65,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         ], outputs)
 
     def test_mixed_case(self):
-        outputs = testing_utils.layer_test(
+        outputs = test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_MIXED_CASE},
             input_data=self.data,
@@ -77,7 +77,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         ], outputs)
 
     def test_same_left(self):
-        outputs = testing_utils.layer_test(
+        outputs = test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_LEFT_SAME},
             input_data=self.same,
@@ -89,7 +89,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         ], outputs)
 
     def test_same_right(self):
-        outputs = testing_utils.layer_test(
+        outputs = test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_RIGHT_SAME},
             input_data=self.same,
@@ -101,7 +101,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         ], outputs)
 
     def test_same_left2(self):
-        outputs = testing_utils.layer_test(
+        outputs = test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_LEFT2_SAME},
             input_data=self.same,
@@ -113,7 +113,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         ], outputs)
 
     def test_same_right2(self):
-        outputs = testing_utils.layer_test(
+        outputs = test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_RIGHT2_SAME},
             input_data=self.same,
@@ -125,7 +125,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         ], outputs)
 
     def test_char_cat_first(self):
-        outputs = testing_utils.layer_test(
+        outputs = test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_CHAR_CAT_FIRST},
             input_data=self.ccat,
@@ -148,7 +148,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         ], outputs)
 
     def test_char_cat_short(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_CHAR_CAT_FIRST, 'char_cat': ['Lu', 'Ll']},
             input_data=self.ccat,
@@ -157,7 +157,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         )
 
     def test_char_cat_last(self):
-        outputs = testing_utils.layer_test(
+        outputs = test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_CHAR_CAT_LAST},
             input_data=self.ccat,
@@ -180,7 +180,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         ], outputs)
 
     def test_length_norm(self):
-        outputs = testing_utils.layer_test(
+        outputs = test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_LENGTH_NORM},
             input_data=self.data,
@@ -192,7 +192,7 @@ class WordShapeTest(keras_parameterized.TestCase):
         ], outputs)
 
     def test_all(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WordShape,
             kwargs={'options': WordShape.SHAPE_ALL},
             input_data=self.data,

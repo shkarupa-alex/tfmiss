@@ -4,14 +4,15 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras import layers, optimizers, keras_parameterized, testing_utils
+from keras import layers, optimizers
+from keras.testing_infra import test_combinations, test_utils
 from tensorflow.python.ops import variables
 from tfmiss.keras.metrics.f1 import F1Binary
 
 
-@keras_parameterized.run_with_all_model_types
-@keras_parameterized.run_all_keras_modes
-class F1BinaryTest(keras_parameterized.TestCase):
+@test_combinations.run_with_all_model_types
+@test_combinations.run_all_keras_modes
+class F1BinaryTest(test_combinations.TestCase):
     def test_config(self):
         r_obj = F1Binary(name='my_f1binary')
         self.assertEqual(r_obj.name, 'my_f1binary')
@@ -109,12 +110,12 @@ class F1BinaryTest(keras_parameterized.TestCase):
 
     def test_reset_states(self):
         f1_obj = F1Binary()
-        model = testing_utils.get_model_from_layers([
+        model = test_utils.get_model_from_layers([
             layers.Dense(3, activation='relu', kernel_initializer='ones'),
             layers.Dense(1, activation='sigmoid', kernel_initializer='ones')
         ], input_shape=(4,))
-        model.compile(loss='mae', metrics=[f1_obj], optimizer='rmsprop', run_eagerly=testing_utils.should_run_eagerly())
-        model.run_eagerly = testing_utils.should_run_eagerly()
+        model.compile(loss='mae', metrics=[f1_obj], optimizer='rmsprop', run_eagerly=test_utils.should_run_eagerly())
+        model.run_eagerly = test_utils.should_run_eagerly()
         x = np.ones((100, 4))
         y = np.zeros((100, 1), dtype=np.int32)
 
@@ -132,15 +133,15 @@ class F1BinaryTest(keras_parameterized.TestCase):
 
     def test_metric_rises(self):
         f1_obj = F1Binary()
-        model = testing_utils.get_model_from_layers([
+        model = test_utils.get_model_from_layers([
             layers.Dense(3, activation='relu'),
             layers.Dense(1, activation='sigmoid')
         ], input_shape=(4,))
         model.compile(
             loss='mae', metrics=[f1_obj], optimizer=optimizers.get('adam'),
-            run_eagerly=testing_utils.should_run_eagerly())
+            run_eagerly=test_utils.should_run_eagerly())
         model.run_eagerly = True
-        model.run_eagerly = testing_utils.should_run_eagerly()
+        model.run_eagerly = test_utils.should_run_eagerly()
         x = np.random.rand(100, 4)
         y = np.sum(x, axis=-1)
 

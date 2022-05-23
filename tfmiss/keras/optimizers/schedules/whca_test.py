@@ -4,12 +4,13 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras import layers, models, optimizers, keras_parameterized, testing_utils
+from keras import layers, models, optimizers
+from keras.testing_infra import test_combinations, test_utils
 from tfmiss.keras.optimizers.schedules import WarmHoldCoolAnnihilateScheduler, WarmHoldCosineCoolAnnihilateScheduler
 
 
-@keras_parameterized.run_all_keras_modes
-class WarmHoldCoolAnnihilateSchedulerTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class WarmHoldCoolAnnihilateSchedulerTest(test_combinations.TestCase):
     def test_values(self):
         schedule = WarmHoldCoolAnnihilateScheduler(
             min_lr=1.0, max_lr=100., warm_steps=3, hold_steps=3, cool_steps=3, annih_steps=3)
@@ -26,7 +27,7 @@ class WarmHoldCoolAnnihilateSchedulerTest(keras_parameterized.TestCase):
         optimizer = optimizers.get({'class_name': 'adam', 'config': {'learning_rate': schedule}})
         model = models.Sequential()
         model.add(layers.Dense(3))
-        model.compile(optimizer=optimizer, loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer=optimizer, loss='mse', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.random.random((10, 3, 4)), np.random.random((10, 3, 3)), epochs=2, batch_size=10)
         model.get_config()
 
@@ -36,8 +37,8 @@ class WarmHoldCoolAnnihilateSchedulerTest(keras_parameterized.TestCase):
         WarmHoldCoolAnnihilateScheduler.from_config(schedule.get_config())
 
 
-@keras_parameterized.run_all_keras_modes
-class WarmHoldCosineCoolAnnihilateSchedulerTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class WarmHoldCosineCoolAnnihilateSchedulerTest(test_combinations.TestCase):
     def test_values(self):
         schedule = WarmHoldCosineCoolAnnihilateScheduler(
             min_lr=1.0, max_lr=100., warm_steps=3, hold_steps=3, cool_steps=9, annih_steps=3, cosine_cycles=2)
@@ -55,7 +56,7 @@ class WarmHoldCosineCoolAnnihilateSchedulerTest(keras_parameterized.TestCase):
         optimizer = optimizers.get({'class_name': 'adam', 'config': {'learning_rate': schedule}})
         model = models.Sequential()
         model.add(layers.Dense(3))
-        model.compile(optimizer=optimizer, loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer=optimizer, loss='mse', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.random.random((10, 3, 4)), np.random.random((10, 3, 3)), epochs=20, batch_size=10)
         model.get_config()
 

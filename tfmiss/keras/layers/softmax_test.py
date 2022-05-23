@@ -4,15 +4,16 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras import layers, models, keras_parameterized, testing_utils
+from keras import layers, models
 from keras.mixed_precision import policy as mixed_precision
+from keras.testing_infra import test_combinations, test_utils
 from keras.utils.losses_utils import ReductionV2 as Reduction
 from tfmiss.keras.layers.softmax import AdaptiveSoftmax, NoiseContrastiveEstimation, SampledSofmax
 from tfmiss.keras.testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class AdaptiveSoftmaxTest(test_combinations.TestCase):
     def setUp(self):
         super(AdaptiveSoftmaxTest, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -176,7 +177,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
         probs = AdaptiveSoftmax(units=num_classes, cutoff=[3])([logits, targets])
         model = models.Model(inputs=[ids, targets], outputs=probs)
 
-        model.compile(optimizer='Adam', loss=None, run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='Adam', loss=None, run_eagerly=test_utils.should_run_eagerly())
         history = model.fit(x=xt, y=None, batch_size=100, epochs=3, validation_data=(xv, None)).history
         predictions = model.predict(x=xp, batch_size=100)
         predictsum = np.sum(predictions, axis=-1)
@@ -214,7 +215,7 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
         outputs = layer([logit_inputs, logit_targets])
 
         model = models.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
-        model.run_eagerly = testing_utils.should_run_eagerly()
+        model.run_eagerly = test_utils.should_run_eagerly()
         outputs = model.predict([logits_data, targets_data])
         self.assertAllClose(
             outputs,
@@ -235,8 +236,8 @@ class AdaptiveSoftmaxTest(keras_parameterized.TestCase):
         )
 
 
-@keras_parameterized.run_all_keras_modes
-class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class NoiseContrastiveEstimationTest(test_combinations.TestCase):
     def setUp(self):
         super(NoiseContrastiveEstimationTest, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -346,7 +347,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
         probs = NoiseContrastiveEstimation(units=num_classes, negatives=num_classes // 2)([logits, targets])
         model = models.Model(inputs=[ids, targets], outputs=probs)
 
-        model.compile(optimizer='Adam', loss=None, run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='Adam', loss=None, run_eagerly=test_utils.should_run_eagerly())
         history = model.fit(x=xt, y=None, batch_size=100, epochs=3, validation_data=(xv, None)).history
         predictions = model.predict(x=xp, batch_size=100)
         predictsum = np.sum(predictions, axis=-1)
@@ -381,7 +382,7 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
         outputs = layer([logit_inputs, logit_targets])
 
         model = models.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
-        model.run_eagerly = testing_utils.should_run_eagerly()
+        model.run_eagerly = test_utils.should_run_eagerly()
         outputs = model.predict([logits_data, targets_data])
         self.assertAllClose(
             outputs,
@@ -393,8 +394,8 @@ class NoiseContrastiveEstimationTest(keras_parameterized.TestCase):
         )
 
 
-@keras_parameterized.run_all_keras_modes
-class SampledSofmaxTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class SampledSofmaxTest(test_combinations.TestCase):
     def setUp(self):
         super(SampledSofmaxTest, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -536,7 +537,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
         probs = SampledSofmax(units=num_classes, negatives=num_classes // 2)([logits, targets])
         model = models.Model(inputs=[ids, targets], outputs=probs)
 
-        model.compile(optimizer='Adam', loss=None, run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='Adam', loss=None, run_eagerly=test_utils.should_run_eagerly())
         history = model.fit(x=xt, y=None, batch_size=100, epochs=3, validation_data=(xv, None)).history
         predictions = model.predict(x=xp, batch_size=100)
         predictsum = np.sum(predictions, axis=-1)
@@ -571,7 +572,7 @@ class SampledSofmaxTest(keras_parameterized.TestCase):
         outputs = layer([logit_inputs, logit_targets])
 
         model = models.Model(inputs=[logit_inputs, logit_targets], outputs=outputs)
-        model.run_eagerly = testing_utils.should_run_eagerly()
+        model.run_eagerly = test_utils.should_run_eagerly()
         outputs = model.predict([logits_data, targets_data])
         self.assertAllClose(
             outputs,
