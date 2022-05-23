@@ -4,16 +4,17 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras import layers, models, keras_parameterized, testing_utils
+from keras import layers, models
 from keras.mixed_precision import policy as mixed_precision
+from keras.testing_infra import test_combinations, test_utils
 from tensorflow.python.util import object_identity
 from tensorflow.python.training.tracking import util as trackable_util
 from tfmiss.keras.layers.qrnn import QRNN
 from tfmiss.keras.testing_utils import layer_multi_io_test
 
 
-@keras_parameterized.run_all_keras_modes
-class QRNNTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class QRNNTest(test_combinations.TestCase):
     def setUp(self):
         super(QRNNTest, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -23,7 +24,7 @@ class QRNNTest(keras_parameterized.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             QRNN,
             kwargs={'units': 8, 'window': 2, 'zoneout': 0., 'output_gate': True, 'zero_output_for_mask': True,
                     'return_sequences': False, 'return_state': False, 'go_backwards': False},
@@ -32,7 +33,7 @@ class QRNNTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=(None, 8)
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             QRNN,
             kwargs={'units': 8, 'window': 2, 'zoneout': 0., 'output_gate': True,
                     'return_sequences': True, 'return_state': False, 'go_backwards': False},
@@ -42,7 +43,7 @@ class QRNNTest(keras_parameterized.TestCase):
             expected_output_shape=(None, 5, 8)
         )
 
-        testing_utils.layer_test(
+        test_utils.layer_test(
             QRNN,
             kwargs={'units': 8, 'window': 3, 'zoneout': 0., 'output_gate': True,
                     'return_sequences': False, 'return_state': False, 'go_backwards': False},
@@ -51,7 +52,7 @@ class QRNNTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=(None, 8)
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             QRNN,
             kwargs={'units': 8, 'window': 3, 'zoneout': 0., 'output_gate': True,
                     'return_sequences': True, 'return_state': False, 'go_backwards': False},
@@ -61,7 +62,7 @@ class QRNNTest(keras_parameterized.TestCase):
             expected_output_shape=(None, 5, 8)
         )
 
-        testing_utils.layer_test(
+        test_utils.layer_test(
             QRNN,
             kwargs={'units': 8, 'window': 2, 'zoneout': 0.1, 'output_gate': True,
                     'return_sequences': False, 'return_state': False, 'go_backwards': False},
@@ -70,7 +71,7 @@ class QRNNTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=(None, 8)
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             QRNN,
             kwargs={'units': 8, 'window': 2, 'zoneout': 0.1, 'output_gate': True,
                     'return_sequences': True, 'return_state': False, 'go_backwards': False},
@@ -80,7 +81,7 @@ class QRNNTest(keras_parameterized.TestCase):
             expected_output_shape=(None, 5, 8)
         )
 
-        testing_utils.layer_test(
+        test_utils.layer_test(
             QRNN,
             kwargs={'units': 8, 'window': 2, 'zoneout': 0., 'output_gate': False,
                     'return_sequences': False, 'return_state': False, 'go_backwards': False},
@@ -89,7 +90,7 @@ class QRNNTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=(None, 8)
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             QRNN,
             kwargs={'units': 8, 'window': 2, 'zoneout': 0., 'output_gate': False,
                     'return_sequences': True, 'return_state': False, 'go_backwards': False},
@@ -99,7 +100,7 @@ class QRNNTest(keras_parameterized.TestCase):
             expected_output_shape=(None, 5, 8)
         )
 
-        testing_utils.layer_test(
+        test_utils.layer_test(
             QRNN,
             kwargs={'units': 8, 'window': 2, 'zoneout': 0., 'output_gate': True,
                     'return_sequences': False, 'return_state': False, 'go_backwards': True},
@@ -108,7 +109,7 @@ class QRNNTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=(None, 8)
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             QRNN,
             kwargs={'units': 8, 'window': 2, 'zoneout': 0., 'output_gate': True,
                     'return_sequences': True, 'return_state': False, 'go_backwards': True},
@@ -120,7 +121,7 @@ class QRNNTest(keras_parameterized.TestCase):
 
     def test_layer_fp16(self):
         mixed_precision.set_global_policy('mixed_float16')
-        testing_utils.layer_test(
+        test_utils.layer_test(
             QRNN,
             kwargs={'units': 8, 'window': 2, 'zoneout': 0., 'output_gate': True, 'zero_output_for_mask': True,
                     'return_sequences': False, 'return_state': False, 'go_backwards': False},
@@ -287,7 +288,7 @@ class QRNNTest(keras_parameterized.TestCase):
             units=2,
             window=1
         ))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.random.random((10, 3, 4)), np.random.random((10, 2)), epochs=1, batch_size=10)
 
         # test config

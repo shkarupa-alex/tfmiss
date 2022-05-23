@@ -4,13 +4,14 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras import backend, layers, models, optimizers, keras_parameterized, testing_utils
+from keras import backend, layers, models, optimizers
+from keras.testing_infra import test_combinations, test_utils
 from keras.mixed_precision import policy as mixed_precision
 from tfmiss.keras.layers.embedding import AdaptiveEmbedding
 
 
-@keras_parameterized.run_all_keras_modes
-class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class AdaptiveEmbeddingTest(test_combinations.TestCase):
     def setUp(self):
         super(AdaptiveEmbeddingTest, self).setUp()
         self.default_policy = mixed_precision.global_policy()
@@ -21,7 +22,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
         mixed_precision.set_global_policy(self.default_policy)
 
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AdaptiveEmbedding,
             kwargs={
                 'cutoff': [50, 100],
@@ -33,7 +34,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=(None, 3, 128)
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AdaptiveEmbedding,
             kwargs={
                 'cutoff': [50, 100],
@@ -46,7 +47,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=(None, 3, 128)
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AdaptiveEmbedding,
             kwargs={
                 'cutoff': [50, 100],
@@ -59,7 +60,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=(None, 3, 128)
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AdaptiveEmbedding,
             kwargs={
                 'cutoff': [50, 100],
@@ -72,7 +73,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=(None, 3, 128)
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AdaptiveEmbedding,
             kwargs={
                 'cutoff': [50, 100],
@@ -84,7 +85,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=(None, 3, 7, 129)
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AdaptiveEmbedding,
             kwargs={
                 'cutoff': [50, 100],
@@ -99,7 +100,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
         )
 
         mixed_precision.set_global_policy(self.mf16_policy)
-        testing_utils.layer_test(
+        test_utils.layer_test(
             AdaptiveEmbedding,
             kwargs={
                 'cutoff': [50, 100],
@@ -123,7 +124,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
             # np.array(...),
             np.array([[3] * 16] * 8),
         ])
-        model.run_eagerly = testing_utils.should_run_eagerly()
+        model.run_eagerly = test_utils.should_run_eagerly()
         outputs = model.predict(np.array([[0, 1, 0]], dtype='int32'))
         self.assertAllClose([[[1] * 16, [48] * 16, [1] * 16]], outputs)
 
@@ -159,7 +160,7 @@ class AdaptiveEmbeddingTest(keras_parameterized.TestCase):
         outputs = layer(outputs)
 
         model = models.Model(inputs, outputs)
-        model.run_eagerly = testing_utils.should_run_eagerly()
+        model.run_eagerly = test_utils.should_run_eagerly()
         outputs = model.predict(data)
         self.assertAllClose(
             outputs,

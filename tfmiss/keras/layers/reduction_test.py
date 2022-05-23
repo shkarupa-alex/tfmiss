@@ -5,14 +5,15 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from absl.testing import parameterized
-from keras import layers, models, keras_parameterized, testing_utils
+from keras import layers, models
+from keras.testing_infra import test_combinations, test_utils
 from tfmiss.keras.layers.reduction import Reduction
 
 
-@keras_parameterized.run_all_keras_modes
-class ReductionTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class ReductionTest(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             Reduction,
             kwargs={'reduction': 'mean', 'axis': -2},
             input_shape=(2, 10, 5),

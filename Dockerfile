@@ -1,32 +1,18 @@
 #syntax=docker/dockerfile:1.1.5-experimental
 ARG TF_VERSION
 ARG PY_VERSION
-FROM gcr.io/tensorflow-testing/nosla-cuda11.2-cudnn8.1-ubuntu18.04-manylinux2010-multipython as base_install
+FROM tensorflow/build:latest-python$PY_VERSION as base_install
+
 ENV TF_NEED_CUDA="1"
 
-# Required for setuptools v50.0.0
-# https://setuptools.readthedocs.io/en/latest/history.html#v50-0-0
-# https://github.com/pypa/setuptools/issues/2352
-ENV SETUPTOOLS_USE_DISTUTILS=stdlib
-
-# Fix presented in
-# https://stackoverflow.com/questions/44967202/pip-is-showing-error-lsb-release-a-returned-non-zero-exit-status-1/44967506
-RUN echo "#! /usr/bin/python2.7" >> /usr/bin/lsb_release2
-RUN cat /usr/bin/lsb_release >> /usr/bin/lsb_release2
-RUN mv /usr/bin/lsb_release2 /usr/bin/lsb_release
-
-ARG PY_VERSION
-RUN ln -sf /usr/local/bin/python$PY_VERSION /usr/bin/python
-RUN ln -sf /usr/local/bin/python$PY_VERSION /usr/bin/python3
+# TODO: Remove this if tensorflow/build container removes their keras-nightly install
+# https://github.com/tensorflow/build/issues/78
+RUN python -m pip uninstall -y keras-nightly
 
 COPY ./ /tfmiss
 WORKDIR /tfmiss
 
 RUN python -m pip install -r requirements.txt
-
-RUN export BAZEL_VERSION=$(cat /tfmiss/.bazelversion) && \
-  wget -O basel-installer.sh https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-linux-x86_64.sh && \
-  bash basel-installer.sh
 
 # -------------------------------------------------------------------
 FROM base_install as make_wheel
@@ -39,12 +25,12 @@ RUN bazel build --jobs=4 \
         --noshow_loading_progress \
         --verbose_failures \
         --test_output=errors \
-        --crosstool_top=//third_party/gcc7_manylinux2010-nvcc-cuda11:toolchain build_pip_pkg && \
+        --crosstool_top=//third_party/gcc9_manylinux2014-nvcc-cuda11:toolchain build_pip_pkg && \
     # Package Whl
     bazel-bin/build_pip_pkg artifacts
 
 RUN bash auditwheel_patch.sh
-RUN python -m auditwheel repair --plat manylinux2010_x86_64 artifacts/*.whl
+RUN python -m auditwheel repair --plat manylinux2014_x86_64 artifacts/*.whl
 RUN ls -al wheelhouse/
 
 # -------------------------------------------------------------------

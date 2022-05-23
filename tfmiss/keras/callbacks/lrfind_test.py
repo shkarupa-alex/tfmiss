@@ -5,19 +5,20 @@ from __future__ import print_function
 import os
 import numpy as np
 import tensorflow as tf
-from keras import layers, keras_parameterized, testing_utils
+from keras import layers
+from keras.testing_infra import test_combinations, test_utils
 from tfmiss.keras.callbacks.lrfind import LRFinder
 
 
-@keras_parameterized.run_with_all_model_types
-@keras_parameterized.run_all_keras_modes
-class LRFInderTest(keras_parameterized.TestCase):
+@test_combinations.run_with_all_model_types
+@test_combinations.run_all_keras_modes
+class LRFInderTest(test_combinations.TestCase):
     def test_no_exceptions(self):
-        model = testing_utils.get_model_from_layers([
+        model = test_utils.get_model_from_layers([
             layers.Dense(3, activation='relu', kernel_initializer='ones'),
             layers.Dense(1, activation='sigmoid', kernel_initializer='ones')
         ], input_shape=(10,))
-        model.compile(loss='mae', optimizer='rmsprop', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(loss='mae', optimizer='rmsprop', run_eagerly=test_utils.should_run_eagerly())
 
         x = np.random.rand(1000, 10)
         y = np.mean(x, axis=-1) + np.random.rand(1000) / 10.

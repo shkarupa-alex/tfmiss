@@ -4,16 +4,17 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras import layers, models, keras_parameterized, testing_utils
+from keras import layers, models
+from keras.testing_infra import test_combinations, test_utils
 from tensorflow.python.util import object_identity
 from tensorflow.python.training.tracking import util as trackable_util
 from tfmiss.keras.layers.wrappers import MapFlat, WeightNorm, WithRagged
 
 
-@keras_parameterized.run_all_keras_modes
-class MapFlatTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class MapFlatTest(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             MapFlat,
             kwargs={'layer': layers.Lambda(lambda x: tf.stack([x, x], axis=-1))},
             input_shape=(3, 10),
@@ -23,8 +24,8 @@ class MapFlatTest(keras_parameterized.TestCase):
         )
 
 
-@keras_parameterized.run_all_keras_modes
-class WithRaggedTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class WithRaggedTest(test_combinations.TestCase):
     def test_layer(self):
         inputs = tf.ragged.constant([
             [[1., 2.], [2., 3.], [2., 5.]],
@@ -48,19 +49,19 @@ class WithRaggedTest(keras_parameterized.TestCase):
         inputs = layers.Input(shape=(None, 2), dtype=tf.float32, ragged=True)
         outputs = WithRagged(layers.Dense(3, activation='sigmoid'))(inputs)
         model = models.Model(inputs=inputs, outputs=outputs)
-        model.compile(run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(run_eagerly=test_utils.should_run_eagerly())
         model.predict(logits)
 
 
-@keras_parameterized.run_all_keras_modes
-class WeightNormTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class WeightNormTest(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WeightNorm,
             kwargs={'layer': layers.Dense(1)},
             input_shape=(3, 7)
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WeightNorm,
             kwargs={'layer': layers.Conv2D(5, (2, 2))},
             input_shape=(2, 4, 4, 3)
@@ -109,7 +110,7 @@ class WeightNormTest(keras_parameterized.TestCase):
     def test_weight_norm_dense(self):
         model = models.Sequential()
         model.add(WeightNorm(layers.Dense(2), input_shape=(3, 4)))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.random.random((10, 3, 4)), np.random.random((10, 3, 2)), epochs=1, batch_size=10)
 
         # test config
@@ -125,14 +126,14 @@ class WeightNormTest(keras_parameterized.TestCase):
         model.add(WeightNorm(layers.Dense(2), input_shape=(3, 4)))
         model.add(WeightNorm(layers.Dense(3)))
         model.add(layers.Activation('relu'))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=test_utils.should_run_eagerly())
         model.fit(np.random.random((10, 3, 4)), np.random.random((10, 3, 3)), epochs=1, batch_size=10)
 
     def test_regularizers(self):
         model = models.Sequential()
         model.add(WeightNorm(layers.Dense(2, kernel_regularizer='l1'), input_shape=(3, 4)))
         model.add(layers.Activation('relu'))
-        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=testing_utils.should_run_eagerly())
+        model.compile(optimizer='rmsprop', loss='mse', run_eagerly=test_utils.should_run_eagerly())
         self.assertEqual(len(model.losses), 1)
 
 

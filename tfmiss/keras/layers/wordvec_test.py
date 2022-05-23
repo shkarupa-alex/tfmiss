@@ -5,17 +5,17 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from collections import Counter
-from keras import keras_parameterized, testing_utils
+from keras.testing_infra import test_combinations, test_utils
 from tfmiss.keras.layers.wordvec import WordEmbedding, CharNgramEmbedding, CharBpeEmbedding, CharCnnEmbedding, Highway
 
 
-@keras_parameterized.run_all_keras_modes
-class WordEmbeddingTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class WordEmbeddingTest(test_combinations.TestCase):
     def test_layer(self):
         data = np.array(['[UNK]', 'the', 'fox', 'jumps', 'over', 'the', 'lazy', 'dog'])
         vocab = ['the', 'fox', 'jumps']
 
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WordEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'normalize_unicode': 'NFKC', 'lower_case': False,
                     'zero_digits': False, 'max_len': None, 'reserved_words': None, 'embed_type': 'dense_auto',
@@ -24,7 +24,7 @@ class WordEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WordEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'normalize_unicode': None, 'lower_case': False,
                     'zero_digits': False, 'max_len': None, 'reserved_words': None, 'embed_type': 'dense_auto',
@@ -33,7 +33,7 @@ class WordEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WordEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'normalize_unicode': 'NFKC', 'lower_case': True,
                     'zero_digits': False, 'max_len': None, 'reserved_words': None, 'embed_type': 'dense_auto',
@@ -42,7 +42,7 @@ class WordEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WordEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'normalize_unicode': 'NFKC', 'lower_case': False,
                     'zero_digits': True, 'max_len': 4, 'reserved_words': None, 'embed_type': 'dense_auto',
@@ -51,7 +51,7 @@ class WordEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WordEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'normalize_unicode': 'NFKC', 'lower_case': False,
                     'zero_digits': False, 'max_len': None, 'reserved_words': None, 'embed_type': 'dense_auto',
@@ -60,7 +60,7 @@ class WordEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WordEmbedding,
             kwargs={'vocabulary': ['[UNK]'] + vocab, 'output_dim': 12, 'normalize_unicode': 'NFKC', 'lower_case': False,
                     'zero_digits': False, 'max_len': None, 'reserved_words': None, 'embed_type': 'dense_auto',
@@ -69,7 +69,7 @@ class WordEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WordEmbedding,
             kwargs={'vocabulary': vocab + ['[UNK]'], 'output_dim': 12, 'normalize_unicode': 'NFKC', 'lower_case': False,
                     'zero_digits': False, 'max_len': None, 'reserved_words': None, 'embed_type': 'dense_auto',
@@ -78,7 +78,7 @@ class WordEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WordEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'normalize_unicode': 'NFKC', 'lower_case': False,
                     'zero_digits': False, 'max_len': None, 'reserved_words': ['[UNK]', '~TesT~'],
@@ -87,7 +87,7 @@ class WordEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WordEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'normalize_unicode': 'NFKC', 'lower_case': False,
                     'zero_digits': False, 'max_len': None, 'reserved_words': None, 'embed_type': 'dense_cpu',
@@ -96,7 +96,7 @@ class WordEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             WordEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'normalize_unicode': 'NFKC', 'lower_case': False,
                     'zero_digits': False, 'max_len': None, 'reserved_words': None, 'embed_type': 'adapt',
@@ -159,14 +159,14 @@ class WordEmbeddingTest(keras_parameterized.TestCase):
         self.assertListEqual(adapted, expected)
 
 
-@keras_parameterized.run_all_keras_modes
-class CharNgramEmbeddingTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class CharNgramEmbeddingTest(test_combinations.TestCase):
     def test_layer(self):
         data = np.array(['[UNK]', 'the', 'fox', 'jumps', 'over', 'the', 'lazy', 'dog'])
         vocab = ['ve', 'do', 'r>', 'er', '<l', 'mp', 'ov', 'la', 'e>', '<d', '<o', 'ju', '<f', 'x>', 'az', '<t', 'y>',
                  'ps', '<j', 'he', 'um', 'fo', 's>', 'th', 'zy', 'ox', 'og', 'g>']
 
-        testing_utils.layer_test(
+        test_utils.layer_test(
             CharNgramEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'normalize_unicode': 'NFKC', 'lower_case': False,
                     'zero_digits': False, 'max_len': None, 'minn': 2, 'maxn': 5, 'itself': 'always',
@@ -222,13 +222,13 @@ class CharNgramEmbeddingTest(keras_parameterized.TestCase):
         self.assertListEqual(adapted, expected)
 
 
-@keras_parameterized.run_all_keras_modes
-class CharBpeEmbeddingTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class CharBpeEmbeddingTest(test_combinations.TestCase):
     def test_layer(self):
         data = np.array(['[UNK]', 'the', 'fox', 'jumps', 'over', 'the', 'lazy', 'dog'])
         vocab = ['the', '##o', 'f', '##u', '##m', '##s', 'o', '##v', '##er', 'l', '##a', '##y', 'd', '##g']
 
-        testing_utils.layer_test(
+        test_utils.layer_test(
             CharBpeEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'reduction': 'mean', 'reserved_words': None,
                     'embed_type': 'dense_auto', 'adapt_cutoff': None, 'adapt_factor': 4},
@@ -279,13 +279,13 @@ class CharBpeEmbeddingTest(keras_parameterized.TestCase):
         self.assertListEqual(adapted, expected)
 
 
-@keras_parameterized.run_all_keras_modes
-class CharCnnEmbeddingTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class CharCnnEmbeddingTest(test_combinations.TestCase):
     def test_layer(self):
         data = np.array(['[UNK]', 'the', 'fox', 'jumps', 'over', 'the', 'lazy', 'dog'])
         vocab = ['e', 'o', 't', 'h']
 
-        testing_utils.layer_test(
+        test_utils.layer_test(
             CharCnnEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'filters': [32, 32, 64, 128, 256, 512, 1024],
                     'kernels': [1, 2, 3, 4, 5, 6, 7], 'char_dim': 16, 'activation': 'tanh', 'highways': 2,
@@ -295,7 +295,7 @@ class CharCnnEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             CharCnnEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'filters': [3, 1], 'kernels': [8, 16], 'char_dim': 16,
                     'activation': 'tanh', 'highways': 2, 'normalize_unicode': 'NFKC', 'lower_case': False,
@@ -305,7 +305,7 @@ class CharCnnEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             CharCnnEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'filters': [32, 32, 64, 128, 256, 512, 1024],
                     'kernels': [1, 2, 3, 4, 5, 6, 7], 'char_dim': 16, 'activation': 'tanh', 'highways': 2,
@@ -316,7 +316,7 @@ class CharCnnEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             CharCnnEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'filters': [32, 32, 64, 128, 256, 512, 1024],
                     'kernels': [1, 2, 3, 4, 5, 6, 7], 'char_dim': 16, 'activation': 'relu', 'highways': 2,
@@ -326,7 +326,7 @@ class CharCnnEmbeddingTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             CharCnnEmbedding,
             kwargs={'vocabulary': vocab, 'output_dim': 12, 'filters': [32, 32, 64, 128, 256, 512, 1024],
                     'kernels': [1, 2, 3, 4, 5, 6, 7], 'char_dim': 16, 'activation': 'tanh', 'highways': 0,
@@ -408,10 +408,10 @@ class CharCnnEmbeddingTest(keras_parameterized.TestCase):
         self.assertListEqual(adapted, expected)
 
 
-@keras_parameterized.run_all_keras_modes
-class HighwayTest(keras_parameterized.TestCase):
+@test_combinations.run_all_keras_modes
+class HighwayTest(test_combinations.TestCase):
     def test_layer(self):
-        testing_utils.layer_test(
+        test_utils.layer_test(
             Highway,
             kwargs={},
             input_shape=[2, 16, 8],
@@ -419,7 +419,7 @@ class HighwayTest(keras_parameterized.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 16, 8]
         )
-        testing_utils.layer_test(
+        test_utils.layer_test(
             Highway,
             kwargs={},
             input_shape=[2, 16, 8, 4],
