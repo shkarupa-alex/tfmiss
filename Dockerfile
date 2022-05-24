@@ -4,6 +4,7 @@ ARG PY_VERSION
 FROM tensorflow/build:latest-python$PY_VERSION as base_install
 
 ENV TF_NEED_CUDA="1"
+ENV DOCKER_BUILD="1"
 
 # TODO: Remove this if tensorflow/build container removes their keras-nightly install
 # https://github.com/tensorflow/build/issues/78

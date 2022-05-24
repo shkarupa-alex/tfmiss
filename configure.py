@@ -185,7 +185,11 @@ def configure_cuda():
     write("test --config=cuda")
     write("build --config=cuda")
     write("build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true")
-    write("build:cuda --crosstool_top=//third_party/gcc9_manylinux2014-nvcc-cuda11:toolchain")
+
+    if os.getenv("DOCKER_BUILD", "0") == "1":
+        write("build:cuda --crosstool_top=//third_party/gcc9_manylinux2014-nvcc-cuda11:toolchain")
+    else:
+        write("build:cuda --crosstool_top=@local_config_cuda//crosstool:toolchain")
 
 
 if __name__ == "__main__":
