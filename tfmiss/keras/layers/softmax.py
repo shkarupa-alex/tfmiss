@@ -2,9 +2,9 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
+import numpy as np
 import tensorflow as tf
 from keras import backend, constraints, initializers, layers, models, regularizers
-from keras.backend import convert_inputs_if_ragged, maybe_convert_to_ragged
 from keras.utils.control_flow_util import smart_cond
 from keras.utils.generic_utils import register_keras_serializable
 from keras.utils.losses_utils import compute_weighted_loss as _compute_weighted_loss, ReductionV2 as Reduction
@@ -40,6 +40,8 @@ class AdaptiveSoftmax(layers.Layer):
     Args:
         units: Positive integer, dimensionality of the output space (number of classes).
         cutoff: Ordered list of positive integers, numbers for next class-cluster start id's.
+        return_probs: Boolean, whether to estimate and return full probability matrix. Disabled by default
+            to reduce computations.
         factor: Reduction factor for second level projection matrices.
         dropout: Dropout for second level projections.
         use_bias: Boolean, whether the layer uses a bias vector.
@@ -56,7 +58,7 @@ class AdaptiveSoftmax(layers.Layer):
     """
 
     def __init__(
-            self, units, cutoff, factor=4, dropout=0., use_bias=True, kernel_initializer='glorot_uniform',
+            self, units, cutoff, return_probs=False, factor=4, dropout=0., kernel_initializer='glorot_uniform',
             bias_initializer='zeros', kernel_regularizer=None, bias_regularizer=None, kernel_constraint=None,
             bias_constraint=None, loss_reduction=Reduction.AUTO, **kwargs):
         kwargs['autocast'] = False
@@ -73,12 +75,11 @@ class AdaptiveSoftmax(layers.Layer):
         units = int(units)
         Reduction.validate(loss_reduction)
 
-        self.cutoff = cutoff
-        self._cutoff = cutoff + [units] if units > cutoff[-1] else cutoff
         self.units = units
+        self.cutoff = cutoff
+        self.return_probs = return_probs
         self.factor = factor
         self.dropout = dropout
-        self.use_bias = use_bias
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.bias_initializer = initializers.get(bias_initializer)
         self.kernel_regularizer = regularizers.get(kernel_regularizer)
@@ -87,41 +88,38 @@ class AdaptiveSoftmax(layers.Layer):
         self.bias_constraint = constraints.get(bias_constraint)
         self.loss_reduction = loss_reduction
 
+        self._cutoff = cutoff + [units] if units > cutoff[-1] else cutoff
+        self._splits = self._cutoff[:1] + [1] * (len(self._cutoff) - 1)
+
     @shape_type_conversion
     def build(self, input_shape):
-        dtype = tf.dtypes.as_dtype(self.dtype or backend.floatx())
-        if not (dtype.is_floating or dtype.is_complex):
-            raise TypeError('Unable to build `AdaptiveSoftmax` layer with non-floating point dtype {}'.format(dtype))
-
         predictions_shape, targets_shape = input_shape
         predictions_rank = len(predictions_shape)
         if len(targets_shape) + 1 != predictions_rank:
             raise ValueError('Targets shape {} rank must be one less than predictions '
                              'shape rank {}'.format(targets_shape, predictions_shape))
 
-        self.input_channels = predictions_shape[-1]
-        if self.input_channels is None:
+        self.channels = predictions_shape[-1]
+        if self.channels is None:
             raise ValueError('Channel dimension of predictions should be defined. Found `None`.')
         self.input_spec = [
-            layers.InputSpec(ndim=predictions_rank, axes={-1: self.input_channels}),
+            layers.InputSpec(ndim=predictions_rank, axes={-1: self.channels}),
             layers.InputSpec(ndim=predictions_rank - 1, dtype=tf.int32)
         ]
 
-        self.head = layers.Dense(
+        self.root = layers.Dense(
             units=self._cutoff[0] + len(self._cutoff) - 1,
             activation=None,
             use_bias=False,
             kernel_initializer=self.kernel_initializer,
             kernel_regularizer=self.kernel_regularizer,
             kernel_constraint=self.kernel_constraint,
-            name='head'
-        )
+            name='head')
 
         self.tails = []
-        self.tail_channels = []
         prev_dim = None
         for i in range(len(self._cutoff) - 1):
-            dim = self.input_channels / (self.factor ** (i + 1))
+            dim = self.channels / (self.factor ** (i + 1))
             dim = max(1, round(dim / 8)) * 8
 
             if dim == prev_dim:
@@ -133,7 +131,7 @@ class AdaptiveSoftmax(layers.Layer):
                 layers.Dense(
                     units=dim,
                     activation=None,
-                    use_bias=self.use_bias,
+                    use_bias=False,
                     kernel_initializer=self.kernel_initializer,
                     bias_initializer=self.bias_initializer,
                     kernel_regularizer=self.kernel_regularizer,
@@ -141,13 +139,13 @@ class AdaptiveSoftmax(layers.Layer):
                     kernel_constraint=self.kernel_constraint,
                     bias_constraint=self.bias_constraint,
                     name='tail_proj_{}'.format(i),
-                    input_shape=(self.input_channels,)
+                    input_shape=(self.channels,)
                 ),
                 layers.Dropout(self.dropout, name='tail_drop_{}'.format(i)),
                 layers.Dense(
                     units=self._cutoff[i + 1] - self._cutoff[i],
                     activation=None,
-                    use_bias=self.use_bias,
+                    use_bias=False,
                     kernel_initializer=self.kernel_initializer,
                     bias_initializer=self.bias_initializer,
                     bias_regularizer=self.bias_regularizer,
@@ -158,7 +156,6 @@ class AdaptiveSoftmax(layers.Layer):
                 ),
             ])
             self.tails.append(tail)
-            self.tail_channels.append(self._cutoff[i + 1] - self._cutoff[i])
 
         super(AdaptiveSoftmax, self).build(input_shape)
 
@@ -169,144 +166,157 @@ class AdaptiveSoftmax(layers.Layer):
         input_logits, input_targets = inputs
         input_logits = tf.cast(input_logits, self.compute_dtype)
 
-        input_logits, row_lengths = convert_inputs_if_ragged(input_logits)
-        input_targets, _ = convert_inputs_if_ragged(input_targets)
-        is_ragged_input = (row_lengths is not None)
-
-        loss_weights = tf.ones_like(input_targets, dtype=tf.bool)
-        loss_weights = maybe_convert_to_ragged(is_ragged_input, loss_weights, row_lengths)
-        if is_ragged_input:
-            loss_weights = loss_weights.to_tensor(False)
+        inputs_flat = tf.reshape(input_logits, [-1, self.channels])
+        targets_flat = tf.reshape(input_targets, [-1])
         if mask is not None:
-            loss_weights = tf.logical_and(loss_weights, mask)
-        loss_weights = tf.cast(loss_weights, self.compute_dtype)
+            mask = tf.reshape(mask, [-1])
 
-        probs, loss = smart_cond(
+        if not self.return_probs:
+            loss = self._train_loss(inputs_flat, targets_flat, mask)
+            loss = compute_weighted_loss(loss, reduction=self.loss_reduction)
+            self.add_loss(loss)
+
+            return input_logits
+
+        logprobs_flat, loss = smart_cond(
             training,
-            lambda: self._train_probs_loss(input_logits, input_targets, loss_weights),
-            lambda: self._eval_probs_loss(input_logits, input_targets, loss_weights)
-        )
-        self.add_loss(loss, inputs=True)
+            lambda: self._train_probs_loss(inputs_flat, targets_flat, mask),
+            lambda: self._eval_probs_loss(inputs_flat, targets_flat, mask))
+        self.add_loss(loss)
 
-        probs = maybe_convert_to_ragged(is_ragged_input, probs, row_lengths)
+        probs_flat = tf.math.exp(logprobs_flat)
 
-        return probs
+        if isinstance(input_logits, tf.RaggedTensor):
+            output_probs = input_targets.with_flat_values(probs_flat)
+        else:
+            probs_shape = tf.concat([tf.shape(input_logits)[:-1], [self.units]], axis=-1)
+            output_probs = tf.reshape(probs_flat, probs_shape)
 
-    def _train_probs_loss(self, inputs, targets, weights):
-        root_logits = self.head(inputs)
+        return output_probs
+
+    def _train_loss(self, inputs, targets, mask):
+        inputs = inputs if mask is None else inputs[mask]
+        targets = targets if mask is None else targets[mask]
+
+        root_logits = self.root(inputs)
         root_logits = tf.cast(root_logits, 'float32')
-        root_logprobs = tf.nn.log_softmax(root_logits)
-        head_logprobs = root_logprobs[..., :self._cutoff[0]]
 
-        tail_masks = []
+        full_loss = []
         root_targets = targets
         for i in range(len(self._cutoff) - 1):
-            tail_masks.append(tf.logical_and(
-                tf.greater_equal(targets, self._cutoff[i]),
-                tf.less(targets, self._cutoff[i + 1])
-            ))
-            clust_targets = tf.fill(tf.shape(root_targets), tf.cast(self._cutoff[0] + i, root_targets.dtype))
-            root_targets = tf.where(tail_masks[i], clust_targets, root_targets)
+            tail_mask = (targets >= self._cutoff[i]) & (targets < self._cutoff[i + 1])
+            root_targets = tf.where(tail_mask, self._cutoff[0] + i, root_targets)
+
+            tail_inputs = inputs[tail_mask]
+            tail_logits = self.tails[i](tail_inputs)
+            tail_logits = tf.cast(tail_logits, 'float32')
+
+            tail_targets = targets[tail_mask] - self._cutoff[i]
+
+            tail_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=tail_logits, labels=tail_targets)
+            tail_loss = compute_weighted_loss(tail_loss, reduction=self.loss_reduction)
+            full_loss.append(tail_loss)
+
         root_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=root_logits, labels=root_targets)
-        root_loss = compute_weighted_loss(root_loss, sample_weight=weights, reduction=self.loss_reduction)
-
-        full_loss = [root_loss]
-        full_logprobs = [head_logprobs]
-        targets_shape = tf.shape(targets)
-        for i in range(len(self._cutoff) - 1):
-            clust_start = self._cutoff[0] + i
-            clust_logprob = root_logprobs[..., clust_start:clust_start + 1]
-            tail_targets = targets - self._cutoff[i]
-
-            true_mask = tail_masks[i]
-            true_inputs = tf.boolean_mask(inputs, true_mask)
-            true_logits = self.tails[i](true_inputs, training=True)
-            true_logits = tf.cast(true_logits, 'float32')
-            true_clust_logprob = tf.boolean_mask(clust_logprob, true_mask)
-            true_logprobs = tf.nn.log_softmax(true_logits)
-            true_logprobs = tf.math.add(true_logprobs, true_clust_logprob)
-
-            false_mask = tf.logical_not(true_mask)
-            false_clust_logprob = tf.boolean_mask(clust_logprob, false_mask)
-            clust_size = tf.cast(self._cutoff[i + 1] - self._cutoff[i], false_clust_logprob.dtype)
-            false_logprobs = false_clust_logprob - tf.math.log(clust_size)
-            false_logprobs = tf.tile(false_logprobs, [1, clust_size])
-
-            target_indices = tf.range(tf.size(targets))
-            target_indices = tf.reshape(target_indices, targets_shape)
-            true_indices = tf.boolean_mask(target_indices, true_mask)
-            false_indices = tf.boolean_mask(target_indices, false_mask)
-            target_logprobs = tf.dynamic_stitch(  # TODO: data_flow_ops.parallel_dynamic_stitch ?
-                [true_indices, false_indices],
-                [true_logprobs, false_logprobs]
-            )
-
-            probs_shape = tf.concat([targets_shape, tf.shape(target_logprobs)[-1:]], axis=-1)
-            tail_probs = tf.reshape(target_logprobs, probs_shape)
-            full_logprobs.append(tail_probs)
-
-            true_targets = tf.boolean_mask(tail_targets, tail_masks[i])
-            true_weights = tf.boolean_mask(weights, tail_masks[i])
-            true_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=true_logits, labels=true_targets)
-            true_loss = compute_weighted_loss(true_loss, sample_weight=true_weights, reduction=self.loss_reduction)
-            full_loss.append(true_loss)
+        root_loss = compute_weighted_loss(root_loss, reduction=self.loss_reduction)
+        full_loss.insert(0, root_loss)
 
         loss = tf.reduce_mean(full_loss)
 
-        full_logprobs = tf.concat(full_logprobs, axis=-1)
-        probs = tf.math.exp(full_logprobs)
+        return loss
 
-        return probs, loss
-
-    def _eval_probs_loss(self, inputs, targets, weights):
-        root_logits = self.head(inputs)
+    def _train_probs_loss(self, inputs, targets, mask):
+        root_logits = self.root(inputs)
         root_logits = tf.cast(root_logits, 'float32')
         root_logprobs = tf.nn.log_softmax(root_logits)
-        head_logprobs = root_logprobs[..., :self._cutoff[0]]
+        root_logprobs = tf.split(root_logprobs, self._splits, axis=-1)
 
-        # required to match tails input shape in train branch
-        flat_inputs = tf.reshape(inputs, [-1, self.input_channels])
-        full_logprobs = [head_logprobs]
-        targets_shape = tf.shape(targets)
+        target_indices = tf.range(tf.size(targets))
+
+        full_loss = []
+        full_logprobs = root_logprobs[:1]
+        root_targets = targets
         for i in range(len(self._cutoff) - 1):
-            flat_logits = self.tails[i](flat_inputs, training=False)
-            tail_shape = tf.concat([targets_shape, [self.tail_channels[i]]], axis=-1)
-            tail_logits = tf.reshape(flat_logits, tail_shape)
+            tail_mask = (targets >= self._cutoff[i]) & (targets < self._cutoff[i + 1])
+            root_targets = tf.where(tail_mask, self._cutoff[0] + i, root_targets)
+
+            tail_inputs = inputs[tail_mask]
+            tail_logits = self.tails[i](tail_inputs)
             tail_logits = tf.cast(tail_logits, 'float32')
             tail_logprobs = tf.nn.log_softmax(tail_logits)
+            tail_logprobs += root_logprobs[i + 1][tail_mask]
 
-            clust_start = self._cutoff[0] + i
-            clust_logprob = root_logprobs[..., clust_start:clust_start + 1]
-            tail_logprobs = tf.math.add(tail_logprobs, clust_logprob)
-            full_logprobs.append(tail_logprobs)
+            tail_targets = targets[tail_mask] - self._cutoff[i]
+
+            tail_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=tail_logits, labels=tail_targets)
+            tail_loss = compute_weighted_loss(tail_loss, reduction=self.loss_reduction)
+            full_loss.append(tail_loss)
+
+            false_mask = ~tail_mask
+            cutoff_size = self._cutoff[i + 1] - self._cutoff[i]
+            false_logprobs = root_logprobs[i + 1][false_mask] - np.log(cutoff_size)
+            false_logprobs = tf.tile(false_logprobs, [1, cutoff_size])
+
+            full_logprobs.append(tf.dynamic_stitch(
+                [target_indices[tail_mask], target_indices[false_mask]],
+                [tail_logprobs, false_logprobs]
+            ))
+
+        root_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=root_logits, labels=root_targets)
+        root_loss = compute_weighted_loss(root_loss, reduction=self.loss_reduction)
+        full_loss.insert(0, root_loss)
+
+        full_loss = full_loss if mask is None else full_loss[mask]
+        full_loss = tf.reduce_mean(full_loss)
+
         full_logprobs = tf.concat(full_logprobs, axis=-1)
 
-        loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=full_logprobs, labels=targets)
-        loss = compute_weighted_loss(loss, sample_weight=weights, reduction=self.loss_reduction)
+        return full_logprobs, full_loss
 
-        probs = tf.math.exp(full_logprobs)
+    def _eval_probs_loss(self, inputs, targets, mask):
+        root_logits = self.root(inputs)
+        root_logits = tf.cast(root_logits, 'float32')
+        root_logprobs = tf.nn.log_softmax(root_logits)
+        root_logprobs = tf.split(root_logprobs, self._splits, axis=-1)
 
-        return probs, loss
+        full_logprobs = root_logprobs[:1]
+        for i in range(len(self._cutoff) - 1):
+            tail_logits = self.tails[i](inputs, training=False)
+            tail_logits = tf.cast(tail_logits, 'float32')
+            tail_logprobs = tf.nn.log_softmax(tail_logits)
+            full_logprobs.append(tail_logprobs + root_logprobs[i + 1])
+        full_logprobs = tf.concat(full_logprobs, axis=-1)
+
+        full_loss = tf.nn.sparse_softmax_cross_entropy_with_logits(logits=full_logprobs, labels=targets)
+        full_loss = full_loss if mask is None else full_loss[mask]
+        full_loss = compute_weighted_loss(full_loss, reduction=self.loss_reduction)
+
+        return full_logprobs, full_loss
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
+        if not self.return_probs:
+            return input_shape[0]
+
         predictions_shape, _ = input_shape
 
         return predictions_shape[:-1] + (self.units,)
 
     def compute_output_signature(self, input_signature):
         outptut_signature = super().compute_output_signature(input_signature)
+        if not self.return_probs:
+            return outptut_signature
 
         return tf.TensorSpec(dtype='float32', shape=outptut_signature.shape)
 
     def get_config(self):
         config = super(AdaptiveSoftmax, self).get_config()
         config.update({
-            'cutoff': self.cutoff,
             'units': self.units,
+            'cutoff': self.cutoff,
+            'return_probs': self.return_probs,
             'factor': self.factor,
             'dropout': self.dropout,
-            'use_bias': self.use_bias,
             'kernel_initializer': initializers.serialize(self.kernel_initializer),
             'bias_initializer': initializers.serialize(self.bias_initializer),
             'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
@@ -335,6 +345,8 @@ class SampledSofmax(layers.Layer):
         units: An `int`. The number of possible classes.
         negatives: An `int`.  The number of negative classes to randomly sample per batch. This single sample of
             negative classes is evaluated for each element in the batch.
+        return_probs: Boolean, whether to estimate and return full probability matrix. Disabled by default
+            to reduce computations.
         kernel_initializer: Initializer for the `kernel` weights matrix.
         bias_initializer: Initializer for the bias vector.
         kernel_regularizer: Regularizer function applied to the `kernel` weights matrix.
@@ -348,8 +360,8 @@ class SampledSofmax(layers.Layer):
     """
 
     def __init__(
-            self, units, negatives, kernel_initializer='zeros', bias_initializer='zeros', kernel_regularizer=None,
-            bias_regularizer=None, kernel_constraint=None, bias_constraint=None,
+            self, units, negatives, return_probs=False, kernel_initializer='zeros', bias_initializer='zeros',
+            kernel_regularizer=None, bias_regularizer=None, kernel_constraint=None, bias_constraint=None,
             loss_reduction=Reduction.AUTO, **kwargs):
         kwargs['dtype'] = 'float32'
         kwargs['autocast'] = False
@@ -365,6 +377,7 @@ class SampledSofmax(layers.Layer):
 
         self.units = units
         self.negatives = negatives
+        self.return_probs = return_probs
         self.kernel_initializer = initializers.get(kernel_initializer)
         self.bias_initializer = initializers.get(bias_initializer)
         self.kernel_regularizer = regularizers.get(kernel_regularizer)
@@ -375,35 +388,29 @@ class SampledSofmax(layers.Layer):
 
     @shape_type_conversion
     def build(self, input_shape):
-        dtype = tf.dtypes.as_dtype(self.dtype or backend.floatx())
-        if not (dtype.is_floating or dtype.is_complex):
-            raise TypeError(
-                'Unable to build `{}` layer with non-floating point dtype {}'.format(self.__class__.__name__, dtype))
-
         predictions_shape, targets_shape = input_shape
         predictions_rank = len(predictions_shape)
         if len(targets_shape) + 1 != predictions_rank:
             raise ValueError('Targets shape {} rank must be one less than predictions '
                              'shape rank {}'.format(targets_shape, predictions_shape))
 
-        self.num_channels = predictions_shape[-1]
-        if self.num_channels is None:
+        self.channels = predictions_shape[-1]
+        if self.channels is None:
             raise ValueError('Channel dimension of predictions should be defined. Found `None`.')
         self.input_spec = [
-            layers.InputSpec(ndim=predictions_rank, axes={-1: self.num_channels}),
+            layers.InputSpec(ndim=predictions_rank, axes={-1: self.channels}),
             layers.InputSpec(ndim=predictions_rank - 1, dtype=tf.int32)
         ]
 
         with tf.device('cpu:0'):
             self.kernel = self.add_weight(
-                shape=(self.units, self.num_channels),
+                shape=(self.units, self.channels),
                 initializer=self.kernel_initializer,
                 regularizer=self.kernel_regularizer,
                 constraint=self.kernel_constraint,
                 name='kernel',
                 dtype=self.dtype,
-                trainable=True
-            )
+                trainable=True)
             self.bias = self.add_weight(
                 shape=(self.units,),
                 initializer=self.bias_initializer,
@@ -411,8 +418,7 @@ class SampledSofmax(layers.Layer):
                 constraint=self.bias_constraint,
                 name='bias',
                 dtype=self.dtype,
-                trainable=True
-            )
+                trainable=True)
 
         super(SampledSofmax, self).build(input_shape)
 
@@ -423,64 +429,58 @@ class SampledSofmax(layers.Layer):
 
             input_logits, input_targets = inputs
             input_logits = tf.cast(input_logits, self.compute_dtype)
-            input_logits, row_lengths = convert_inputs_if_ragged(input_logits)
-            input_targets, _ = convert_inputs_if_ragged(input_targets)
-            is_ragged_input = (row_lengths is not None)
 
-            loss_weights = tf.ones_like(input_targets, dtype=tf.bool)
-            loss_weights = maybe_convert_to_ragged(is_ragged_input, loss_weights, row_lengths)
-            if is_ragged_input:
-                loss_weights = loss_weights.to_tensor(False)
+            inputs_flat = tf.reshape(input_logits, [-1, self.channels])
+            targets_flat = tf.reshape(input_targets, [-1])
             if mask is not None:
-                loss_weights = tf.logical_and(loss_weights, mask)
-            loss_weights = tf.cast(loss_weights, self.compute_dtype)
+                mask = tf.reshape(mask, [-1])
 
-            input_shape = tf.shape(input_logits)
-            output_shape = tf.stack(tf.unstack(input_shape)[:-1] + [self.units])
-            input_logits = tf.reshape(input_logits, [-1, self.num_channels])
-            input_targets = tf.reshape(input_targets, [-1])
-            loss_weights = tf.reshape(loss_weights, [-1])
+            if not self.return_probs:
+                loss = self._train_loss(inputs_flat, targets_flat)
+                loss = loss if mask is None else loss[mask]
+                loss = compute_weighted_loss(loss, reduction=self.loss_reduction)
+                self.add_loss(loss)
 
-            output_logits = tf.matmul(input_logits, self.kernel, transpose_b=True)
-            output_logits = tf.nn.bias_add(output_logits, self.bias)
+                return input_logits
+
+            logits_flat = tf.matmul(inputs_flat, self.kernel, transpose_b=True)
+            logits_flat = tf.nn.bias_add(logits_flat, self.bias)
 
             loss = smart_cond(
                 training,
-                lambda: self._train_loss(input_logits, input_targets),
-                lambda: self._eval_loss(output_logits, input_targets)
-            )
-            loss = compute_weighted_loss(loss, sample_weight=loss_weights, reduction=self.loss_reduction)
-            self.add_loss(loss, inputs=True)
+                lambda: self._train_loss(inputs_flat, targets_flat),
+                lambda: self._eval_loss(logits_flat, targets_flat))
+            loss = loss if mask is None else loss[mask]
+            loss = compute_weighted_loss(loss, reduction=self.loss_reduction)
+            self.add_loss(loss)
 
-            output_probs = tf.nn.softmax(output_logits)
-            output_probs = tf.reshape(output_probs, output_shape)
-            output_probs = maybe_convert_to_ragged(is_ragged_input, output_probs, row_lengths)
+            probs_flat = tf.nn.softmax(logits_flat)
+
+            if isinstance(input_logits, tf.RaggedTensor):
+                output_probs = input_targets.with_flat_values(probs_flat)
+            else:
+                probs_shape = tf.concat([tf.shape(input_logits)[:-1], [self.units]], axis=-1)
+                output_probs = tf.reshape(probs_flat, probs_shape)
 
             return output_probs
 
     def _train_loss(self, logits, targets):
-        labels_exp_dim = tf.expand_dims(targets, axis=-1)
-
         return tf.nn.sampled_softmax_loss(
             weights=self.kernel,
             biases=self.bias,
-            labels=labels_exp_dim,
+            labels=targets[..., None],
             inputs=logits,
             num_sampled=self.negatives,
-            num_classes=self.units,
-        )
+            num_classes=self.units)
 
     def _eval_loss(self, logits, targets):
-        labels_one_hot = tf.one_hot(targets, self.units)
-        loss = tf.nn.softmax_cross_entropy_with_logits(
-            logits=logits,
-            labels=labels_one_hot
-        )
-
-        return loss
+        return tf.nn.sparse_softmax_cross_entropy_with_logits(logits=logits, labels=targets)
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
+        if not self.return_probs:
+            return input_shape[0]
+
         predictions_shape, _ = input_shape
 
         return predictions_shape[:-1] + (self.units,)
@@ -490,6 +490,7 @@ class SampledSofmax(layers.Layer):
         config.update({
             'units': self.units,
             'negatives': self.negatives,
+            'return_probs': self.return_probs,
             'kernel_initializer': initializers.serialize(self.kernel_initializer),
             'bias_initializer': initializers.serialize(self.bias_initializer),
             'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
@@ -509,10 +510,8 @@ class NoiseContrastiveEstimation(SampledSofmax):
     Noise-contrastive estimation: A new estimation principle for unnormalized statistical models
     Gutmann, Hyvarinen (2010)
 
-    Note: The full sigmoid loss calculated for evaluation.
-    Note: By default this uses a log-uniform (Zipfian) distribution for sampling, so your labels must be sorted in
-    order of decreasing frequency to achieve good results.  For more details, see
-    `tf.random.log_uniform_candidate_sampler`.
+    Note: This layer uses a log-uniform (Zipfian) distribution for sampling, so your labels must be sorted in order of
+    decreasing frequency to achieve good results.  For more details, see `tf.random.log_uniform_candidate_sampler`.
     """
 
     def _train_loss(self, logits, targets):
