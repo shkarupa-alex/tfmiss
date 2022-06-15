@@ -36,6 +36,7 @@ REGISTER_OP("Miss>WordpieceTokenize")
     .Attr("split_unknown_characters: bool = false")
     .Attr("output_row_partition_type: {'row_lengths', 'row_splits'}"
           " = 'row_lengths'")
+    .Attr("skip: list(string)")
     .Output("output_values: string")
     .Output("output_row_lengths: int64")
     .Output("start_values: int64")
