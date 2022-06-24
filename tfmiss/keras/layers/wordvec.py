@@ -19,9 +19,9 @@ class WordEmbedding(layers.Layer):
 
     def __init__(self, vocabulary=None, output_dim=None, normalize_unicode='NFKC', lower_case=False, zero_digits=False,
                  max_len=None, reserved_words=None, embed_type='dense_auto', adapt_cutoff=None, adapt_factor=4,
-                 embeddings_initializer='uniform', **kwargs):
+                 with_prep=False, embeddings_initializer='uniform', **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(min_ndim=1, dtype='int64')
+        self.input_spec = layers.InputSpec(min_ndim=1, dtype='string' if with_prep else 'int64')
         self._supports_ragged_inputs = True
 
         if vocabulary is not None:
@@ -57,6 +57,7 @@ class WordEmbedding(layers.Layer):
         self.adapt_cutoff = adapt_cutoff
         self.adapt_factor = adapt_factor
         self.embeddings_initializer = initializers.get(embeddings_initializer)
+        self.with_prep = with_prep
 
         self._reserved_words = [] if reserved_words is None else reserved_words
         self._reserved_words = [self.UNK_MARK] + [r for r in self._reserved_words if self.UNK_MARK != r]
@@ -158,6 +159,9 @@ class WordEmbedding(layers.Layer):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
+        if self.with_prep:
+            inputs = self.preprocess(inputs)
+
         return self.embed(inputs)
 
     @shape_type_conversion
@@ -177,6 +181,7 @@ class WordEmbedding(layers.Layer):
             'embed_type': self.embed_type,
             'adapt_cutoff': self.adapt_cutoff,
             'adapt_factor': self.adapt_factor,
+            'with_prep': self.with_prep,
             'embeddings_initializer': initializers.serialize(self.embeddings_initializer)
         })
 
@@ -190,12 +195,12 @@ class NgramEmbedding(WordEmbedding):
 
     def __init__(self, vocabulary=None, output_dim=None, minn=3, maxn=5, itself='always', reduction='mean',
                  normalize_unicode='NFKC', lower_case=False, zero_digits=False, max_len=None, reserved_words=None,
-                 embed_type='dense_auto', adapt_cutoff=None, adapt_factor=4, embeddings_initializer='uniform',
-                 **kwargs):
+                 embed_type='dense_auto', adapt_cutoff=None, adapt_factor=4, with_prep=False,
+                 embeddings_initializer='uniform', **kwargs):
         super().__init__(vocabulary=vocabulary, output_dim=output_dim, normalize_unicode=normalize_unicode,
                          lower_case=lower_case, zero_digits=zero_digits, max_len=max_len, reserved_words=reserved_words,
                          embed_type=embed_type, adapt_cutoff=adapt_cutoff, adapt_factor=adapt_factor,
-                         embeddings_initializer=embeddings_initializer, **kwargs)
+                         with_prep=with_prep, embeddings_initializer=embeddings_initializer, **kwargs)
 
         self.minn = minn
         self.maxn = maxn
@@ -216,7 +221,7 @@ class NgramEmbedding(WordEmbedding):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        if not isinstance(inputs, tf.RaggedTensor):
+        if not self.with_prep and not isinstance(inputs, tf.RaggedTensor):
             raise ValueError('Expecting "inputs to be "RaggedTensor" instance.')
 
         embeds = super().call(inputs)
@@ -226,7 +231,11 @@ class NgramEmbedding(WordEmbedding):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return input_shape[:-1] + (self.output_dim,)
+        prep_shape = input_shape
+        if not self.with_prep:
+            prep_shape = input_shape[:-1]
+
+        return prep_shape + (self.output_dim,)
 
     def get_config(self):
         config = super().get_config()
@@ -248,7 +257,7 @@ class BpeEmbedding(WordEmbedding):
                  num_iterations=4, max_tokens=-1, max_chars=1000, slack_ratio=0.05, include_joiner=True,
                  joiner_prefix='##', reduction='mean', normalize_unicode='NFKC', lower_case=False, zero_digits=False,
                  max_len=None, reserved_words=None, embed_type='dense_auto', adapt_cutoff=None, adapt_factor=4,
-                 embeddings_initializer='uniform', **kwargs):
+                 with_prep=False, embeddings_initializer='uniform', **kwargs):
 
         _reserved_words = [self.UNK_CHAR]
         _reserved_words += [] if reserved_words is None else [r for r in reserved_words if r not in _reserved_words]
@@ -256,7 +265,8 @@ class BpeEmbedding(WordEmbedding):
         super().__init__(vocabulary=vocabulary, output_dim=output_dim, normalize_unicode=normalize_unicode,
                          lower_case=lower_case, zero_digits=zero_digits, max_len=max_len,
                          reserved_words=_reserved_words, embed_type=embed_type, adapt_cutoff=adapt_cutoff,
-                         adapt_factor=adapt_factor, embeddings_initializer=embeddings_initializer, **kwargs)
+                         adapt_factor=adapt_factor, with_prep=with_prep, embeddings_initializer=embeddings_initializer,
+                         **kwargs)
 
         self.vocab_size = vocab_size
         self.upper_thresh = upper_thresh
@@ -327,7 +337,7 @@ class BpeEmbedding(WordEmbedding):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        if not isinstance(inputs, tf.RaggedTensor):
+        if not self.with_prep and not isinstance(inputs, tf.RaggedTensor):
             raise ValueError('Expecting `inputs` to be `RaggedTensor` instance.')
 
         embeds = super().call(inputs)
@@ -337,7 +347,11 @@ class BpeEmbedding(WordEmbedding):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return input_shape[:-1] + (self.output_dim,)
+        prep_shape = input_shape
+        if not self.with_prep:
+            prep_shape = input_shape[:-1]
+
+        return prep_shape + (self.output_dim,)
 
     def get_config(self):
         config = super().get_config()
@@ -365,7 +379,7 @@ class CnnEmbedding(WordEmbedding):
     def __init__(self, vocabulary=None, output_dim=None, kernels=(1, 2, 3, 4, 5, 6, 7),
                  filters=(32, 32, 64, 128, 256, 512, 1024), char_dim=16, activation='tanh', highways=2,
                  normalize_unicode='NFKC', lower_case=False, zero_digits=False, max_len=None, reserved_words=None,
-                 embed_type='dense_auto', adapt_cutoff=None, adapt_factor=4,
+                 embed_type='dense_auto', adapt_cutoff=None, adapt_factor=4, with_prep=False,
                  embeddings_initializer=initializers.random_uniform(-1., 1.), **kwargs):
 
         _reserved_words = [self.BOW_MARK, self.EOW_MARK]
@@ -374,7 +388,8 @@ class CnnEmbedding(WordEmbedding):
         super().__init__(vocabulary=vocabulary, output_dim=output_dim, normalize_unicode=normalize_unicode,
                          lower_case=lower_case, zero_digits=zero_digits, max_len=max_len,
                          reserved_words=_reserved_words, embed_type=embed_type, adapt_cutoff=adapt_cutoff,
-                         adapt_factor=adapt_factor, embeddings_initializer=embeddings_initializer, **kwargs)
+                         adapt_factor=adapt_factor, with_prep=with_prep, embeddings_initializer=embeddings_initializer,
+                         **kwargs)
 
         if not kernels or not isinstance(kernels, (list, tuple)) or \
                 not all(map(lambda x: isinstance(x, int), kernels)):
@@ -433,13 +448,17 @@ class CnnEmbedding(WordEmbedding):
         super().build(input_shape)
 
     def call(self, inputs, **kwargs):
-        if not isinstance(inputs, tf.RaggedTensor):
+        if not self.with_prep and not isinstance(inputs, tf.RaggedTensor):
             raise ValueError('Expecting `inputs` to be `RaggedTensor` instance.')
+
+        if self.with_prep:
+            inputs = self.preprocess(inputs)
 
         rows = inputs.nested_row_lengths()
         flats = tf.RaggedTensor.from_row_lengths(inputs.flat_values, rows[-1])
 
-        embeds = super().call(flats)
+        # embeds = super().call(flats) # without preprocessing
+        embeds = self.embed(flats)
         embeds = embeds.to_tensor()
 
         convs = [c(embeds) for c in self.conv]
@@ -460,7 +479,11 @@ class CnnEmbedding(WordEmbedding):
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
-        return input_shape[:-1] + (self.output_dim,)
+        prep_shape = input_shape
+        if not self.with_prep:
+            prep_shape = input_shape[:-1]
+
+        return prep_shape + (self.output_dim,)
 
     def get_config(self):
         config = super().get_config()
