@@ -104,7 +104,7 @@ def GetHostCompilerOptions(argv):
     return opts
 
 def _update_options(nvcc_options):
-    if NVCC_VERSION in ("9.0",):
+    if NVCC_VERSION in ("7.0",):
         return nvcc_options
 
     update_options = { "relaxed-constexpr" : "expt-relaxed-constexpr" }

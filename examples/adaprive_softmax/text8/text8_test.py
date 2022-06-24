@@ -22,6 +22,7 @@ if __name__ == "__main__":
     parser.add_argument('--seed', type=int, default=1111, help='Random seed')
     parser.add_argument('--cutoff', type=str, default='2000,10000', help='Adaptive softmax cutoffs')
     parser.add_argument('--negatives', type=int, default=10, help='Number of negative examples for sampled softmaxes')
+    parser.add_argument('--return_probs', action='store_true', default=False)
     argv, _ = parser.parse_known_args()
 
     argv_cutoff = [int(cf) for cf in argv.cutoff.split(',')]
@@ -43,7 +44,8 @@ if __name__ == "__main__":
             core=Text8Model.OUT_SM,
             dropout=argv.dropout,
             cutoff=argv_cutoff,
-            negatives=argv.negatives
+            negatives=argv.negatives,
+            return_probs=argv.return_probs
         ),
 
         Text8Model(
@@ -54,7 +56,8 @@ if __name__ == "__main__":
             core=Text8Model.OUT_SS,
             dropout=argv.dropout,
             cutoff=argv_cutoff,
-            negatives=argv.negatives
+            negatives=argv.negatives,
+            return_probs=argv.return_probs
         ),
 
         Text8Model(
@@ -65,7 +68,8 @@ if __name__ == "__main__":
             core=Text8Model.OUT_ASM,
             dropout=argv.dropout,
             cutoff=argv_cutoff,
-            negatives=argv.negatives
+            negatives=argv.negatives,
+            return_probs=argv.return_probs
         ),
         Text8Model(
             seq_len=argv.seq_len,
@@ -75,7 +79,8 @@ if __name__ == "__main__":
             core=Text8Model.OUT_ASM,
             dropout=argv.dropout,
             cutoff=[3526, 13950],
-            negatives=argv.negatives
+            negatives=argv.negatives,
+            return_probs=argv.return_probs
         ),
         Text8Model(
             seq_len=argv.seq_len,
@@ -85,7 +90,8 @@ if __name__ == "__main__":
             core=Text8Model.OUT_ASM,
             dropout=argv.dropout,
             cutoff=[454, 7358],
-            negatives=argv.negatives
+            negatives=argv.negatives,
+            return_probs=argv.return_probs
         ),
     ]
 
@@ -119,5 +125,8 @@ if __name__ == "__main__":
     pyplot.xlabel('Time (minutes)')
     pyplot.ylabel('Crossentropy')
     pyplot.legend()
-    pyplot.savefig('loss.png')
+    if argv.return_probs:
+        pyplot.savefig('loss.png')
+    else:
+        pyplot.savefig('speed_no_probs.png')
     pyplot.close()

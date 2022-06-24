@@ -10,7 +10,7 @@ from tfmiss.ops import tfmiss_ops
 
 def word_piece(
         source, lookup_table, joiner_prefix='##', max_bytes=100, max_chars=0, unknown_token='[UNK]',
-        split_unknown=False, name=None):
+        split_unknown=False, skip=None, name=None):
     """Generates `Continuous bag-of-words` contexts for inference from batched list of tokens.
 
     Args:
@@ -25,6 +25,7 @@ def word_piece(
             no substitution occurs.
         split_unknown: `bool`, whether to split out single unknown characters as subtokens. If False (default), words
             containing unknown characters will be treated as single unknown tokens.
+        skip: list of strings to pass without changes or None.
         name: `string`, a name for the operation (optional).
 
     Returns:
@@ -46,7 +47,7 @@ def word_piece(
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
                 word_piece(source.flat_values, lookup_table, joiner_prefix, max_bytes, max_chars, unknown_token,
-                           split_unknown)
+                           split_unknown, skip)
             )
 
         values, row_splits, _, _ = tfmiss_ops.miss_wordpiece_tokenize(
@@ -58,7 +59,9 @@ def word_piece(
             max_chars_per_token=max_chars,
             unknown_token=unknown_token or '[UNK]',
             split_unknown_characters=split_unknown,
-            output_row_partition_type='row_splits')
+            output_row_partition_type='row_splits',
+            skip=skip or []
+        )
 
         if source.shape.rank == 0:
             return values

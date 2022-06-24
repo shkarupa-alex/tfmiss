@@ -83,6 +83,22 @@ bool GetSplitUnknownCharacters(OpKernelConstruction* ctx) {
   return split_unknown_characters;
 }
 
+std::unordered_set<string> GetSkipTokens(OpKernelConstruction* ctx) {
+  std::vector<string> skip_list;
+
+  ([&](std::vector<string>* c) -> void {
+    OP_REQUIRES_OK(ctx, ctx->GetAttr("skip", c));
+  })(&skip_list);
+
+  std::unordered_set<string> skip_set;
+  for (string key : skip_list)
+  {
+    skip_set.insert(key);
+  }
+
+  return skip_set;
+}
+
 Status GetTableHandle(const string& input_name, OpKernelContext* ctx,
                       string* container, string* table_handle) {
   {
@@ -182,7 +198,8 @@ class WordpieceTokenizeOp : public OpKernel {
         max_chars_per_token_(GetMaxCharsPerToken(ctx)),
         use_unknown_token_(GetShouldUseUnknownToken(ctx)),
         unknown_token_(GetUnknownToken(ctx)),
-        split_unknown_characters_(GetSplitUnknownCharacters(ctx)) {
+        split_unknown_characters_(GetSplitUnknownCharacters(ctx)),
+        skip_(GetSkipTokens(ctx)) {
     string output_row_partition_type;
     OP_REQUIRES_OK(ctx, ctx->GetAttr("output_row_partition_type",
                                      &output_row_partition_type));
@@ -221,12 +238,24 @@ class WordpieceTokenizeOp : public OpKernel {
     for (int i = 0; i < values_vec.size(); ++i) {
       // Tokenize into subwords and record the offset locations.
       int num_wordpieces = 0;
-      OP_REQUIRES_OK(
+
+      string token = values_vec(i);
+      if (skip_.count(token))
+      {
+        begin_offset.push_back(0);
+        num_wordpieces = 1;
+        subwords.emplace_back(token);
+        end_offset.push_back(token.size());
+      }
+      else
+      {
+        OP_REQUIRES_OK(
           ctx, ToStatus(WordpieceTokenize(
-                   values_vec(i), max_bytes_per_word_, max_chars_per_token_,
-                   suffix_indicator_, use_unknown_token_, unknown_token_,
-                   split_unknown_characters_, &vocab_map, &subwords,
-                   &begin_offset, &end_offset, &num_wordpieces)));
+           values_vec(i), max_bytes_per_word_, max_chars_per_token_,
+           suffix_indicator_, use_unknown_token_, unknown_token_,
+           split_unknown_characters_, &vocab_map, &subwords,
+           &begin_offset, &end_offset, &num_wordpieces)));
+      }
 
       // Record the row splits.
       switch (row_partition_type_) {
@@ -296,6 +325,7 @@ class WordpieceTokenizeOp : public OpKernel {
   const bool use_unknown_token_;
   const string unknown_token_;
   const bool split_unknown_characters_;
+  const std::unordered_set<string> skip_;
   RowPartitionType row_partition_type_;
 
   TF_DISALLOW_COPY_AND_ASSIGN(WordpieceTokenizeOp);

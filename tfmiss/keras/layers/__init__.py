@@ -13,5 +13,5 @@ from tfmiss.keras.layers.softmax import AdaptiveSoftmax, NoiseContrastiveEstimat
 from tfmiss.keras.layers.tcn import TemporalConvNet
 from tfmiss.keras.layers.reduction import Reduction
 from tfmiss.keras.layers.todense import ToDense
-from tfmiss.keras.layers.wordvec import WordEmbedding, CharNgramEmbedding, CharBpeEmbedding, CharCnnEmbedding
+from tfmiss.keras.layers.wordvec import WordEmbedding, NgramEmbedding, BpeEmbedding, CnnEmbedding
 from tfmiss.keras.layers.wrappers import MapFlat, WeightNorm, WithRagged

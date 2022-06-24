@@ -17,56 +17,62 @@ class WordEmbedding(layers.Layer):
     UNK_MARK = '[UNK]'
     REP_CHAR = '\uFFFD'
 
-    def __init__(self, vocabulary, output_dim, normalize_unicode='NFKC', lower_case=False, zero_digits=False,
+    def __init__(self, vocabulary=None, output_dim=None, normalize_unicode='NFKC', lower_case=False, zero_digits=False,
                  max_len=None, reserved_words=None, embed_type='dense_auto', adapt_cutoff=None, adapt_factor=4,
-                 embeddings_initializer='uniform', show_warning=True, **kwargs):
+                 embeddings_initializer='uniform', **kwargs):
         super().__init__(**kwargs)
-        self.input_spec = layers.InputSpec(min_ndim=1, max_ndim=2, dtype='string')
+        self.input_spec = layers.InputSpec(min_ndim=1, dtype='int64')
+        self._supports_ragged_inputs = True
 
-        if not isinstance(vocabulary, list) or not all(map(lambda x: isinstance(x, str), vocabulary)):
-            raise ValueError('Expected "vocabulary" to be a list of strings')
-        if len(vocabulary) != len(set(vocabulary)):
-            raise ValueError('Expected "vocabulary" to contain unique values')
+        if vocabulary is not None:
+            if not isinstance(vocabulary, list) or not all(map(lambda x: isinstance(x, str), vocabulary)):
+                raise ValueError('Expecting "vocabulary" to be a list of strings')
+            if len(vocabulary) != len(set(vocabulary)):
+                raise ValueError('Expecting "vocabulary" to contain unique values')
         self.vocabulary = vocabulary
 
+        if output_dim is not None and output_dim < 1:
+            raise ValueError('Expecting "output_dim" to be None or greater then 0')
         self.output_dim = output_dim
+
         self.normalize_unicode = normalize_unicode
         self.lower_case = lower_case
         self.zero_digits = zero_digits
 
         if max_len is not None and max_len < 3:
-            raise ValueError('Expected "max_len" to be None or greater then 2')
+            raise ValueError('Expecting "max_len" to be None or greater then 2')
         self.max_len = max_len
 
-        if reserved_words and len(reserved_words) != len(set(reserved_words)):
-            raise ValueError('Expected "reserved_words" to contain unique values')
+        if reserved_words is not None:
+            if not isinstance(reserved_words, list) or not all(map(lambda x: isinstance(x, str), reserved_words)):
+                raise ValueError('Expecting "reserved_words" to be a list of strings')
+            if len(reserved_words) != len(set(reserved_words)):
+                raise ValueError('Expecting "reserved_words" to contain unique values')
         self.reserved_words = reserved_words
 
         if embed_type not in {'dense_auto', 'dense_cpu', 'adapt'}:
-            raise ValueError('Expected "embed_type" to be one of "dense_auto", "dense_cpu" or "adapt"')
+            raise ValueError('Expecting "embed_type" to be one of "dense_auto", "dense_cpu" or "adapt"')
         self.embed_type = embed_type
 
         self.adapt_cutoff = adapt_cutoff
         self.adapt_factor = adapt_factor
         self.embeddings_initializer = initializers.get(embeddings_initializer)
-        self.show_warning = show_warning
 
-        all_reserved_words = [] if reserved_words is None else [r for r in reserved_words if self.UNK_MARK != r]
-        self._reserved_words = [self.UNK_MARK] + all_reserved_words
+        self._reserved_words = [] if reserved_words is None else reserved_words
+        self._reserved_words = [self.UNK_MARK] + [r for r in self._reserved_words if self.UNK_MARK != r]
 
-        miss_reserved_words = [m for m in self._reserved_words if m not in vocabulary]
-        if show_warning and miss_reserved_words:
-            tf.get_logger().warning('Vocabulary missed some reserved_words values: {}. '
-                                    'This may indicate an error in estimated vocabulary'.format(miss_reserved_words))
+        self._vocabulary = [] if vocabulary is None else vocabulary
+        self._vocabulary = self._reserved_words + [v for v in self._vocabulary if v not in self._reserved_words]
 
-        clean_vocab = [w for w in vocabulary if w not in self._reserved_words]
-        self._vocabulary = self._reserved_words + clean_vocab
+        self._lookup = None
 
     def vocab(self, word_counts, **kwargs):
         if not word_counts:
             raise ValueError('Can\'t estimate vocabulary with empty word counter')
         if not all(map(lambda k: isinstance(k, str), word_counts.keys())):
-            raise ValueError('Expected all words to be strings')
+            raise ValueError('Expecting all words to be strings')
+        if not all(map(lambda k: isinstance(k, int), word_counts.values())):
+            raise ValueError('Expecting all frequencies to be integers')
 
         word_counts = Vocabulary(word_counts)
         word_tokens = word_counts.tokens()
@@ -76,74 +82,83 @@ class WordEmbedding(layers.Layer):
 
         adapt_counts = Vocabulary()
         for adapts, word in zip(adapt_words, word_tokens):
-            adapts = np.char.decode(adapts.numpy().reshape([-1]).astype('S'), 'utf-8')
+            adapts = np.char.decode(adapts.numpy().ravel().astype('S'), 'utf-8')
             for adapt in adapts:
                 adapt_counts[adapt] += word_counts[word]
 
         return adapt_counts
 
+    def adapt(self, inputs):
+        outputs = inputs
+
+        if self.normalize_unicode:
+            outputs = miss_text.normalize_unicode(outputs, form=self.normalize_unicode, skip=self._reserved_words)
+        if self.lower_case:
+            outputs = miss_text.lower_case(outputs, skip=self._reserved_words)
+        if self.zero_digits:
+            outputs = miss_text.zero_digits(outputs, skip=self._reserved_words)
+
+        if self.max_len is not None:
+            values = outputs
+            if isinstance(outputs, tf.RaggedTensor):
+                values = outputs.flat_values
+
+            lengths = tf.strings.length(values, unit='UTF8_CHAR')
+
+            cutouts = tf.stack([
+                miss_text.sub_string(values, 0, self.max_len // 2, skip=self._reserved_words),
+                tf.fill(tf.shape(values), self.REP_CHAR),
+                miss_text.sub_string(values, -self.max_len // 2 + 1, -1, skip=self._reserved_words)], axis=-1)
+            cutouts = tf.strings.reduce_join(cutouts, axis=-1)
+            cutouts = tf.where(lengths > self.max_len, cutouts, values)
+
+            if isinstance(outputs, tf.RaggedTensor):
+                outputs = outputs.with_flat_values(cutouts)
+            else:
+                outputs = cutouts
+
+        return outputs
+
+    def lookup(self, inputs=None):
+        if self._lookup is None:
+            if not set(self._vocabulary) - set(self._reserved_words):
+                raise ValueError('Can\'t make lookup with empty vocabulary')
+
+            self._lookup = layers.StringLookup(vocabulary=self._vocabulary, mask_token=None, oov_token=self.UNK_MARK)
+
+        if inputs is None:
+            return None
+
+        return self._lookup(inputs)
+
+    def preprocess(self, inputs):
+        adapts = self.adapt(inputs)
+        indices = self.lookup(adapts)
+
+        return indices
+
     @shape_type_conversion
-    def build(self, input_shape=None):
-        self.squeeze = False
-        if 2 == len(input_shape):
-            if 1 != input_shape[-1]:
-                raise ValueError(
-                    'Input 0 of layer {} is incompatible with the layer: if ndim=2 expected axis[-1]=1, found '
-                    'axis[-1]={}. Full shape received: {}'.format(self.name, input_shape[-1], input_shape))
+    def build(self, input_shape):
+        if not self.output_dim:
+            raise ValueError('Can\'t build embedding matrix without output_dim')
 
-            self.squeeze = True
-            input_shape = input_shape[:1]
-
-        self.lookup = layers.StringLookup(vocabulary=self._vocabulary, mask_token=None, oov_token=self.UNK_MARK)
-        self.lookup.build(input_shape)
+        self.lookup()  # Init lookup table
 
         if 'adapt' == self.embed_type:
             self.embed = AdaptiveEmbedding(
-                self.adapt_cutoff, self.lookup.vocabulary_size(), self.output_dim, factor=self.adapt_factor,
+                self.adapt_cutoff, self._lookup.vocabulary_size(), self.output_dim, factor=self.adapt_factor,
                 embeddings_initializer=self.embeddings_initializer)
         else:
             self.embed = layers.Embedding(
-                self.lookup.vocabulary_size(), self.output_dim, embeddings_initializer=self.embeddings_initializer)
-            if 'dense_auto' == self.embed_type:
-                self.embed.build(input_shape)
-            else:  # 'dense_cpu' == self.embed_type
+                self._lookup.vocabulary_size(), self.output_dim, embeddings_initializer=self.embeddings_initializer)
+            if 'dense_cpu' == self.embed_type:
                 with tf.device('cpu:0'):
                     self.embed.build(input_shape)
 
         super().build(input_shape)
 
-    def adapt(self, inputs):
-        inputs = tf.convert_to_tensor(inputs, dtype='string')
-
-        if self.normalize_unicode:
-            inputs = miss_text.normalize_unicode(inputs, form=self.normalize_unicode, skip=self._reserved_words)
-        if self.lower_case:
-            inputs = miss_text.lower_case(inputs, skip=self._reserved_words)
-        if self.zero_digits:
-            inputs = miss_text.zero_digits(inputs, skip=self._reserved_words)
-
-        if self.max_len is not None:
-            inputs_ = tf.stack([
-                miss_text.sub_string(inputs, 0, self.max_len // 2, skip=self._reserved_words),
-                tf.fill(tf.shape(inputs), self.REP_CHAR),
-                miss_text.sub_string(inputs, -self.max_len // 2 + 1, -1, skip=self._reserved_words)],
-                axis=-1)
-            inputs_ = tf.strings.reduce_join(inputs_, axis=-1)
-            sizes = tf.strings.length(inputs, unit='UTF8_CHAR')
-            inputs = tf.where(sizes > self.max_len, inputs_, inputs)
-
-        return inputs
-
     def call(self, inputs, **kwargs):
-        if self.squeeze:
-            # Workaround for Sequential model test
-            inputs = tf.squeeze(inputs, axis=-1)
-
-        adapts = self.adapt(inputs)
-        indices = self.lookup(adapts)
-        outputs = self.embed(indices)
-
-        return outputs
+        return self.embed(inputs)
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
@@ -162,25 +177,37 @@ class WordEmbedding(layers.Layer):
             'embed_type': self.embed_type,
             'adapt_cutoff': self.adapt_cutoff,
             'adapt_factor': self.adapt_factor,
-            'embeddings_initializer': initializers.serialize(self.embeddings_initializer),
-            'show_warning': self.show_warning
+            'embeddings_initializer': initializers.serialize(self.embeddings_initializer)
         })
 
         return config
 
 
 @register_keras_serializable(package='Miss')
-class CharNgramEmbedding(WordEmbedding):
+class NgramEmbedding(WordEmbedding):
     BOW_MARK = '<'
     EOW_MARK = '>'
 
-    def __init__(self, vocabulary, output_dim, minn=3, maxn=5, itself='always', reduction='mean', **kwargs):
-        super().__init__(vocabulary, output_dim, **kwargs)
+    def __init__(self, vocabulary=None, output_dim=None, minn=3, maxn=5, itself='always', reduction='mean',
+                 normalize_unicode='NFKC', lower_case=False, zero_digits=False, max_len=None, reserved_words=None,
+                 embed_type='dense_auto', adapt_cutoff=None, adapt_factor=4, embeddings_initializer='uniform',
+                 **kwargs):
+        super().__init__(vocabulary=vocabulary, output_dim=output_dim, normalize_unicode=normalize_unicode,
+                         lower_case=lower_case, zero_digits=zero_digits, max_len=max_len, reserved_words=reserved_words,
+                         embed_type=embed_type, adapt_cutoff=adapt_cutoff, adapt_factor=adapt_factor,
+                         embeddings_initializer=embeddings_initializer, **kwargs)
 
         self.minn = minn
         self.maxn = maxn
         self.itself = itself
         self.reduction = reduction
+
+    def adapt(self, inputs):
+        adapts = super().adapt(inputs)
+        wraps = miss_text.wrap_with(adapts, self.BOW_MARK, self.EOW_MARK, skip=self._reserved_words)
+        ngrams = miss_text.char_ngrams(wraps, self.minn, self.maxn, self.itself, skip=self._reserved_words)
+
+        return ngrams
 
     @shape_type_conversion
     def build(self, input_shape=None):
@@ -188,18 +215,18 @@ class CharNgramEmbedding(WordEmbedding):
 
         super().build(input_shape)
 
-    def adapt(self, inputs):
-        wraps = miss_text.wrap_with(inputs, self.BOW_MARK, self.EOW_MARK, skip=self._reserved_words)
-        adapts = super().adapt(wraps)
-        ngrams = miss_text.char_ngrams(adapts, self.minn, self.maxn, self.itself, skip=self._reserved_words)
-
-        return ngrams
-
     def call(self, inputs, **kwargs):
+        if not isinstance(inputs, tf.RaggedTensor):
+            raise ValueError('Expecting "inputs to be "RaggedTensor" instance.')
+
         embeds = super().call(inputs)
         outputs = self.reduce(embeds)
 
         return outputs
+
+    @shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return input_shape[:-1] + (self.output_dim,)
 
     def get_config(self):
         config = super().get_config()
@@ -214,18 +241,23 @@ class CharNgramEmbedding(WordEmbedding):
 
 
 @register_keras_serializable(package='Miss')
-class CharBpeEmbedding(WordEmbedding):
+class BpeEmbedding(WordEmbedding):
     UNK_CHAR = '##[UNK]'
 
-    def __init__(self, vocabulary, output_dim, reduction='mean', vocab_size=32000, upper_thresh=None, lower_thresh=2,
+    def __init__(self, vocabulary=None, output_dim=None, vocab_size=32000, upper_thresh=None, lower_thresh=2,
                  num_iterations=4, max_tokens=-1, max_chars=1000, slack_ratio=0.05, include_joiner=True,
-                 joiner_prefix='##', reserved_words=None, **kwargs):
+                 joiner_prefix='##', reduction='mean', normalize_unicode='NFKC', lower_case=False, zero_digits=False,
+                 max_len=None, reserved_words=None, embed_type='dense_auto', adapt_cutoff=None, adapt_factor=4,
+                 embeddings_initializer='uniform', **kwargs):
+
         _reserved_words = [self.UNK_CHAR]
         _reserved_words += [] if reserved_words is None else [r for r in reserved_words if r not in _reserved_words]
 
-        super().__init__(vocabulary, output_dim, reserved_words=_reserved_words, **kwargs)
+        super().__init__(vocabulary=vocabulary, output_dim=output_dim, normalize_unicode=normalize_unicode,
+                         lower_case=lower_case, zero_digits=zero_digits, max_len=max_len,
+                         reserved_words=_reserved_words, embed_type=embed_type, adapt_cutoff=adapt_cutoff,
+                         adapt_factor=adapt_factor, embeddings_initializer=embeddings_initializer, **kwargs)
 
-        self.reduction = reduction
         self.vocab_size = vocab_size
         self.upper_thresh = upper_thresh
         self.lower_thresh = lower_thresh
@@ -235,12 +267,13 @@ class CharBpeEmbedding(WordEmbedding):
         self.slack_ratio = slack_ratio
         self.include_joiner = include_joiner
         self.joiner_prefix = joiner_prefix
+        self.reduction = reduction
 
     def vocab(self, word_counts, **kwargs):
         if not word_counts:
             raise ValueError('Can\'t estimate vocabulary with empty word counter')
         if not all(map(lambda k: isinstance(k, str), word_counts.keys())):
-            raise ValueError('Expected all words to be strings')
+            raise ValueError('Expecting all words to be strings')
 
         word_counts = Vocabulary(word_counts)
         sub_words = miss_text.learn_word_piece(
@@ -265,11 +298,27 @@ class CharBpeEmbedding(WordEmbedding):
         adapt_words = self_copy.adapt(word_tokens)
         adapt_counts = Vocabulary()
         for adapts, word in zip(adapt_words, word_tokens):
-            adapts = np.char.decode(adapts.numpy().reshape([-1]).astype('S'), 'utf-8')
+            adapts = np.char.decode(adapts.numpy().ravel().astype('S'), 'utf-8')
             for adapt in adapts:
                 adapt_counts[adapt] += word_counts[word]
 
         return adapt_counts
+
+    def adapt(self, inputs):
+        self.lookup()  # Init lookup table
+
+        adapts = super().adapt(inputs)
+        subwords = miss_text.word_piece(
+            source=adapts,
+            lookup_table=self._lookup.lookup_table,
+            joiner_prefix=self.joiner_prefix,
+            max_bytes=(self.max_len or 9999) * 4,
+            max_chars=0,
+            unknown_token=self.UNK_MARK,
+            split_unknown=True,
+            skip=self._reserved_words)
+
+        return subwords
 
     @shape_type_conversion
     def build(self, input_shape=None):
@@ -277,32 +326,22 @@ class CharBpeEmbedding(WordEmbedding):
 
         super().build(input_shape)
 
-    def adapt(self, inputs):
-        if not self.built:
-            self.build([None])
-
-        adapts = super().adapt(inputs)
-        subwords = miss_text.word_piece(
-            source=adapts,
-            lookup_table=self.lookup.lookup_table,
-            joiner_prefix=self.joiner_prefix,
-            max_bytes=(self.max_len or 9999) * 4,
-            max_chars=0,
-            unknown_token=self.UNK_MARK,
-            split_unknown=True)
-
-        return subwords
-
     def call(self, inputs, **kwargs):
+        if not isinstance(inputs, tf.RaggedTensor):
+            raise ValueError('Expecting `inputs` to be `RaggedTensor` instance.')
+
         embeds = super().call(inputs)
         outputs = self.reduce(embeds)
 
         return outputs
 
+    @shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return input_shape[:-1] + (self.output_dim,)
+
     def get_config(self):
         config = super().get_config()
         config.update({
-            'reduction': self.reduction,
             'vocab_size': self.vocab_size,
             'upper_thresh': self.upper_thresh,
             'lower_thresh': self.lower_thresh,
@@ -312,48 +351,66 @@ class CharBpeEmbedding(WordEmbedding):
             'slack_ratio': self.slack_ratio,
             'include_joiner': self.include_joiner,
             'joiner_prefix': self.joiner_prefix,
+            'reduction': self.reduction
         })
 
         return config
 
 
 @register_keras_serializable(package='Miss')
-class CharCnnEmbedding(WordEmbedding):
+class CnnEmbedding(WordEmbedding):
     BOW_MARK = '[BOW]'
     EOW_MARK = '[EOW]'
 
-    def __init__(self, vocabulary, output_dim, filters=(32, 32, 64, 128, 256, 512, 1024),
-                 kernels=(1, 2, 3, 4, 5, 6, 7), char_dim=16, activation='tanh', highways=2,
-                 embeddings_initializer=initializers.random_uniform(-1., 1.), max_len=50, reserved_words=None,
-                 **kwargs):
+    def __init__(self, vocabulary=None, output_dim=None, kernels=(1, 2, 3, 4, 5, 6, 7),
+                 filters=(32, 32, 64, 128, 256, 512, 1024), char_dim=16, activation='tanh', highways=2,
+                 normalize_unicode='NFKC', lower_case=False, zero_digits=False, max_len=None, reserved_words=None,
+                 embed_type='dense_auto', adapt_cutoff=None, adapt_factor=4,
+                 embeddings_initializer=initializers.random_uniform(-1., 1.), **kwargs):
 
         _reserved_words = [self.BOW_MARK, self.EOW_MARK]
         _reserved_words += [] if reserved_words is None else [r for r in reserved_words if r not in _reserved_words]
-        _max_len = None if max_len is None else max_len - 2
-        super().__init__(
-            vocabulary, output_dim, embeddings_initializer=embeddings_initializer, max_len=_max_len,
-            reserved_words=_reserved_words, **kwargs)
-        self.max_len = _max_len
 
-        if not filters or not isinstance(filters, (list, tuple)) or \
-                not all(map(lambda x: isinstance(x, int), filters)):
-            raise ValueError('Expected "filters" argument to be a list of integers')
+        super().__init__(vocabulary=vocabulary, output_dim=output_dim, normalize_unicode=normalize_unicode,
+                         lower_case=lower_case, zero_digits=zero_digits, max_len=max_len,
+                         reserved_words=_reserved_words, embed_type=embed_type, adapt_cutoff=adapt_cutoff,
+                         adapt_factor=adapt_factor, embeddings_initializer=embeddings_initializer, **kwargs)
+
         if not kernels or not isinstance(kernels, (list, tuple)) or \
                 not all(map(lambda x: isinstance(x, int), kernels)):
-            raise ValueError('Expected "kernels" argument to be a list of integers')
-        if len(filters) != len(kernels):
-            raise ValueError('Sizes of "filters" and "kernels" should be equal')
-        self.filters = filters
+            raise ValueError('Expecting "kernels" to be a list of integers')
+        if not filters or not isinstance(filters, (list, tuple)) or \
+                not all(map(lambda x: isinstance(x, int), filters)):
+            raise ValueError('Expecting "filters" to be a list of integers')
+        if len(kernels) != len(filters):
+            raise ValueError('Sizes of "kernels" and "filters" should be equal')
         self.kernels = kernels
-
+        self.filters = filters
         self.char_dim = char_dim
         self.activation = activations.get(activation)
         self.highways = highways
 
-    def build(self, input_shape=None):
-        self._reserved_words = [self.UNK_MARK, self.BOW_MARK, self.EOW_MARK] + (
-            [] if self.reserved_words is None else self.reserved_words)
+    def adapt(self, inputs):
+        adapts = super().adapt(inputs)
+        chars = miss_text.split_chars(adapts, skip=self._reserved_words)
 
+        values = adapts
+        if isinstance(adapts, tf.RaggedTensor):
+            values = adapts.flat_values
+        shape = tf.shape(values)
+
+        bos = tf.fill(shape, self.BOW_MARK)
+        eos = tf.fill(shape, self.EOW_MARK)
+
+        if isinstance(inputs, tf.RaggedTensor):
+            bos = adapts.with_flat_values(bos)
+            eos = adapts.with_flat_values(eos)
+
+        wraps = tf.concat([bos[..., None], chars, eos[..., None]], axis=-1)
+
+        return wraps
+
+    def build(self, input_shape=None):
         def _kernel_init(kernel_size):
             if 'tanh' == activations.serialize(self.activation):
                 stddev = np.sqrt(1. / (kernel_size * self.char_dim))
@@ -375,24 +432,20 @@ class CharCnnEmbedding(WordEmbedding):
 
         super().build(input_shape)
 
-    def adapt(self, inputs):
-        adapts = super().adapt(inputs)
-        chars = miss_text.split_chars(adapts, skip=self._reserved_words)
-
-        bos = tf.fill([chars.nrows(), 1], self.BOW_MARK)
-        eos = tf.fill([chars.nrows(), 1], self.EOW_MARK)
-        wraps = tf.concat([bos, chars, eos], axis=1)
-
-        return wraps
-
     def call(self, inputs, **kwargs):
-        embeds = super().call(inputs)
+        if not isinstance(inputs, tf.RaggedTensor):
+            raise ValueError('Expecting `inputs` to be `RaggedTensor` instance.')
+
+        rows = inputs.nested_row_lengths()
+        flats = tf.RaggedTensor.from_row_lengths(inputs.flat_values, rows[-1])
+
+        embeds = super().call(flats)
         embeds = embeds.to_tensor()
 
         convs = [c(embeds) for c in self.conv]
         convs = [self.pool(c) for c in convs]
         convs = [self.act(c) for c in convs]
-        convs = layers.concatenate(convs)
+        convs = tf.concat(convs, axis=-1)
 
         outputs = convs
         for h in self.high:
@@ -401,14 +454,19 @@ class CharCnnEmbedding(WordEmbedding):
         if self.proj is not None:
             outputs = self.proj(outputs)
 
+        outputs = tf.RaggedTensor.from_nested_row_lengths(outputs, rows[:-1])
+
         return outputs
+
+    @shape_type_conversion
+    def compute_output_shape(self, input_shape):
+        return input_shape[:-1] + (self.output_dim,)
 
     def get_config(self):
         config = super().get_config()
         config.update({
-            'max_len': None if self.max_len is None else self.max_len + 2,
-            'filters': self.filters,
             'kernels': self.kernels,
+            'filters': self.filters,
             'char_dim': self.char_dim,
             'activation': activations.serialize(self.activation),
             'highways': self.highways

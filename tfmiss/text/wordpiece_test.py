@@ -88,6 +88,17 @@ class WordPieceTest(tf.test.TestCase):
         expected, result = self.evaluate([expected, result])
         self.assertAllEqual(expected, result)
 
+    def test_skip(self):
+        expected = tf.constant([[['x', '##[UNK]'], ['[UNK]', '']]], dtype=tf.string)
+
+        result = word_piece(tf.ragged.constant(
+            [['xy', '[UNK]']]), self._lookup_table(), split_unknown=True, skip=['[UNK]'])
+        self.assertIsInstance(result, tf.RaggedTensor)
+        result = result.to_tensor(default_value='')
+
+        expected, result = self.evaluate([expected, result])
+        self.assertAllEqual(expected, result)
+
 
 if __name__ == "__main__":
     tf.test.main()
