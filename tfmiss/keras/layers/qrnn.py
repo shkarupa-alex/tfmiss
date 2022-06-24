@@ -18,10 +18,6 @@ class QRNN(layers.Layer):
     Shaojie Bai, J. Zico Kolter, Vladlen Koltun (2018)
     """
 
-    # https://www.tensorflow.org/api_docs/python/tf/keras/layers/Conv1D
-    # Specifying any stride value != 1 is incompatible with specifying any dilation_rate value != 1.
-    _STRIDES = 1
-
     def __init__(self,
                  units,
                  window,
@@ -138,10 +134,9 @@ class QRNN(layers.Layer):
         if self.zoneout > 0.:
             forget = smart_cond(
                 training,
-                # multiply by (1 - .zoneout) due to dropout scales preserved items
-                lambda: self.drop(forget) * (1. - self.zoneout),
-                lambda: forget  # TODO: try f * (1 - self.zoneout)
-            )
+                lambda: self.drop(forget),  # tf.nn.dropout upscales preserved values, revert
+                lambda: tf.identity(forget))  # keep same mean as in training
+            forget *= (1. - self.zoneout)
 
         if mask is not None:
             forget = tf.where(mask, forget, 0.)
