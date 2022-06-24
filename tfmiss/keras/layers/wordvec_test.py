@@ -101,7 +101,7 @@ class WordEmbeddingTest(test_combinations.TestCase):
         self.assertListEqual(result, [0, 1, 2, 3, 0, 1, 0, 0])
 
     def test_layer(self):
-        data = ['[UNK]', 'the', 'fox', 'jumps', 'over', 'the', 'lazy', 'dog']
+        data = np.array(['[UNK]', 'the', 'fox', 'jumps', 'over', 'the', 'lazy', 'dog'])
         vocab = ['the', 'fox', 'jumps']
 
         inputs = WordEmbedding(vocab).preprocess(data)
@@ -197,6 +197,15 @@ class WordEmbeddingTest(test_combinations.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
+        test_utils.layer_test(
+            WordEmbedding,
+            kwargs={'vocabulary': vocab, 'output_dim': 12, 'normalize_unicode': 'NFKC', 'lower_case': False,
+                    'zero_digits': False, 'max_len': None, 'reserved_words': None, 'embed_type': 'dense_auto',
+                    'adapt_cutoff': None, 'adapt_factor': 4, 'with_prep': True},
+            input_data=np.array(data),
+            expected_output_dtype='float32',
+            expected_output_shape=[None, 12]
+        )
 
     def test_layer_2d(self):
         data = [['[UNK]', 'the', 'fox', 'jumps'], ['over', 'the', 'lazy', 'dog']]
@@ -216,13 +225,22 @@ class WordEmbeddingTest(test_combinations.TestCase):
         )
 
     def test_layer_ragged(self):
-        data = [[['[UNK]', 'the', 'fox']], [['jumps', 'over'], ['the', 'lazy', 'dog']]]
+        data = tf.ragged.constant([[['[UNK]', 'the', 'fox']], [['jumps', 'over'], ['the', 'lazy', 'dog']]])
         vocab = ['the', 'fox', 'jumps']
 
-        inputs = WordEmbedding(vocab).preprocess(tf.ragged.constant(data))
+        outputs = WordEmbedding(vocab, 5, with_prep=True)(data)
+        outputs = self.evaluate(outputs).to_list()
+        self.assertLen(outputs, 2)
+        self.assertLen(outputs[0], 1)
+        self.assertLen(outputs[0][0], 3)
+        self.assertLen(outputs[0][0][0], 5)
+        self.assertLen(outputs[1], 2)
+        self.assertLen(outputs[1][1], 3)
+        self.assertLen(outputs[1][1][2], 5)
+
+        inputs = WordEmbedding(vocab).preprocess(data)
         outputs = WordEmbedding(vocab, 5)(inputs)
         outputs = self.evaluate(outputs).to_list()
-
         self.assertLen(outputs, 2)
         self.assertLen(outputs[0], 1)
         self.assertLen(outputs[0][0], 3)
@@ -386,6 +404,16 @@ class NgramEmbeddingTest(test_combinations.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
+        test_utils.layer_test(
+            NgramEmbedding,
+            kwargs={'vocabulary': vocab, 'output_dim': 12, 'normalize_unicode': 'NFKC', 'lower_case': False,
+                    'zero_digits': False, 'max_len': None, 'minn': 2, 'maxn': 5, 'itself': 'always',
+                    'reduction': 'mean', 'reserved_words': None, 'embed_type': 'dense_auto', 'adapt_cutoff': None,
+                    'adapt_factor': 4, 'with_prep': True},
+            input_data=data,
+            expected_output_dtype='float32',
+            expected_output_shape=[None, 12]
+        )
 
     def test_layer_2d(self):
         data = [['[UNK]', 'the', 'fox', 'jumps'], ['over', 'the', 'lazy', 'dog']]
@@ -409,16 +437,25 @@ class NgramEmbeddingTest(test_combinations.TestCase):
         )
 
     def test_layer_ragged(self):
-        data = [[['[UNK]', 'the', 'fox']], [['jumps', 'over'], ['the', 'lazy', 'dog']]]
+        data = tf.ragged.constant([[['[UNK]', 'the', 'fox']], [['jumps', 'over'], ['the', 'lazy', 'dog']]])
         vocab = [
             '<th', 'the', 'he>', '<the', 'the>', '<the>', '<fo', 'fox', 'ox>', '<fox', 'fox>', '<fox>', '<ju', 'jum',
             'ump', 'mps', 'ps>', '<jum', 'jump', 'umps', 'mps>', '<jump', 'jumps', 'umps>', '<jumps>', '<ṩ>', '<do',
             'dog', 'og>', '<dog', 'dog>', '<dog>']
 
-        inputs = NgramEmbedding(vocab).preprocess(tf.ragged.constant(data))
+        outputs = NgramEmbedding(vocab, 5, with_prep=True)(data)
+        outputs = self.evaluate(outputs).to_list()
+        self.assertLen(outputs, 2)
+        self.assertLen(outputs[0], 1)
+        self.assertLen(outputs[0][0], 3)
+        self.assertLen(outputs[0][0][0], 5)
+        self.assertLen(outputs[1], 2)
+        self.assertLen(outputs[1][1], 3)
+        self.assertLen(outputs[1][1][2], 5)
+
+        inputs = NgramEmbedding(vocab).preprocess(data)
         outputs = NgramEmbedding(vocab, 5)(inputs)
         outputs = self.evaluate(outputs).to_list()
-
         self.assertLen(outputs, 2)
         self.assertLen(outputs[0], 1)
         self.assertLen(outputs[0][0], 3)
@@ -568,6 +605,14 @@ class BpeEmbeddingTest(test_combinations.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
+        test_utils.layer_test(
+            BpeEmbedding,
+            kwargs={'vocabulary': vocab, 'output_dim': 12, 'reduction': 'mean', 'reserved_words': None,
+                    'embed_type': 'dense_auto', 'adapt_cutoff': None, 'adapt_factor': 4, 'with_prep': True},
+            input_data=data,
+            expected_output_dtype='float32',
+            expected_output_shape=[None, 12]
+        )
 
     def test_layer_2d(self):
         data = [['[UNK]', 'the', 'fox', 'jumps'], ['over', 'the', 'lazy', 'dog']]
@@ -588,13 +633,22 @@ class BpeEmbeddingTest(test_combinations.TestCase):
         )
 
     def test_layer_ragged(self):
-        data = [[['[UNK]', 'the', 'fox']], [['jumps', 'over'], ['the', 'lazy', 'dog']]]
+        data = tf.ragged.constant([[['[UNK]', 'the', 'fox']], [['jumps', 'over'], ['the', 'lazy', 'dog']]])
         vocab = ['the', '##o', 'f', '##u', '##m', '##s', 'o', '##v', '##er', 'l', '##a', '##y', 'd', '##g']
 
-        inputs = BpeEmbedding(vocab).preprocess(tf.ragged.constant(data))
+        outputs = BpeEmbedding(vocab, 5, with_prep=True)(data)
+        outputs = self.evaluate(outputs).to_list()
+        self.assertLen(outputs, 2)
+        self.assertLen(outputs[0], 1)
+        self.assertLen(outputs[0][0], 3)
+        self.assertLen(outputs[0][0][0], 5)
+        self.assertLen(outputs[1], 2)
+        self.assertLen(outputs[1][1], 3)
+        self.assertLen(outputs[1][1][2], 5)
+
+        inputs = BpeEmbedding(vocab).preprocess(data)
         outputs = BpeEmbedding(vocab, 5)(inputs)
         outputs = self.evaluate(outputs).to_list()
-
         self.assertLen(outputs, 2)
         self.assertLen(outputs[0], 1)
         self.assertLen(outputs[0][0], 3)
@@ -773,6 +827,17 @@ class CnnEmbeddingTest(test_combinations.TestCase):
             expected_output_dtype='float32',
             expected_output_shape=[None, 12]
         )
+        test_utils.layer_test(
+            CnnEmbedding,
+            kwargs={'vocabulary': vocab, 'output_dim': 12, 'filters': [32, 32, 64, 128, 256, 512, 1024],
+                    'kernels': [1, 2, 3, 4, 5, 6, 7], 'char_dim': 16, 'activation': 'tanh', 'highways': 2,
+                    'normalize_unicode': 'NFKC', 'lower_case': False, 'zero_digits': False, 'max_len': 50,
+                    'reserved_words': None, 'embed_type': 'dense_auto', 'adapt_cutoff': None, 'adapt_factor': 4,
+                    'with_prep': True},
+            input_data=data,
+            expected_output_dtype='float32',
+            expected_output_shape=[None, 12]
+        )
 
     def test_layer_2d(self):
         data = [['[UNK]', 'the', 'fox', 'jumps'], ['over', 'the', 'lazy', 'dog']]
@@ -793,13 +858,22 @@ class CnnEmbeddingTest(test_combinations.TestCase):
         )
 
     def test_layer_ragged(self):
-        data = [[['[UNK]', 'the', 'fox']], [['jumps', 'over'], ['the', 'lazy', 'dog']]]
+        data = tf.ragged.constant([[['[UNK]', 'the', 'fox']], [['jumps', 'over'], ['the', 'lazy', 'dog']]])
         vocab = ['e', 'o', 't', 'h']
 
-        inputs = CnnEmbedding(vocab).preprocess(tf.ragged.constant(data))
+        outputs = CnnEmbedding(vocab, 5, with_prep=True)(data)
+        outputs = self.evaluate(outputs).to_list()
+        self.assertLen(outputs, 2)
+        self.assertLen(outputs[0], 1)
+        self.assertLen(outputs[0][0], 3)
+        self.assertLen(outputs[0][0][0], 5)
+        self.assertLen(outputs[1], 2)
+        self.assertLen(outputs[1][1], 3)
+        self.assertLen(outputs[1][1][2], 5)
+
+        inputs = CnnEmbedding(vocab).preprocess(data)
         outputs = CnnEmbedding(vocab, 5)(inputs)
         outputs = self.evaluate(outputs).to_list()
-
         self.assertLen(outputs, 2)
         self.assertLen(outputs[0], 1)
         self.assertLen(outputs[0][0], 3)

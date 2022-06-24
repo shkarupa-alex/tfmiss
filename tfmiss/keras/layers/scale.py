@@ -25,7 +25,6 @@ class L2Scale(layers.Layer):
         super(L2Scale, self).__init__(**kwargs)
         self.input_spec = layers.InputSpec(min_ndim=2)
         self.supports_masking = True
-        self._supports_ragged_inputs = True
 
         self.alpha = alpha
 
@@ -43,14 +42,7 @@ class L2Scale(layers.Layer):
         super(L2Scale, self).build(input_shape)
 
     def call(self, inputs, **kwargs):
-        if isinstance(inputs, tf.RaggedTensor):
-            normalized = tf.ragged.map_flat_values(tf.math.l2_normalize, inputs, axis=-1)
-        else:
-            normalized = tf.math.l2_normalize(inputs, axis=-1)
-
-        alpha = tf.cast(self.alpha, inputs.dtype)
-
-        return normalized * alpha
+        return tf.math.l2_normalize(inputs, axis=-1) * self.alpha
 
     @shape_type_conversion
     def compute_output_shape(self, input_shape):
