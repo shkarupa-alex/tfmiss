@@ -92,7 +92,7 @@ class AdditiveSelfAttentionTest(test_combinations.TestCase):
             input_shape=(2, 10, 5),
             input_dtype='float32',
             expected_output_dtype='float32',
-            expected_output_shape=(None, 10, 5)
+            expected_output_shape=(None, 10, 1)
         )
 
         mixed_precision.set_global_policy(self.mf16_policy)
@@ -102,7 +102,7 @@ class AdditiveSelfAttentionTest(test_combinations.TestCase):
             input_shape=(2, 10, 5),
             input_dtype='float16',
             expected_output_dtype='float16',
-            expected_output_shape=(None, 10, 5)
+            expected_output_shape=(None, 10, 7)
         )
         mixed_precision.set_global_policy(self.default_policy)
 

@@ -76,6 +76,12 @@ class F1Micro(F1Binary):
                 tf.cast(y_pred == c, y_true.dtype),
                 sample_weight)
 
+    def get_config(self):
+        config = super(F1Binary, self).get_config()
+        config.pop('threshold', None)
+
+        return config
+
 
 @register_keras_serializable(package='Miss')
 class F1Macro(Metric):
