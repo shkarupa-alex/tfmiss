@@ -23,7 +23,7 @@ REGISTER_OP("Miss>SkipGram")
       c->set_output(0, c->Vector(shape_inference::InferenceContext::kUnknownDim));
       c->set_output(1, c->Vector(shape_inference::InferenceContext::kUnknownDim));
 
-      return Status::OK();
+      return OkStatus();
     });
 
 } // end namespace miss

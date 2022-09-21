@@ -88,7 +88,7 @@ REGISTER_OP("Miss>ModulatedDeformableColumn")
           shape_inference::ShapeHandle output_shape = c->MakeShape({batch_dim, height_out * width_out, channel_out});
           c->set_output(0, output_shape);
 
-          return Status::OK();
+          return OkStatus();
         });
 
 REGISTER_OP("Miss>ModulatedDeformableColumnBackward")
@@ -139,7 +139,7 @@ REGISTER_OP("Miss>ModulatedDeformableColumnBackward")
           c->set_output(1, offset);
           c->set_output(2, mask);
 
-          return Status::OK();
+          return OkStatus();
         });
 
 }  // end namespace miss

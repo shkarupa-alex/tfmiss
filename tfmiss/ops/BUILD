@@ -48,7 +48,6 @@ custom_op_library(
         # qrnn
         "cc/kernels/qrnn/fo_pool.h",
         "cc/kernels/qrnn/fo_pool.cc",
-
         "cc/ops/qrnn/fo_pool.cc",
 
 

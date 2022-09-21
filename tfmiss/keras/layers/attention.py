@@ -118,7 +118,7 @@ class MultiplicativeSelfAttention(layers.Attention):
         proj_shape = input_shape[:-1] + (units,)
         super(MultiplicativeSelfAttention, self).build([proj_shape, proj_shape, proj_shape])
 
-    def call(self, inputs, mask=None, training=None, return_attention_scores=False):
+    def call(self, inputs, mask=None, training=None, return_attention_scores=False, use_causal_mask=False):
         if training is None:
             training = backend.learning_phase()
 
@@ -127,7 +127,8 @@ class MultiplicativeSelfAttention(layers.Attention):
             [query, value, key],
             mask=None if mask is None else [mask, mask],
             training=training,
-            return_attention_scores=return_attention_scores
+            return_attention_scores=return_attention_scores,
+            use_causal_mask=use_causal_mask
         )
 
         return outputs

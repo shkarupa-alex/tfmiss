@@ -27,7 +27,7 @@ REGISTER_OP("Miss>ContBow")
       c->set_output(2, c->Vector(shape_inference::InferenceContext::kUnknownDim));
       c->set_output(3, c->Vector(shape_inference::InferenceContext::kUnknownDim));
 
-      return Status::OK();
+      return OkStatus();
     });
 
 } // end namespace miss

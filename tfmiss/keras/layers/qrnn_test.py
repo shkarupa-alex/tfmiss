@@ -252,11 +252,11 @@ class QRNNTest(test_combinations.TestCase):
 
         h = QRNN(1, 2, zoneout=.3, output_gate=False, return_sequences=True)(data, training=True)
         h = self.evaluate(h)
-        self.assertBetween(np.sum(h[:, 1:] == h[:, :-1]), 4, 6)
+        self.assertBetween(np.mean(h[:, 1:] == h[:, :-1]), 0.1, 0.5)
 
         h = QRNN(1, 2, zoneout=.7, output_gate=False, return_sequences=True)(data, training=True)
         h = self.evaluate(h)
-        self.assertBetween(np.sum(h[:, 1:] == h[:, :-1]), 15, 17)
+        self.assertBetween(np.mean(h[:, 1:] == h[:, :-1]), 0.5, 0.9)
 
     def test_go_backward(self):
         data = np.random.random((3, 10, 2))

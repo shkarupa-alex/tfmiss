@@ -134,9 +134,8 @@ class QRNN(layers.Layer):
         if self.zoneout > 0.:
             forget = smart_cond(
                 training,
-                lambda: self.drop(forget),  # tf.nn.dropout upscales preserved values, revert
-                lambda: tf.identity(forget))  # keep same mean as in training
-            forget *= (1. - self.zoneout)
+                lambda: self.drop(forget) * (1. - self.zoneout),  # tf.nn.dropout upscales preserved values, revert
+                lambda: tf.identity(forget))
 
         if mask is not None:
             forget = tf.where(mask, forget, 0.)
