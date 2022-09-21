@@ -22,7 +22,7 @@ REGISTER_OP("Miss>SpacesAfter")
       c->set_output(1, c->Vector(shape_inference::InferenceContext::kUnknownDim));
       c->set_output(2, c->Vector(shape_inference::InferenceContext::kUnknownDim));
 
-      return Status::OK();
+      return OkStatus();
     });
 
 } // end namespace miss

@@ -134,16 +134,15 @@ class F1BinaryTest(test_combinations.TestCase):
     def test_metric_rises(self):
         f1_obj = F1Binary()
         model = test_utils.get_model_from_layers([
-            layers.Dense(3, activation='relu'),
+            layers.Dense(3),
             layers.Dense(1, activation='sigmoid')
         ], input_shape=(4,))
         model.compile(
-            loss='mae', metrics=[f1_obj], optimizer=optimizers.get('adam'),
+            loss='binary_crossentropy', metrics=[f1_obj], optimizer=optimizers.get('adam'),
             run_eagerly=test_utils.should_run_eagerly())
-        model.run_eagerly = True
         model.run_eagerly = test_utils.should_run_eagerly()
         x = np.random.rand(100, 4)
-        y = np.sum(x, axis=-1).astype('int32')
+        y = x.mean(-1).round().astype('int32')
 
         history = model.fit(x, y, epochs=10).history
         self.assertGreater(history['f1_binary'][-1], history['f1_binary'][0])
@@ -280,20 +279,18 @@ class F1MicroTest(test_combinations.TestCase):
     def test_metric_rises(self):
         f1_obj = F1Micro()
         model = test_utils.get_model_from_layers([
-            layers.Dense(3, activation='relu'),
+            layers.Dense(3),
             layers.Dense(2, activation='softmax')
         ], input_shape=(4,))
         model.compile(
-            loss='mae', metrics=[f1_obj], optimizer=optimizers.get('adam'),
+            loss='sparse_categorical_crossentropy', metrics=[f1_obj], optimizer=optimizers.get('adam'),
             run_eagerly=test_utils.should_run_eagerly())
-        model.run_eagerly = True
         model.run_eagerly = test_utils.should_run_eagerly()
         x = np.random.rand(100, 4)
-        y = np.mean(x, axis=-1).round().astype('int32')
+        y = x.argmax(-1).astype('int32') // 2
 
         history = model.fit(x, y, epochs=10).history
-        # TODO: not changes
-        # self.assertGreater(history['f1_micro'][-1], history['f1_micro'][0])
+        self.assertGreater(history['f1_micro'][-1], history['f1_micro'][0])
 
 
 @test_combinations.run_with_all_model_types
@@ -435,20 +432,18 @@ class F1MacroTest(test_combinations.TestCase):
     def test_metric_rises(self):
         f1_obj = F1Macro()
         model = test_utils.get_model_from_layers([
-            layers.Dense(3, activation='relu'),
+            layers.Dense(3),
             layers.Dense(2, activation='softmax')
         ], input_shape=(4,))
         model.compile(
-            loss='mae', metrics=[f1_obj], optimizer=optimizers.get('adam'),
+            loss='sparse_categorical_crossentropy', metrics=[f1_obj], optimizer=optimizers.get('adam'),
             run_eagerly=test_utils.should_run_eagerly())
-        model.run_eagerly = True
         model.run_eagerly = test_utils.should_run_eagerly()
         x = np.random.rand(100, 4)
-        y = np.mean(x, axis=-1).round().astype('int32')
+        y = x.argmax(-1).astype('int32') // 2
 
         history = model.fit(x, y, epochs=10).history
-        # TODO: not changes
-        # self.assertGreater(history['f1_macro'][-1], history['f1_macro'][0])
+        self.assertGreater(history['f1_macro'][-1], history['f1_macro'][0])
 
 
 if __name__ == "__main__":

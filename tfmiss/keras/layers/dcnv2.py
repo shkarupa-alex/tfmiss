@@ -35,7 +35,7 @@ class DCNv2(layers.Layer):
         elif 'same' == str(self.padding).lower():
             pad_h = self.dilation_rate[0] * (self.kernel_size[0] - 1)
             pad_w = self.dilation_rate[1] * (self.kernel_size[1] - 1)
-            self._padding = (pad_h - pad_h // 2, pad_h // 2, pad_w - pad_w // 2, pad_w // 2)
+            self._padding = (pad_h // 2, pad_h - pad_h // 2, pad_w // 2, pad_w - pad_w // 2)
         else:
             raise ValueError('The `padding` argument must be one of "valid" or "same". Received: {}'.format(padding))
 

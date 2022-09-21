@@ -42,7 +42,7 @@ REGISTER_OP("Miss>FoPool")
 
           c->set_output(0, c->MakeShape(dims));
 
-          return Status::OK();
+          return OkStatus();
         });
 
 REGISTER_OP("Miss>FoPoolBackward")
@@ -83,7 +83,7 @@ REGISTER_OP("Miss>FoPoolBackward")
           c->set_output(1, forget);
           c->set_output(2, c->MakeShape(init_dims));
 
-          return Status::OK();
+          return OkStatus();
         });
 
 }  // end namespace miss
