@@ -106,6 +106,23 @@ class AdanOptimizerTest(tf.test.TestCase):
                 actual = self.evaluate(weights)
                 self.assertAllClose(actual, expected[e * 10 + b])
 
+    def test_without_sparse(self):
+        logits = tf.random.uniform((10, 4, 2), dtype='float32')
+        targets = tf.random.uniform((10, 4, 1), dtype='float32')
+
+        weights = tf.Variable([[0.9189467373291287], [0.5046289624616127]], trainable=True, dtype='float32')
+        optimizer = Adan(learning_rate=0.01, weight_decay=0.0, beta_1=0.99, beta_2=0.92, beta_3=0.9, epsilon=1e-8)
+
+        for e in range(10):
+            for b in range(10):
+                with tf.GradientTape() as tape:
+                    loss = tf.reduce_mean((targets[b] - logits[b] @ weights) ** 2)
+                grads = tape.gradient(loss, [weights])
+                optimizer.apply_gradients(zip(grads, [weights]))
+
+                actual = self.evaluate(weights)
+                self.assertTrue(np.isfinite(actual).all())
+
     def test_sparse_value(self):
         indices = tf.constant([
             [0, 1, 2, 3], [4, 3, 2, 1], [0, 1, 2, 3], [4, 3, 2, 1], [0, 1, 2, 3], [4, 3, 2, 1], [0, 4, 3, 2],

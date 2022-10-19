@@ -9,7 +9,7 @@ from keras.utils.generic_utils import register_keras_serializable
 class Adan(optimizer_v2.OptimizerV2):
     def __init__(
             self, learning_rate=0.001, weight_decay=0.0, beta_1=0.98, beta_2=0.92, beta_3=0.99, epsilon=1e-8,
-            name='Adan', **kwargs):
+            sparse_support=True, name='Adan', **kwargs):
         """
         Inspired with https://github.com/DenisVorotyntsev/Adan/blob/main/tf_adan/adan.py
 
@@ -28,6 +28,8 @@ class Adan(optimizer_v2.OptimizerV2):
               actual value to use. The exponential decay rate for the 3rd moment estimates. Defaults to 0.99.
             epsilon: A small constant for numerical stability. Defaults to 1e-8.
             weight_decay: A `tf.Tensor`, floating point value. The weight decay. Defaults to 0.0.
+            sparse_support: A boolean flag, support or not sparse updates. Setting to False can reduce memory
+              consumption up to 25%.
             name (str, optional): optimizer name. Defaults to "Adan".
         """
         super().__init__(name=name, **kwargs)
@@ -37,6 +39,7 @@ class Adan(optimizer_v2.OptimizerV2):
         self._set_hyper('beta_2', beta_2)
         self._set_hyper('beta_3', beta_3)
         self.epsilon = epsilon or backend.epsilon()
+        self.sparse_support = sparse_support
 
     def _create_slots(self, var_list):
         for var in var_list:
@@ -47,8 +50,11 @@ class Adan(optimizer_v2.OptimizerV2):
             self.add_slot(var, 'exp_avg_sq')
         for var in var_list:
             self.add_slot(var, 'prev_grad')
-        for var in var_list:
-            self.add_slot(var, 'sparse_step', initializer='ones', shape=var.shape[:-1] + (1,))
+
+        if self.sparse_support:
+            for var in var_list:
+                if len(var.shape):
+                    self.add_slot(var, 'sparse_step', initializer='ones', shape=var.shape[:-1] + (1,))
 
     def _prepare_local(self, var_device, var_dtype, apply_state):
         super()._prepare_local(var_device, var_dtype, apply_state)
@@ -117,6 +123,9 @@ class Adan(optimizer_v2.OptimizerV2):
         return tf.group(exp_avg_update, exp_avg_diff_update, exp_avg_sq_update, prev_grad_update, var_update)
 
     def _resource_apply_sparse(self, grad, var, indices, apply_state=None):
+        if not self.sparse_support:
+            raise ValueError('Optimizer not configured to support sparse updates.')
+
         var_device, var_dtype = var.device, var.dtype.base_dtype
         coefficients = (apply_state or {}).get((var_device, var_dtype)) or \
                        self._fallback_apply_state(var_device, var_dtype)
@@ -174,6 +183,7 @@ class Adan(optimizer_v2.OptimizerV2):
                 'beta_2': self._serialize_hyperparameter('beta_2'),
                 'beta_3': self._serialize_hyperparameter('beta_3'),
                 'epsilon': self.epsilon,
+                'sparse_support': self.sparse_support
             }
         )
         return config
