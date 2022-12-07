@@ -44,17 +44,12 @@ class Adan(optimizer_v2.OptimizerV2):
     def _create_slots(self, var_list):
         for var in var_list:
             self.add_slot(var, 'exp_avg')
-        for var in var_list:
             self.add_slot(var, 'exp_avg_diff')
-        for var in var_list:
             self.add_slot(var, 'exp_avg_sq')
-        for var in var_list:
             self.add_slot(var, 'prev_grad')
 
-        if self.sparse_support:
-            for var in var_list:
-                if len(var.shape):
-                    self.add_slot(var, 'sparse_step', initializer='ones', shape=var.shape[:-1] + (1,))
+            if self.sparse_support and len(var.shape):
+                self.add_slot(var, 'sparse_step', initializer='ones', shape=var.shape[:1] + (1,))
 
     def _prepare_local(self, var_device, var_dtype, apply_state):
         super()._prepare_local(var_device, var_dtype, apply_state)

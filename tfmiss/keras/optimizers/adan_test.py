@@ -111,7 +111,9 @@ class AdanOptimizerTest(tf.test.TestCase):
         targets = tf.random.uniform((10, 4, 1), dtype='float32')
 
         weights = tf.Variable([[0.9189467373291287], [0.5046289624616127]], trainable=True, dtype='float32')
-        optimizer = Adan(learning_rate=0.01, weight_decay=0.0, beta_1=0.99, beta_2=0.92, beta_3=0.9, epsilon=1e-8)
+        optimizer = Adan(
+            learning_rate=0.01, weight_decay=0.0, beta_1=0.99, beta_2=0.92, beta_3=0.9, epsilon=1e-8,
+            sparse_support=False)
 
         for e in range(10):
             for b in range(10):
