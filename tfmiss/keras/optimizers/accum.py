@@ -124,6 +124,8 @@ class Accum(tf.__internal__.tracking.DelegatingTrackableMixin, optimizer_v2.Opti
         if not self._sparse_support:
             raise ValueError('Optimizer not configured to support sparse updates.')
 
+        grad, indices = optimizer_v2._deduplicate_indexed_slices(values=grad, indices=indices)
+
         apply_state = kwargs.get('apply_state', None)
 
         var_device, var_dtype = handle.device, handle.dtype.base_dtype
