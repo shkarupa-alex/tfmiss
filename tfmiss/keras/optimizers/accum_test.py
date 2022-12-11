@@ -11,17 +11,6 @@ from tfmiss.keras.optimizers.accum import Accum
 
 
 class AccumOptimizerTest(test_combinations.TestCase):
-    def test_wrapper(self):
-        optimizer = optimizers.get({'class_name': 'Adam', 'config': {'learning_rate': 0.15}})
-        wrapped = Accum(optimizer, 3)
-
-        self.assertEqual(optimizer._get_hyper('learning_rate'), wrapped._get_hyper('learning_rate'))
-        self.assertEqual(optimizer._get_hyper('beta_1'), wrapped._get_hyper('beta_1'))
-        self.assertEqual(optimizer._get_hyper('beta_2'), wrapped._get_hyper('beta_2'))
-        self.assertEqual(optimizer.epsilon, wrapped.epsilon)
-        self.assertEqual(optimizer.amsgrad, wrapped.amsgrad)
-        self.assertEqual(optimizer._name, wrapped._name)
-
     @parameterized.parameters([('SGD', 0.01), ('Adam', 0.01), ('Adam', ExponentialDecay(0.01, 30, 0.96))])
     def test_dense_value(self, opt, lr):
         logits = tf.constant([
@@ -56,7 +45,7 @@ class AccumOptimizerTest(test_combinations.TestCase):
         initial = [[0.9189467373291287], [0.5046289624616127]]
 
         weights = tf.Variable(initial, trainable=True, dtype='float32')
-        optimizer = optimizers.get({'class_name': opt, 'config': {'learning_rate': lr}})
+        optimizer = optimizers.get({'class_name': opt, 'config': {'learning_rate': lr, 'is_legacy_optimizer': False}})
         logits_, targets_ = tf.reshape(logits, [3, 12, 2]), tf.reshape(targets, [3, 12, 1])
 
         expected = []
@@ -71,7 +60,8 @@ class AccumOptimizerTest(test_combinations.TestCase):
                 expected.append(actual)
 
         weights = tf.Variable(initial, trainable=True, dtype='float32')
-        optimizer = Accum(optimizers.get({'class_name': opt, 'config': {'learning_rate': lr}}), 3)
+        optimizer = Accum(optimizers.get(
+            {'class_name': opt, 'config': {'learning_rate': lr, 'is_legacy_optimizer': False}}), 3)
 
         for e in range(10):
             for b in range(9):
@@ -113,7 +103,7 @@ class AccumOptimizerTest(test_combinations.TestCase):
             [0.09411076902398452, 0.33044468551739103]]
 
         weights = tf.Variable(initial, trainable=True, dtype='float32')
-        optimizer = optimizers.get({'class_name': opt, 'config': {'learning_rate': lr}})
+        optimizer = optimizers.get({'class_name': opt, 'config': {'learning_rate': lr, 'is_legacy_optimizer': False}})
         indices_, targets_ = tf.reshape(indices, [3, 12]), tf.reshape(targets, [3, 12, 2])
 
         expected = []
@@ -128,7 +118,8 @@ class AccumOptimizerTest(test_combinations.TestCase):
                 expected.append(actual)
 
         weights = tf.Variable(initial, trainable=True, dtype='float32')
-        optimizer = Accum(optimizers.get({'class_name': opt, 'config': {'learning_rate': lr}}), 3)
+        optimizer = Accum(optimizers.get(
+            {'class_name': opt, 'config': {'learning_rate': lr, 'is_legacy_optimizer': False}}), 3)
 
         for e in range(10):
             for b in range(9):
@@ -141,21 +132,25 @@ class AccumOptimizerTest(test_combinations.TestCase):
                     actual = self.evaluate(weights)
                     self.assertAllClose(actual, expected[(e * 9 + b - 1) // 3], atol=1e-5)
 
-    def test_lr(self):
-        opt_1 = Accum(optimizers.Adam(lr=1.0), 4)
-        opt_2 = Accum(optimizers.Adam(learning_rate=lambda: tf.constant(0.5, 'float32')), 4)
-        opt_3 = Accum(optimizers.Adam(learning_rate=0.1), 4)
+    def test_wrapper(self):
+        optimizer = optimizers.adam_experimental.Adam(0.15)
+        wrapped = Accum(optimizer, 3)
 
-        config = opt_2.get_config()
-        opt_4 = Accum.from_config(config)
+        self.assertEqual(optimizer.learning_rate, wrapped.learning_rate)
+        self.assertEqual(optimizer.beta_1, wrapped.beta_1)
+
+    def test_lr(self):
+        opt_1 = Accum(optimizers.adam_experimental.Adam(learning_rate=1.0), 4)
+        opt_2 = Accum(optimizers.adam_experimental.Adam(learning_rate=lambda: tf.constant(0.5, 'float32')), 4)
+        opt_3 = Accum.from_config(opt_2.get_config())
 
         self.assertIsInstance(opt_1.lr, tf.Variable)
+        self.assertIsInstance(opt_2.lr, tf.Variable)
         self.assertIsInstance(opt_3.lr, tf.Variable)
 
-        self.assertAllClose(self.evaluate(opt_1.lr), 1.0)
-        self.assertAllClose(self.evaluate(opt_2._get_hyper('learning_rate')), 0.5)
-        self.assertAllClose(self.evaluate(opt_3.lr), 0.1)
-        self.assertAllClose(self.evaluate(opt_4._get_hyper('learning_rate')), 0.5)
+        self.assertAllClose(self.evaluate(opt_1.learning_rate), 1.0)
+        self.assertAllClose(self.evaluate(opt_2.learning_rate), 0.5)
+        self.assertAllClose(self.evaluate(opt_3.learning_rate), 0.5)
 
 
 if __name__ == "__main__":

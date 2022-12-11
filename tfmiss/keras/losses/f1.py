@@ -5,7 +5,7 @@ from __future__ import print_function
 import tensorflow as tf
 from keras import backend
 from keras.losses import LossFunctionWrapper
-from keras.utils.generic_utils import register_keras_serializable
+from keras.saving.object_registration import register_keras_serializable
 from keras.utils.losses_utils import ReductionV2 as Reduction
 
 

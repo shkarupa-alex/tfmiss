@@ -449,21 +449,17 @@ class AdanOptimizerTest(tf.test.TestCase):
                 self.assertAllClose(actual, expected[e * 10 + b])
 
     def test_lr(self):
-        opt_1 = Adan(lr=1.0)
+        opt_1 = Adan(learning_rate=1.0)
         opt_2 = Adan(learning_rate=lambda: tf.constant(0.5, 'float32'))
-        opt_3 = Adan(learning_rate=0.1)
-
-        config = opt_2.get_config()
-        opt_4 = Adan.from_config(config)
+        opt_3 = Adan.from_config(opt_2.get_config())
 
         self.assertIsInstance(opt_1.lr, tf.Variable)
-        # self.assertIsInstance(opt_2.lr, tf.Variable)
+        self.assertIsInstance(opt_2.lr, tf.Variable)
         self.assertIsInstance(opt_3.lr, tf.Variable)
 
-        self.assertAllClose(self.evaluate(opt_1.lr), 1.0)
-        self.assertAllClose(self.evaluate(opt_2._get_hyper('learning_rate')), 0.5)
-        self.assertAllClose(self.evaluate(opt_3.lr), 0.1)
-        self.assertAllClose(self.evaluate(opt_4._get_hyper('learning_rate')), 0.5)
+        self.assertAllClose(self.evaluate(opt_1.learning_rate), 1.0)
+        self.assertAllClose(self.evaluate(opt_2.learning_rate), 0.5)
+        self.assertAllClose(self.evaluate(opt_3.learning_rate), 0.5)
 
 
 if __name__ == "__main__":

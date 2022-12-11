@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 from keras import activations, backend, constraints, initializers, layers, models, regularizers
-from keras.utils.generic_utils import register_keras_serializable
+from keras.saving.object_registration import register_keras_serializable
 from keras.utils.tf_utils import shape_type_conversion
 from tfmiss.keras.layers.wrappers import WeightNorm
 

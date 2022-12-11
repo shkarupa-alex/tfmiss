@@ -6,7 +6,7 @@ import numpy as np
 import tensorflow as tf
 from keras import backend, constraints, initializers, layers, models, regularizers
 from keras.utils.control_flow_util import smart_cond
-from keras.utils.generic_utils import register_keras_serializable
+from keras.saving.object_registration import register_keras_serializable
 from keras.utils.losses_utils import compute_weighted_loss as _compute_weighted_loss, ReductionV2 as Reduction
 from keras.utils.tf_utils import shape_type_conversion
 from tensorflow.python.distribute import distribution_strategy_context
