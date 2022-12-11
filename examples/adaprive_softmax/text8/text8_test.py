@@ -100,7 +100,7 @@ if __name__ == "__main__":
         loss = 'sparse_categorical_crossentropy' if 'Softmax' == title else None
         model.compile(
             run_eagerly=False,
-            optimizer=optimizers.get({'class_name': 'sgd', 'config': {'learning_rate': argv.lr}}),
+            optimizer=optimizers.sgd_experimental.SGD(argv.lr),
             loss=loss,
         )
         model.summary()

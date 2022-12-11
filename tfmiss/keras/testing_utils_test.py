@@ -5,8 +5,8 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from keras import layers
+from keras.saving.object_registration import custom_object_scope
 from keras.testing_infra import test_combinations
-from keras.utils.generic_utils import custom_object_scope
 from tfmiss.keras.testing_utils import layer_multi_io_test
 
 

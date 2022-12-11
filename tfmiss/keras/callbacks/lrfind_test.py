@@ -27,7 +27,7 @@ class LRFInderTest(test_combinations.TestCase):
         model.fit(x, y, batch_size=5, callbacks=[lrf_cb])
         best_lr, loss_graph = lrf_cb.plot()
 
-        self.assertAlmostEqual(best_lr, 0.033496544, places=7)
+        self.assertAlmostEqual(best_lr, 0.3273407, places=7)
         self.assertTrue(os.path.exists(loss_graph))
 
 

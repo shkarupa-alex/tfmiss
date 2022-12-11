@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 from keras.metrics import Metric, Precision, Recall
-from keras.utils.generic_utils import register_keras_serializable
+from keras.saving.object_registration import register_keras_serializable
 from tensorflow.python.ops.losses.util import squeeze_or_expand_dimensions
 
 

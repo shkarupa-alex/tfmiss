@@ -54,8 +54,7 @@ if __name__ == "__main__":
         )
         model.compile(
             run_eagerly=False,
-            optimizer=optimizers.get(
-                {'class_name': 'adam', 'config': {'learning_rate': argv.lr, 'clipnorm': argv.clip}}),
+            optimizer=optimizers.adam_experimental.Adam(argv.lr, clipnorm=argv.clip),
             loss='sparse_categorical_crossentropy',
         )
         model.summary()
