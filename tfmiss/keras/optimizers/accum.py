@@ -1,15 +1,16 @@
 import contextlib
 import tensorflow as tf
 from keras import optimizers
+from keras.optimizers.optimizer_experimental.optimizer import Optimizer
 from keras.utils.control_flow_util import smart_cond
 from keras.saving.object_registration import register_keras_serializable
 
 
 @register_keras_serializable(package='Miss')
-class Accum(optimizers.optimizer_experimental.Optimizer):
+class Accum(Optimizer):
     def __init__(self, optimizer, accum_steps, sparse_support=True):
         optimizer = optimizers.get(optimizer)
-        if not isinstance(optimizer, optimizers.optimizer_experimental.Optimizer):
+        if not isinstance(optimizer, Optimizer):
             raise ValueError('Legacy optimizer not supported.')
 
         if {optimizer.clipnorm, optimizer.global_clipnorm} - {None}:
@@ -63,7 +64,7 @@ class Accum(optimizers.optimizer_experimental.Optimizer):
         backup = self._optimizer._iterations
 
         try:
-            self._optimizer._iterations = backup // 3
+            self._optimizer._iterations = backup // self._accum_steps
             yield
         finally:
             self._optimizer._iterations = backup
@@ -145,6 +146,22 @@ class Accum(optimizers.optimizer_experimental.Optimizer):
     @iterations.setter
     def iterations(self, variable):
         self._optimizer.iterations = variable
+
+    @property
+    def learning_rate(self):
+        return self._optimizer.learning_rate
+
+    @learning_rate.setter
+    def learning_rate(self, learning_rate):
+        self._optimizer.learning_rate = learning_rate
+
+    @property
+    def lr(self):
+        return self._optimizer.lr
+
+    @lr.setter
+    def lr(self, learning_rate):
+        self._optimizer.lr = learning_rate
 
     def get_config(self):
         return {
