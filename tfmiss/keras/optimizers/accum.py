@@ -30,7 +30,7 @@ class Accum(Optimizer):
             result += dir(self._optimizer)
             result = list(set(result))
 
-        return list(result)
+        return result
 
     def __getattribute__(self, name):
         try:
