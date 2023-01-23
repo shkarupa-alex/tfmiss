@@ -25,9 +25,10 @@ class Accum(Optimizer):
         self._sparse_support = sparse_support
 
     def __dir__(self):
-        result = set(super().__dir__())
+        result = super().__dir__()
         if '_optimizer' in result:
-            result |= dir(self._optimizer)
+            result += dir(self._optimizer)
+            result = list(set(result))
 
         return list(result)
 
