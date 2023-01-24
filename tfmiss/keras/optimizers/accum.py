@@ -59,21 +59,6 @@ class Accum(Optimizer):
         else:
             super().__setattr__(name, value)
 
-    @contextlib.contextmanager
-    def scale_iterations(self):
-        _ = self.iterations
-        backup = self._optimizer._iterations
-
-        try:
-            self._optimizer._iterations = backup // self._accum_steps
-            yield
-        finally:
-            self._optimizer._iterations = backup
-
-    def _compute_current_learning_rate(self):
-        with self.scale_iterations():
-            self._optimizer._compute_current_learning_rate()
-
     def build(self, var_list):
         if getattr(self._optimizer, '_built', False):
             return
@@ -112,6 +97,17 @@ class Accum(Optimizer):
                 accum_apply,
                 lambda: self._accum_apply_dense(variable, gradient, accum, accum_steps),
                 lambda: self._grad_store_dense(gradient, accum))
+
+    @contextlib.contextmanager
+    def scale_iterations(self):
+        _ = self.iterations
+        backup = self._optimizer._iterations
+
+        try:
+            self._optimizer._iterations = backup // self._accum_steps
+            yield
+        finally:
+            self._optimizer._iterations = backup
 
     def _accum_apply_dense(self, var, grad, accum, accum_steps):
         accum_t = (accum + grad) * (1. / accum_steps)
