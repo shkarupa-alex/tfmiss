@@ -48,7 +48,8 @@ class AccumOptimizerTest(test_combinations.TestCase):
         initial = [[0.9189467373291287], [0.5046289624616127]]
 
         weights = tf.Variable(initial, trainable=True, dtype='float32')
-        optimizer = optimizers.get({'class_name': opt, 'config': {'learning_rate': lr3, 'is_legacy_optimizer': False}})
+        optimizer = optimizers.get({'class_name': opt, 'config': {
+            'learning_rate': lr3, 'weight_decay': 1e-3, 'is_legacy_optimizer': False}})
         logits_, targets_ = tf.reshape(logits, [3, 12, 2]), tf.reshape(targets, [3, 12, 1])
 
         expected = []
@@ -64,7 +65,8 @@ class AccumOptimizerTest(test_combinations.TestCase):
 
         weights = tf.Variable(initial, trainable=True, dtype='float32')
         optimizer = Accum(optimizers.get(
-            {'class_name': opt, 'config': {'learning_rate': lr1, 'is_legacy_optimizer': False}}), 3)
+            {'class_name': opt, 'config': {
+                'learning_rate': lr1, 'weight_decay': 1e-3, 'is_legacy_optimizer': False}}), 3)
 
         for e in range(10):
             for b in range(9):

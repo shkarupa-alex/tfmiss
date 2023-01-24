@@ -75,6 +75,16 @@ class Accum(Optimizer):
 
         self._optimizer.build(var_list)
 
+    def _apply_weight_decay(self, variables):
+        if not self.weight_decay:
+            return
+
+        accum_apply = self.iterations % self._accum_steps == self._accum_steps - 1
+        smart_cond(
+            accum_apply,
+            lambda: self._optimizer._apply_weight_decay(variables),
+            tf.no_op)
+
     def update_step(self, gradient, variable):
         accum_apply = self.iterations % self._accum_steps == self._accum_steps - 1
         accum_steps = tf.cast(self._accum_steps, variable.dtype)
