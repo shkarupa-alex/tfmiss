@@ -10,6 +10,7 @@ from keras.saving.object_registration import register_keras_serializable
 from keras.utils.losses_utils import compute_weighted_loss as _compute_weighted_loss, ReductionV2 as Reduction
 from keras.utils.tf_utils import shape_type_conversion
 from tensorflow.python.distribute import distribution_strategy_context
+from tensorflow.python.ops import data_flow_ops
 
 
 def compute_weighted_loss(losses, sample_weight=None, reduction=Reduction.SUM_OVER_BATCH_SIZE):
@@ -257,7 +258,7 @@ class AdaptiveSoftmax(layers.Layer):
             false_logprobs = root_logprobs[i + 1][false_mask] - np.log(cutoff_size)
             false_logprobs = tf.tile(false_logprobs, [1, cutoff_size])
 
-            full_logprobs.append(tf.dynamic_stitch(
+            full_logprobs.append(data_flow_ops.parallel_dynamic_stitch(
                 [target_indices[tail_mask], target_indices[false_mask]],
                 [tail_logprobs, false_logprobs]
             ))
