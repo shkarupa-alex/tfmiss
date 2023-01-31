@@ -13,8 +13,8 @@ class Accum(Optimizer):
         if not isinstance(optimizer, Optimizer):
             raise ValueError('Legacy optimizer not supported.')
 
-        if {optimizer.clipnorm, optimizer.global_clipnorm} - {None}:
-            raise ValueError('Gradient accumulation is not compatible with `clipnorm` and `global_clipnorm`.')
+        if optimizer.optimizer.global_clipnorm is not None:
+            raise ValueError('Gradient accumulation is not compatible with `global_clipnorm`.')
 
         if getattr(optimizer, '_is_wrapped_by_grad_accum_optimizer', False):
             raise ValueError('Optimizer is already wrapped by Accum.')
@@ -75,6 +75,9 @@ class Accum(Optimizer):
 
         self._optimizer.build(var_list)
 
+    def _clip_gradients(self, grads):
+        return grads
+
     def _apply_weight_decay(self, variables):
         if not self.weight_decay:
             return
@@ -121,6 +124,7 @@ class Accum(Optimizer):
 
     def _accum_apply_dense(self, var, grad, accum, accum_steps):
         accum_t = (accum + grad) * (1. / accum_steps)
+        accum_t = self._optimizer._clip_gradients([accum_t])[0]
 
         with self.scale_iterations():
             self._optimizer.update_step(accum_t, var)
@@ -134,13 +138,15 @@ class Accum(Optimizer):
         self._grad_store_sparse(grad, accum, steps)
 
         mask_t = steps > 0
-        accum_t = accum[mask_t] * (1. / self._accum_steps)
+        values_t = accum[mask_t] * (1. / self._accum_steps)
         indices_t = tf.squeeze(tf.where(mask_t), axis=-1)
+        accum_t = tf.IndexedSlices(values_t, indices_t)
+        accum_t = self._optimizer._clip_gradients([accum_t])[0]
 
         with self.scale_iterations():
-            self._optimizer.update_step(tf.IndexedSlices(accum_t, indices_t), var)
+            self._optimizer.update_step(accum_t, var)
 
-        accum.scatter_update(tf.IndexedSlices(tf.zeros_like(accum_t), indices_t))
+        accum.scatter_update(tf.IndexedSlices(tf.zeros_like(values_t), indices_t))
 
     def _grad_store_sparse(self, grad, accum, steps):
         steps.scatter_add(tf.IndexedSlices(tf.ones_like(grad.indices, dtype=steps.dtype), grad.indices))
