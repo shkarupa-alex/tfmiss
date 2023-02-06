@@ -7,7 +7,7 @@ from pathlib import Path
 from setuptools import setup, find_packages, Extension
 from setuptools.dist import Distribution
 
-__VERSION__ = '0.19.0'
+__VERSION__ = '0.19.1'
 
 
 def get_ext_modules():
