@@ -1,7 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from keras import layers
-from keras.initializers.initializers_v2 import RandomUniform
+from keras import layers, initializers
 from keras.saving.object_registration import register_keras_serializable
 from keras.utils.conv_utils import normalize_tuple
 from keras.utils.tf_utils import shape_type_conversion
@@ -52,7 +51,7 @@ class DCNv2(layers.Layer):
 
         kernel_shape = (self.kernel_size[0] * self.kernel_size[1] * channels, self.filters)
         kernel_stdv = 1.0 / np.sqrt(np.prod((channels,) + self.kernel_size))
-        kernel_init = RandomUniform(-kernel_stdv, kernel_stdv)
+        kernel_init = initializers.RandomUniform(-kernel_stdv, kernel_stdv)
         self.kernel = self.add_weight(
             name='kernel',
             shape=kernel_shape,

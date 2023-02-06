@@ -1,19 +1,20 @@
 import contextlib
 import tensorflow as tf
 from keras import optimizers
+from keras.optimizers.optimizer_experimental.optimizer import Optimizer
 from keras.utils.control_flow_util import smart_cond
 from keras.saving.object_registration import register_keras_serializable
 
 
 @register_keras_serializable(package='Miss')
-class Accum(optimizers.optimizer_experimental.Optimizer):
+class Accum(Optimizer):
     def __init__(self, optimizer, accum_steps, sparse_support=True):
         optimizer = optimizers.get(optimizer)
-        if not isinstance(optimizer, optimizers.optimizer_experimental.Optimizer):
+        if not isinstance(optimizer, Optimizer):
             raise ValueError('Legacy optimizer not supported.')
 
-        if {optimizer.clipnorm, optimizer.global_clipnorm} - {None}:
-            raise ValueError('Gradient accumulation is not compatible with `clipnorm` and `global_clipnorm`.')
+        if optimizer.optimizer.global_clipnorm is not None:
+            raise ValueError('Gradient accumulation is not compatible with `global_clipnorm`.')
 
         if getattr(optimizer, '_is_wrapped_by_grad_accum_optimizer', False):
             raise ValueError('Optimizer is already wrapped by Accum.')
@@ -24,11 +25,12 @@ class Accum(optimizers.optimizer_experimental.Optimizer):
         self._sparse_support = sparse_support
 
     def __dir__(self):
-        result = set(super().__dir__())
+        result = super().__dir__()
         if '_optimizer' in result:
-            result |= dir(self._optimizer)
+            result += dir(self._optimizer)
+            result = list(set(result))
 
-        return list(result)
+        return result
 
     def __getattribute__(self, name):
         try:
@@ -57,21 +59,6 @@ class Accum(optimizers.optimizer_experimental.Optimizer):
         else:
             super().__setattr__(name, value)
 
-    @contextlib.contextmanager
-    def scale_iterations(self):
-        _ = self.iterations
-        backup = self._optimizer._iterations
-
-        try:
-            self._optimizer._iterations = backup // 3
-            yield
-        finally:
-            self._optimizer._iterations = backup
-
-    def _compute_current_learning_rate(self):
-        with self.scale_iterations():
-            self._optimizer._compute_current_learning_rate()
-
     def build(self, var_list):
         if getattr(self._optimizer, '_built', False):
             return
@@ -87,6 +74,19 @@ class Accum(optimizers.optimizer_experimental.Optimizer):
                     self._optimizer.add_variable_from_reference(var, 'accum_step', shape=var.shape[:1]))
 
         self._optimizer.build(var_list)
+
+    def _clip_gradients(self, grads):
+        return grads
+
+    def _apply_weight_decay(self, variables):
+        if not self.weight_decay:
+            return
+
+        accum_apply = self.iterations % self._accum_steps == self._accum_steps - 1
+        smart_cond(
+            accum_apply,
+            lambda: self._optimizer._apply_weight_decay(variables),
+            lambda: None)
 
     def update_step(self, gradient, variable):
         accum_apply = self.iterations % self._accum_steps == self._accum_steps - 1
@@ -111,8 +111,20 @@ class Accum(optimizers.optimizer_experimental.Optimizer):
                 lambda: self._accum_apply_dense(variable, gradient, accum, accum_steps),
                 lambda: self._grad_store_dense(gradient, accum))
 
+    @contextlib.contextmanager
+    def scale_iterations(self):
+        _ = self.iterations
+        backup = self._optimizer._iterations
+
+        try:
+            self._optimizer._iterations = backup // self._accum_steps
+            yield
+        finally:
+            self._optimizer._iterations = backup
+
     def _accum_apply_dense(self, var, grad, accum, accum_steps):
         accum_t = (accum + grad) * (1. / accum_steps)
+        accum_t = self._optimizer._clip_gradients([accum_t])[0]
 
         with self.scale_iterations():
             self._optimizer.update_step(accum_t, var)
@@ -126,13 +138,15 @@ class Accum(optimizers.optimizer_experimental.Optimizer):
         self._grad_store_sparse(grad, accum, steps)
 
         mask_t = steps > 0
-        accum_t = accum[mask_t] * (1. / self._accum_steps)
+        values_t = accum[mask_t] * (1. / self._accum_steps)
         indices_t = tf.squeeze(tf.where(mask_t), axis=-1)
+        accum_t = tf.IndexedSlices(values_t, indices_t)
+        accum_t = self._optimizer._clip_gradients([accum_t])[0]
 
         with self.scale_iterations():
-            self._optimizer.update_step(tf.IndexedSlices(accum_t, indices_t), var)
+            self._optimizer.update_step(accum_t, var)
 
-        accum.scatter_update(tf.IndexedSlices(tf.zeros_like(accum_t), indices_t))
+        accum.scatter_update(tf.IndexedSlices(tf.zeros_like(values_t), indices_t))
 
     def _grad_store_sparse(self, grad, accum, steps):
         steps.scatter_add(tf.IndexedSlices(tf.ones_like(grad.indices, dtype=steps.dtype), grad.indices))
@@ -145,6 +159,22 @@ class Accum(optimizers.optimizer_experimental.Optimizer):
     @iterations.setter
     def iterations(self, variable):
         self._optimizer.iterations = variable
+
+    @property
+    def learning_rate(self):
+        return self._optimizer.learning_rate
+
+    @learning_rate.setter
+    def learning_rate(self, learning_rate):
+        self._optimizer.learning_rate = learning_rate
+
+    @property
+    def lr(self):
+        return self._optimizer.lr
+
+    @lr.setter
+    def lr(self, learning_rate):
+        self._optimizer.lr = learning_rate
 
     def get_config(self):
         return {
