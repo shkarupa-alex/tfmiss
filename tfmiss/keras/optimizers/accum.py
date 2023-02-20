@@ -13,7 +13,7 @@ class Accum(Optimizer):
         if not isinstance(optimizer, Optimizer):
             raise ValueError('Legacy optimizer not supported.')
 
-        if optimizer.optimizer.global_clipnorm is not None:
+        if optimizer.global_clipnorm is not None:
             raise ValueError('Gradient accumulation is not compatible with `global_clipnorm`.')
 
         if getattr(optimizer, '_is_wrapped_by_grad_accum_optimizer', False):
