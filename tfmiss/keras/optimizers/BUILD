@@ -6,6 +6,7 @@ py_library(
         "__init__.py",
         "accum.py",
         "adan.py",
+        "lion.py",
     ],
     data = [
         "//tfmiss/keras/optimizers/schedules",
@@ -23,6 +24,13 @@ py_test(
 py_test(
     name = "adan_test",
     srcs = ["adan_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [":optimizers"],
+)
+
+py_test(
+    name = "lion_test",
+    srcs = ["lion_test.py"],
     srcs_version = "PY2AND3",
     deps = [":optimizers"],
 )
