@@ -1,7 +1,7 @@
 import contextlib
 import tensorflow as tf
 from keras import optimizers
-from keras.optimizers.optimizer_experimental.optimizer import Optimizer
+from keras.optimizers.optimizer import Optimizer
 from keras.utils.control_flow_util import smart_cond
 from keras.saving.object_registration import register_keras_serializable
 
