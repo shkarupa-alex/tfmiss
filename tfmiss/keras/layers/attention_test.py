@@ -8,37 +8,37 @@ from keras.mixed_precision import policy as mixed_precision
 from tfmiss.keras.layers.attention import SelfAttentionWithContext, MultiplicativeSelfAttention, AdditiveSelfAttention
 
 
-# @test_combinations.run_all_keras_modes
-# class SelfAttentionWithContextTest(test_combinations.TestCase):
-#     def setUp(self):
-#         super(SelfAttentionWithContextTest, self).setUp()
-#         self.default_policy = mixed_precision.global_policy()
-#         self.mf16_policy = mixed_precision.Policy('mixed_float16')
-#
-#     def tearDown(self):
-#         super(SelfAttentionWithContextTest, self).tearDown()
-#         mixed_precision.set_global_policy(self.default_policy)
-#
-#     def test_layer(self):
-#         test_utils.layer_test(
-#             SelfAttentionWithContext,
-#             kwargs={},
-#             input_shape=(2, 10, 5),
-#             input_dtype='float32',
-#             expected_output_dtype='float32',
-#             expected_output_shape=(None, 5)
-#         )
-#
-#         mixed_precision.set_global_policy(self.mf16_policy)
-#         test_utils.layer_test(
-#             SelfAttentionWithContext,
-#             kwargs={},
-#             input_shape=(2, 10, 5),
-#             input_dtype='float16',
-#             expected_output_dtype='float16',
-#             expected_output_shape=(None, 5)
-#         )
-#         mixed_precision.set_global_policy(self.default_policy)
+@test_combinations.run_all_keras_modes
+class SelfAttentionWithContextTest(test_combinations.TestCase):
+    def setUp(self):
+        super(SelfAttentionWithContextTest, self).setUp()
+        self.default_policy = mixed_precision.global_policy()
+        self.mf16_policy = mixed_precision.Policy('mixed_float16')
+
+    def tearDown(self):
+        super(SelfAttentionWithContextTest, self).tearDown()
+        mixed_precision.set_global_policy(self.default_policy)
+
+    def test_layer(self):
+        test_utils.layer_test(
+            SelfAttentionWithContext,
+            kwargs={},
+            input_shape=(2, 10, 5),
+            input_dtype='float32',
+            expected_output_dtype='float32',
+            expected_output_shape=(None, 5)
+        )
+
+        mixed_precision.set_global_policy(self.mf16_policy)
+        test_utils.layer_test(
+            SelfAttentionWithContext,
+            kwargs={},
+            input_shape=(2, 10, 5),
+            input_dtype='float16',
+            expected_output_dtype='float16',
+            expected_output_shape=(None, 5)
+        )
+        mixed_precision.set_global_policy(self.default_policy)
 
 
 @test_combinations.run_all_keras_modes

@@ -138,7 +138,7 @@ class F1BinaryTest(test_combinations.TestCase):
             layers.Dense(1, activation='sigmoid')
         ], input_shape=(4,))
         model.compile(
-            loss='binary_crossentropy', metrics=[f1_obj], optimizer=optimizers.adam_experimental.Adam(),
+            loss='binary_crossentropy', metrics=[f1_obj], optimizer=optimizers.adam.Adam(),
             run_eagerly=test_utils.should_run_eagerly())
         model.run_eagerly = test_utils.should_run_eagerly()
         x = np.random.rand(100, 4)
@@ -283,7 +283,7 @@ class F1MicroTest(test_combinations.TestCase):
             layers.Dense(2, activation='softmax')
         ], input_shape=(4,))
         model.compile(
-            loss='sparse_categorical_crossentropy', metrics=[f1_obj], optimizer=optimizers.adam_experimental.Adam(),
+            loss='sparse_categorical_crossentropy', metrics=[f1_obj], optimizer=optimizers.adam.Adam(),
             run_eagerly=test_utils.should_run_eagerly())
         model.run_eagerly = test_utils.should_run_eagerly()
         x = np.random.rand(100, 4)
@@ -436,7 +436,7 @@ class F1MacroTest(test_combinations.TestCase):
             layers.Dense(2, activation='softmax')
         ], input_shape=(4,))
         model.compile(
-            loss='sparse_categorical_crossentropy', metrics=[f1_obj], optimizer=optimizers.adam_experimental.Adam(),
+            loss='sparse_categorical_crossentropy', metrics=[f1_obj], optimizer=optimizers.adam.Adam(),
             run_eagerly=test_utils.should_run_eagerly())
         model.run_eagerly = test_utils.should_run_eagerly()
         x = np.random.rand(100, 4)

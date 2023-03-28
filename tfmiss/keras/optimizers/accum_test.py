@@ -141,15 +141,15 @@ class AccumOptimizerTest(test_combinations.TestCase):
                     self.assertAllClose(actual, expected[(e * 9 + b - 1) // 3], atol=1e-5)
 
     def test_wrapper(self):
-        optimizer = optimizers.adam_experimental.Adam(0.15)
+        optimizer = optimizers.adam.Adam(0.15)
         wrapped = Accum(optimizer, 3)
 
         self.assertEqual(optimizer.learning_rate, wrapped.learning_rate)
         self.assertEqual(optimizer.beta_1, wrapped.beta_1)
 
     def test_lr(self):
-        opt_1 = Accum(optimizers.adam_experimental.Adam(learning_rate=1.0), 4)
-        opt_2 = Accum(optimizers.adam_experimental.Adam(learning_rate=lambda: tf.constant(0.5, 'float32')), 4)
+        opt_1 = Accum(optimizers.adam.Adam(learning_rate=1.0), 4)
+        opt_2 = Accum(optimizers.adam.Adam(learning_rate=lambda: tf.constant(0.5, 'float32')), 4)
         opt_3 = Accum.from_config(opt_2.get_config())
 
         self.assertIsInstance(opt_1.lr, tf.Variable)

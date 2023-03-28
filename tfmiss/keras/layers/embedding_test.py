@@ -135,7 +135,7 @@ class AdaptiveEmbeddingTest(test_combinations.TestCase):
         with tf.GradientTape() as tape:
             output = layer(inputs)
         gs = tape.gradient(output, layer.weights)
-        opt = optimizers.adagrad_experimental.Adagrad()
+        opt = optimizers.adagrad.Adagrad()
         opt.apply_gradients(zip(gs, layer.weights))
         self.assertAllEqual(len(gs), 4)
 
