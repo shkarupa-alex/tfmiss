@@ -20,7 +20,7 @@ class TestDeviceMatmulTest(tf.test.TestCase):
         self.assertLen(device_params['cost_values'], 5 * 8 * 11)
 
     def test_normal_gpu(self):
-        if not tf.test.is_gpu_available(cuda_only=True):
+        if not tf.config.list_physical_devices('GPU'):
             self.skipTest('No GPU available')
 
         device_params = test_device_matmul(
