@@ -4,9 +4,8 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras import backend, layers, models, optimizers
-from keras.testing_infra import test_combinations, test_utils
-from keras.mixed_precision import policy as mixed_precision
+from keras import backend, layers, mixed_precision, models, optimizers
+from keras.src.testing_infra import test_combinations, test_utils
 from tfmiss.keras.layers.embedding import AdaptiveEmbedding
 
 
@@ -135,7 +134,7 @@ class AdaptiveEmbeddingTest(test_combinations.TestCase):
         with tf.GradientTape() as tape:
             output = layer(inputs)
         gs = tape.gradient(output, layer.weights)
-        opt = optimizers.adagrad.Adagrad()
+        opt = optimizers.Adagrad()
         opt.apply_gradients(zip(gs, layer.weights))
         self.assertAllEqual(len(gs), 4)
 

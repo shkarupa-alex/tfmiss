@@ -1,9 +1,9 @@
 import contextlib
 import tensorflow as tf
 from keras import optimizers
-from keras.optimizers.optimizer import Optimizer
-from keras.utils.control_flow_util import smart_cond
-from keras.saving.object_registration import register_keras_serializable
+from keras.optimizers import Optimizer
+from keras.saving import register_keras_serializable
+from keras.src.utils.control_flow_util import smart_cond
 
 
 @register_keras_serializable(package='Miss')

@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from tensorflow.python.framework import ops, tensor_shape
+from tensorflow.python.framework import indexed_slices, ops, tensor_shape
 from tensorflow.python.ops import embedding_ops, data_flow_ops, resource_variable_ops
 
 
@@ -47,7 +47,7 @@ def adaptive_embedding_lookup(params, ids, transforms, max_norm=None, name=None)
 
         # Preserve the resource variable status to avoid accidental dense reads.
         if not any(isinstance(p, resource_variable_ops.ResourceVariable) for p in params):
-            params = ops.convert_n_to_tensor_or_indexed_slices(params, name='params')
+            params = indexed_slices.convert_n_to_tensor_or_indexed_slices(params, name='params')
         ids = tf.convert_to_tensor(ids, name='ids')
 
         # Flatten the ids. There is more than one params tensor.

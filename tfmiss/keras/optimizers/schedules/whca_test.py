@@ -5,7 +5,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from keras import layers, models, optimizers
-from keras.testing_infra import test_combinations, test_utils
+from keras.src.testing_infra import test_combinations, test_utils
 from tfmiss.keras.optimizers.schedules import WarmHoldCoolAnnihilateScheduler, WarmHoldCosineCoolAnnihilateScheduler
 
 
@@ -24,7 +24,7 @@ class WarmHoldCoolAnnihilateSchedulerTest(test_combinations.TestCase):
     def test_model(self):
         schedule = WarmHoldCoolAnnihilateScheduler(
             min_lr=1.0, max_lr=100., warm_steps=3, hold_steps=3, cool_steps=3, annih_steps=3)
-        optimizer = optimizers.adam.Adam(schedule)
+        optimizer = optimizers.Adam(schedule)
         model = models.Sequential()
         model.add(layers.Dense(3))
         model.compile(optimizer=optimizer, loss='mse', run_eagerly=test_utils.should_run_eagerly())
@@ -53,7 +53,7 @@ class WarmHoldCosineCoolAnnihilateSchedulerTest(test_combinations.TestCase):
     def test_model(self):
         schedule = WarmHoldCosineCoolAnnihilateScheduler(
             min_lr=1.0, max_lr=100., warm_steps=3, hold_steps=3, cool_steps=9, annih_steps=3, cosine_cycles=2)
-        optimizer = optimizers.adam.Adam(schedule)
+        optimizer = optimizers.Adam(schedule)
         model = models.Sequential()
         model.add(layers.Dense(3))
         model.compile(optimizer=optimizer, loss='mse', run_eagerly=test_utils.should_run_eagerly())

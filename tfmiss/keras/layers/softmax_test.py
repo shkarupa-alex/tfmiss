@@ -4,10 +4,9 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras import layers, models
-from keras.mixed_precision import policy as mixed_precision
-from keras.testing_infra import test_combinations, test_utils
-from keras.utils.losses_utils import ReductionV2 as Reduction
+from keras import layers, mixed_precision, models
+from keras.src.testing_infra import test_combinations, test_utils
+from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from tfmiss.keras.layers.softmax import AdaptiveSoftmax, NoiseContrastiveEstimation, SampledSofmax
 from tfmiss.keras.testing_utils import layer_multi_io_test
 

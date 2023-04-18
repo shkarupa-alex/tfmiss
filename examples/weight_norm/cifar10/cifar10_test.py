@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 from matplotlib import pyplot
 from keras import backend as K, callbacks, optimizers
-from keras.saving.object_registration import custom_object_scope
+from keras.saving import custom_object_scope
 from model import Cifar10Model
 from utils import data_generator
 
@@ -35,7 +35,7 @@ if __name__ == "__main__":
         # Train weighted
         weighted_model = Cifar10Model(weight_norm=True)
         weighted_model.compile(
-            optimizer=optimizers.adam.Adam(argv.initial_lr, beta_1=0.9),
+            optimizer=optimizers.Adam(argv.initial_lr, beta_1=0.9),
             loss='sparse_categorical_crossentropy',
             metrics=['accuracy'],
             run_eagerly=False,
@@ -51,7 +51,7 @@ if __name__ == "__main__":
         # Train regular
         regular_model = Cifar10Model(weight_norm=False)
         regular_model.compile(
-            optimizer=optimizers.adam.Adam(argv.initial_lr, beta_1=0.9),
+            optimizer=optimizers.Adam(argv.initial_lr, beta_1=0.9),
             loss='sparse_categorical_crossentropy',
             metrics=['accuracy'],
             run_eagerly=False,

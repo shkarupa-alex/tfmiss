@@ -1,6 +1,7 @@
 import tensorflow as tf
-from keras.optimizers.optimizer import Optimizer, base_optimizer_keyword_args
-from keras.saving.object_registration import register_keras_serializable
+from keras.optimizers import Optimizer
+from keras.saving import register_keras_serializable
+from keras.src.optimizers.optimizer import base_optimizer_keyword_args
 
 
 @register_keras_serializable(package='Miss')

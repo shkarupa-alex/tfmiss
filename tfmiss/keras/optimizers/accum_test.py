@@ -5,8 +5,8 @@ from __future__ import print_function
 import tensorflow as tf
 from absl.testing import parameterized
 from keras import optimizers
-from keras.optimizers.schedules.learning_rate_schedule import PiecewiseConstantDecay
-from keras.testing_infra import test_combinations
+from keras.optimizers.schedules import PiecewiseConstantDecay
+from keras.src.testing_infra import test_combinations
 from tfmiss.keras.optimizers.accum import Accum
 
 
@@ -141,15 +141,15 @@ class AccumOptimizerTest(test_combinations.TestCase):
                     self.assertAllClose(actual, expected[(e * 9 + b - 1) // 3], atol=1e-5)
 
     def test_wrapper(self):
-        optimizer = optimizers.adam.Adam(0.15)
+        optimizer = optimizers.Adam(0.15)
         wrapped = Accum(optimizer, 3)
 
         self.assertEqual(optimizer.learning_rate, wrapped.learning_rate)
         self.assertEqual(optimizer.beta_1, wrapped.beta_1)
 
     def test_lr(self):
-        opt_1 = Accum(optimizers.adam.Adam(learning_rate=1.0), 4)
-        opt_2 = Accum(optimizers.adam.Adam(learning_rate=lambda: tf.constant(0.5, 'float32')), 4)
+        opt_1 = Accum(optimizers.Adam(learning_rate=1.0), 4)
+        opt_2 = Accum(optimizers.Adam(learning_rate=lambda: tf.constant(0.5, 'float32')), 4)
         opt_3 = Accum.from_config(opt_2.get_config())
 
         self.assertIsInstance(opt_1.lr, tf.Variable)

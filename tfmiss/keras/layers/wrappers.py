@@ -3,10 +3,11 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from keras import backend, layers
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.generic_utils import has_arg
-from keras.utils.tf_utils import shape_type_conversion
+from keras import layers
+from keras.saving import register_keras_serializable
+from keras.src.backend import convert_inputs_if_ragged, maybe_convert_to_ragged
+from keras.src.utils.generic_utils import has_arg
+from keras.src.utils.tf_utils import shape_type_conversion
 
 
 @register_keras_serializable(package='Miss')
@@ -45,10 +46,10 @@ class WithRagged(layers.Wrapper):
             if has_arg(self.layer.call, key):
                 layer_kwargs[key] = kwargs[key]
 
-        inputs_dense, row_lengths = backend.convert_inputs_if_ragged(inputs)
+        inputs_dense, row_lengths = convert_inputs_if_ragged(inputs)
         inputs_dense = self.masking_layer(inputs_dense)
         outputs_dense = self.layer.call(inputs_dense, **layer_kwargs)
-        outputs = backend.maybe_convert_to_ragged(row_lengths is not None, outputs_dense, row_lengths)
+        outputs = maybe_convert_to_ragged(row_lengths is not None, outputs_dense, row_lengths)
 
         return outputs
 
@@ -69,6 +70,7 @@ class MapFlat(layers.Wrapper):
     Arguments:
       layer: The `Layer` instance to be wrapped.
     """
+
     def __init__(self, layer, **kwargs):
         super().__init__(layer, **kwargs)
         self._supports_ragged_inputs = True
