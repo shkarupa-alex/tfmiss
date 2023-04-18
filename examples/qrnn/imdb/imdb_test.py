@@ -51,7 +51,7 @@ if __name__ == "__main__":
         )
         model.compile(
             run_eagerly=False,
-            optimizer=optimizers.rmsprop_experimental.RMSprop(argv.lr),
+            optimizer=optimizers.rmsprop.RMSprop(argv.lr),
             loss='binary_crossentropy',
             metrics=['accuracy']
         )

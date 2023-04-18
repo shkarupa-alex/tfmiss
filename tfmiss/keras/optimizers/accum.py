@@ -1,7 +1,7 @@
 import contextlib
 import tensorflow as tf
 from keras import optimizers
-from keras.optimizers.optimizer_experimental.optimizer import Optimizer
+from keras.optimizers.optimizer import Optimizer
 from keras.utils.control_flow_util import smart_cond
 from keras.saving.object_registration import register_keras_serializable
 
@@ -13,7 +13,7 @@ class Accum(Optimizer):
         if not isinstance(optimizer, Optimizer):
             raise ValueError('Legacy optimizer not supported.')
 
-        if optimizer.optimizer.global_clipnorm is not None:
+        if optimizer.global_clipnorm is not None:
             raise ValueError('Gradient accumulation is not compatible with `global_clipnorm`.')
 
         if getattr(optimizer, '_is_wrapped_by_grad_accum_optimizer', False):

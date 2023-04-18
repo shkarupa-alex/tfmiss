@@ -47,7 +47,7 @@ if __name__ == "__main__":
         )
         model.compile(
             run_eagerly=False,
-            optimizer=optimizers.adam_experimental.Adam(argv.lr, clipnorm= argv.clip),
+            optimizer=optimizers.adam.Adam(argv.lr, clipnorm= argv.clip),
             loss='mse',
         )
         model.summary()

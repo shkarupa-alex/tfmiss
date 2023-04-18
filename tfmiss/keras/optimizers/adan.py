@@ -1,5 +1,5 @@
 import tensorflow as tf
-from keras.optimizers.optimizer_experimental.optimizer import Optimizer, base_optimizer_keyword_args
+from keras.optimizers.optimizer import Optimizer, base_optimizer_keyword_args
 from keras.utils.control_flow_util import smart_cond
 from keras.saving.object_registration import register_keras_serializable
 
