@@ -361,7 +361,7 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
     const T *column = column_tensor->flat<T>().data();
     const T *grad = grad_tensor->flat<T>().data();
 
-    if (!std::is_same<T, Eigen::half>::value)  // T == PT == float/double
+    if (!std::is_same<T, Eigen::half>::value && !std::is_same<T, Eigen::bfloat16>::value)  // T == PT == float/double
     {
       zero_functor(ctx, grad_input_tensor->flat<PT>());
       zero_functor(ctx, grad_offset_tensor->flat<PT>());
@@ -376,7 +376,7 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
           kernel_h, kernel_w, pad_hb, pad_wb, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
           grad_offset, grad_mask);
     }
-    else  // T == half, PT = float
+    else  // T == half or bfloat16, PT = float
     {
       // https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/image/resize_bilinear_op.cc#L361
       // Accumulate output to float instead of half/bfloat16 tensor, since float accumulation is more numerically
@@ -419,6 +419,7 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
 #define REGISTER_SAME(T) REGISTER(T, T)
 
 TF_CALL_half(REGISTER_FLOAT);
+TF_CALL_bfloat16(REGISTER_FLOAT);
 TF_CALL_float(REGISTER_SAME);
 TF_CALL_double(REGISTER_SAME);
 #undef REGISTER_SAME
@@ -433,6 +434,7 @@ TF_CALL_double(REGISTER_SAME);
 #define REGISTER_SAME(T) REGISTER(T, T)
 
 TF_CALL_half(REGISTER_FLOAT);
+TF_CALL_bfloat16(REGISTER_FLOAT);
 TF_CALL_float(REGISTER_SAME);
 TF_CALL_double(REGISTER_SAME);
 #undef REGISTER_SAME
@@ -453,6 +455,7 @@ TF_CALL_double(REGISTER_SAME);
 #define DECLARE_SAME(T) DECLARE(T, T)
 
 TF_CALL_half(DECLARE_FLOAT);
+TF_CALL_bfloat16(REGISTER_FLOAT);
 TF_CALL_float(DECLARE_SAME);
 TF_CALL_double(DECLARE_SAME);
 #undef DECLARE_SAME
@@ -467,6 +470,7 @@ TF_CALL_double(DECLARE_SAME);
 #define REGISTER_SAME(T) REGISTER(T, T)
 
 TF_CALL_half(REGISTER_FLOAT);
+TF_CALL_bfloat16(REGISTER_FLOAT);
 TF_CALL_float(REGISTER_SAME);
 TF_CALL_double(REGISTER_SAME);
 #undef REGISTER_SAME
@@ -486,6 +490,7 @@ TF_CALL_double(REGISTER_SAME);
 #define DECLARE_SAME(T) DECLARE(T, T)
 
 TF_CALL_half(DECLARE_FLOAT);
+TF_CALL_bfloat16(REGISTER_FLOAT);
 TF_CALL_float(DECLARE_SAME);
 TF_CALL_double(DECLARE_SAME);
 #undef DECLARE_SAME
@@ -498,6 +503,7 @@ TF_CALL_double(DECLARE_SAME);
   extern template struct SetZeroFunctor<GPUDevice, T>
 
 TF_CALL_half(DECLARE);
+TF_CALL_bfloat16(REGISTER_FLOAT);
 TF_CALL_float(DECLARE);
 TF_CALL_double(DECLARE);
 #undef DECLARE
@@ -519,6 +525,7 @@ TF_CALL_half(DECLARE);
 #define REGISTER_SAME(T) REGISTER(T, T)
 
 TF_CALL_half(REGISTER_FLOAT);
+TF_CALL_bfloat16(REGISTER_FLOAT);
 TF_CALL_float(REGISTER_SAME);
 TF_CALL_double(REGISTER_SAME);
 #undef REGISTER_SAME
@@ -527,5 +534,5 @@ TF_CALL_double(REGISTER_SAME);
 
 #endif  // GOOGLE_CUDA
 
-}  // namespace miss
+}  // end namespace miss
 }  // end namespace tensorflow

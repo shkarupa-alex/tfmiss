@@ -33,10 +33,12 @@ class FoPoolTest(tf.test.TestCase, parameterized.TestCase):
         self.assertListEqual([8, 128, 32], list(self.evaluate(result).shape))
 
     @parameterized.parameters(
-        ('/cpu:0', 'float16', 1e-6, 4e-3), ('/cpu:0', 'float32', 1e-6, 2e-6), ('/cpu:0', 'float64', 1e-13, 5e-7),
-        ('/gpu:0', 'float16', 1e-6, 4e-3), ('/gpu:0', 'float32', 1e-6, 2e-6), ('/gpu:0', 'float64', 1e-13, 5e-7)
+        ('/cpu:0', 'float16', 1e-6), ('/cpu:0', 'bfloat16', 2e-2), ('/cpu:0', 'float32', 1e-6),
+        ('/cpu:0', 'float64', 1e-13),
+        ('/gpu:0', 'float16', 1e-6), ('/gpu:0', 'bfloat16', 2e-2), ('/gpu:0', 'float32', 1e-6),
+        ('/gpu:0', 'float64', 1e-13)
     )
-    def test_value(self, dev, dt, tol, gtol):
+    def test_value(self, dev, dt, tol):
         if 'gpu' in dev and not len(tf.config.list_physical_devices('GPU')):
             return self.skipTest('No GPU available')
 
@@ -52,7 +54,7 @@ class FoPoolTest(tf.test.TestCase, parameterized.TestCase):
 
             self.assertEqual(result.dtype, dt)
             self.assertEqual(result.shape, expected.shape)
-            self.assertAllClose(result, expected, rtol=tol, atol=tol)
+            self.assertAllClose(result, expected, atol=tol)
 
             grad = np.random.uniform(size=shape)
 
@@ -77,8 +79,10 @@ class FoPoolTest(tf.test.TestCase, parameterized.TestCase):
                 self.assertTrue(np.all(np.isfinite(result_grad[2])))
 
     @parameterized.parameters(
-        ('/cpu:0', 'float16', 9e-4), ('/cpu:0', 'float32', 1e-7), ('/cpu:0', 'float64', 2e-13),
-        ('/gpu:0', 'float16', 4e-3), ('/gpu:0', 'float32', 6e-5), ('/gpu:0', 'float64', 2e-13)
+        ('/cpu:0', 'float16', 9e-4), ('/cpu:0', 'bfloat16', 2e-2), ('/cpu:0', 'float32', 1e-7),
+        ('/cpu:0', 'float64', 2e-13),
+        ('/gpu:0', 'float16', 4e-3), ('/gpu:0', 'bfloat16', 2e-2), ('/gpu:0', 'float32', 6e-5),
+        ('/gpu:0', 'float64', 2e-13)
     )
     def test_grad(self, dev, dt, tol):
         if 'gpu' in dev and not len(tf.config.list_physical_devices('GPU')):

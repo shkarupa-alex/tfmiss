@@ -203,18 +203,14 @@ class FoPoolBackwardOp : public OpKernel
 #define REGISTER(TYPE) \
   REGISTER_KERNEL_BUILDER(Name("Miss>FoPool").Device(DEVICE_CPU).TypeConstraint<TYPE>("FT"), FoPoolOp<CPUDevice, TYPE>)
 
-TF_CALL_half(REGISTER);
-TF_CALL_float(REGISTER);
-TF_CALL_double(REGISTER);
+TF_CALL_FLOAT_TYPES(REGISTER);
 #undef REGISTER
 
 #define REGISTER(TYPE)     \
   REGISTER_KERNEL_BUILDER( \
       Name("Miss>FoPoolBackward").Device(DEVICE_CPU).TypeConstraint<TYPE>("FT"), FoPoolBackwardOp<CPUDevice, TYPE>)
 
-TF_CALL_half(REGISTER);
-TF_CALL_float(REGISTER);
-TF_CALL_double(REGISTER);
+TF_CALL_FLOAT_TYPES(REGISTER);
 #undef REGISTER
 
 #if GOOGLE_CUDA
@@ -226,17 +222,13 @@ TF_CALL_double(REGISTER);
       const int channel_size, T *output) const;                                                                        \
   extern template struct FoPoolForwardFunctor<GPUDevice, T>
 
-TF_CALL_half(DECLARE_FUNCTOR);
-TF_CALL_float(DECLARE_FUNCTOR);
-TF_CALL_double(DECLARE_FUNCTOR);
+TF_CALL_FLOAT_TYPES(DECLARE_FUNCTOR);
 #undef DECLARE_FUNCTOR
 
 #define REGISTER(TYPE) \
   REGISTER_KERNEL_BUILDER(Name("Miss>FoPool").Device(DEVICE_GPU).TypeConstraint<TYPE>("FT"), FoPoolOp<GPUDevice, TYPE>)
 
-TF_CALL_half(REGISTER);
-TF_CALL_float(REGISTER);
-TF_CALL_double(REGISTER);
+TF_CALL_FLOAT_TYPES(REGISTER);
 #undef REGISTER
 
 #define DECLARE_FUNCTOR(T)                                                                                         \
@@ -246,18 +238,14 @@ TF_CALL_double(REGISTER);
       const int time_size, const int channel_size, T *grad_input, T *grad_forget, T *grad_init) const;             \
   extern template struct FoPoolBackwardFunctor<GPUDevice, T>
 
-TF_CALL_half(DECLARE_FUNCTOR);
-TF_CALL_float(DECLARE_FUNCTOR);
-TF_CALL_double(DECLARE_FUNCTOR);
+TF_CALL_FLOAT_TYPES(DECLARE_FUNCTOR);
 #undef DECLARE_FUNCTOR
 
 #define REGISTER(TYPE)     \
   REGISTER_KERNEL_BUILDER( \
       Name("Miss>FoPoolBackward").Device(DEVICE_GPU).TypeConstraint<TYPE>("FT"), FoPoolBackwardOp<GPUDevice, TYPE>)
 
-TF_CALL_half(REGISTER);
-TF_CALL_float(REGISTER);
-TF_CALL_double(REGISTER);
+TF_CALL_FLOAT_TYPES(REGISTER);
 #undef REGISTER
 
 #endif  // GOOGLE_CUDA

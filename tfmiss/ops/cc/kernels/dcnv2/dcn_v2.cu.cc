@@ -55,6 +55,7 @@ struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T, PT>
 };
 
 template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, Eigen::half, float>;
+template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, Eigen::bfloat16, float>;
 template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, float, float>;
 template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, double, double>;
 
@@ -99,6 +100,7 @@ struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>
 };
 
 template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::half, float>;
+template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, Eigen::bfloat16, float>;
 template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, float, float>;
 template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, double, double>;
 
@@ -112,6 +114,7 @@ struct SetZeroFunctor<GPUDevice, T>
   }
 };
 template struct SetZeroFunctor<GPUDevice, Eigen::half>;
+template struct SetZeroFunctor<GPUDevice, Eigen::bfloat16>;
 template struct SetZeroFunctor<GPUDevice, float>;
 template struct SetZeroFunctor<GPUDevice, double>;
 
@@ -127,7 +130,7 @@ struct CastToFunctor<GPUDevice, T, PT>
 
 template struct CastToFunctor<GPUDevice, Eigen::half, float>;
 
-}  // namespace miss
+}  // end namespace miss
 }  // end namespace tensorflow
 
 #endif  // GOOGLE_CUDA
