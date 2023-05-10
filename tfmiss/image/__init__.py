@@ -3,3 +3,4 @@ from __future__ import division
 from __future__ import print_function
 
 from tfmiss.image.conn_comp import connected_components
+from tfmiss.image.euclidean_dist import euclidean_distance
