@@ -33,75 +33,70 @@ struct ConnectedComponentsFunctor<CPUDevice, T>
     const int num_kernels_full = batch * height * width * channel, num_kernels_safe = batch * channel;
     auto thread_pool = ctx->device()->tensorflow_cpu_worker_threads()->workers;
 
-    // thread_pool->ParallelFor(
-    //     num_kernels_full, 12 * 2,
-    //     [&](int64 start_index, int64 end_index)
-    //     {
-    //       for (int index = start_index; index < end_index; index++)
-    //       {
-    //         init_labels<T>(input, index, height, width, channel, output);
-    //       }
-    //     });
-
-          for (int index = 0; index < num_kernels_full; index++)
+    thread_pool->ParallelFor(
+        num_kernels_full, 12 * 2,
+        [&](int64 start_index, int64 end_index)
+        {
+          for (int index = start_index; index < end_index; index++)
           {
             init_labels<T>(input, index, height, width, channel, output);
           }
+        });
 
-    // thread_pool->ParallelFor(
-    //     num_kernels_full, 8 * 2,
-    //     [&](int64 start_index, int64 end_index)
-    //     {
-    //       for (int index = start_index; index < end_index; index++)
-    //       {
-    //         resolve_labels(index, height, width, channel, output);
-    //       }
-    //     });
+    thread_pool->ParallelFor(
+        num_kernels_full, 8 * 2,
+        [&](int64 start_index, int64 end_index)
+        {
+          for (int index = start_index; index < end_index; index++)
+          {
+            resolve_labels(index, height, width, channel, output);
+          }
+        });
 
-    // thread_pool->ParallelFor(
-    //     num_kernels_safe, 9 * 2 * height * width,
-    //     [&](int64 start_index, int64 end_index)
-    //     {
-    //       for (int index = start_index; index < end_index; index++)
-    //       {
-    //         const int batch_id = index / channel;
-    //         const int channel_id = index % channel;
-    //         const int offset0 = batch_id * height * width * channel + channel_id;
+    thread_pool->ParallelFor(
+        num_kernels_safe, 9 * 2 * height * width,
+        [&](int64 start_index, int64 end_index)
+        {
+          for (int index = start_index; index < end_index; index++)
+          {
+            const int batch_id = index / channel;
+            const int channel_id = index % channel;
+            const int offset0 = batch_id * height * width * channel + channel_id;
 
-    //         for (int row_id = 0; row_id < height; row_id++)
-    //         {
-    //           const int offset1 = row_id * width * channel;
+            for (int row_id = 0; row_id < height; row_id++)
+            {
+              const int offset1 = row_id * width * channel;
 
-    //           for (int column_id = 0; column_id < width; column_id++)
-    //           {
-    //             reduce_labels<T>(input, offset0 + offset1 + column_id * channel, height, width, channel, output);
-    //           }
-    //         }
-    //       }
-    //     });
+              for (int column_id = 0; column_id < width; column_id++)
+              {
+                reduce_labels<T>(input, offset0 + offset1 + column_id * channel, height, width, channel, output);
+              }
+            }
+          }
+        });
 
-    // thread_pool->ParallelFor(
-    //     num_kernels_full, 7 * 2,
-    //     [&](int64 start_index, int64 end_index)
-    //     {
-    //       for (int index = start_index; index < end_index; index++)
-    //       {
-    //         resolve_labels(index, height, width, channel, output);
-    //       }
-    //     });
+    thread_pool->ParallelFor(
+        num_kernels_full, 7 * 2,
+        [&](int64 start_index, int64 end_index)
+        {
+          for (int index = start_index; index < end_index; index++)
+          {
+            resolve_labels(index, height, width, channel, output);
+          }
+        });
 
-    // if (norm)
-    // {
-    //   thread_pool->ParallelFor(
-    //       num_kernels_safe, 50 * 2 * height * width,
-    //       [&](int64 start_index, int64 end_index)
-    //       {
-    //         for (int index = start_index; index < end_index; index++)
-    //         {
-    //           normalize_labels(index, height, width, channel, output);
-    //         }
-    //       });
-    // }
+    if (norm)
+    {
+      thread_pool->ParallelFor(
+          num_kernels_safe, 50 * 2 * height * width,
+          [&](int64 start_index, int64 end_index)
+          {
+            for (int index = start_index; index < end_index; index++)
+            {
+              normalize_labels(index, height, width, channel, output);
+            }
+          });
+    }
   }
 };
 

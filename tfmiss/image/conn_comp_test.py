@@ -112,10 +112,6 @@ class ConnectedComponentsTest(tf.test.TestCase):
 
         result = connected_components(image[None])[0]
         result = self.evaluate(result)
-        # print(np.where(result != expected))
-        print(image[:2,:32,0])
-        print(expected[:2,:32,0])
-        print(result[:2,:32,0])
         self.assertAllClose(result, expected)
 
 

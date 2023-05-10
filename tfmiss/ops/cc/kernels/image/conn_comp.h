@@ -30,11 +30,11 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void init_labels(
     const int nym1x = index - width * channel;
     const int nyxm1 = index - channel;
 
-    if (row_id && pyx == input[nym1x])
+    if (row_id && input[nym1x])
     {
       output[index] = nym1x + 1;
     }
-    else if (column_id && pyx == input[nyxm1])
+    else if (column_id && input[nyxm1])
     {
       output[index] = nyxm1 + 1;
     }
@@ -79,7 +79,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void reduce_labels(
 
   const T pyx = input[index];
 
-  if (column_id && row_id && pyx && pyx == input[nyxm1] && pyx == input[nym1x] && pyx != input[nym1xm1])
+  if (column_id && row_id && pyx && input[nyxm1] && input[nym1x] && !input[nym1xm1])
   {
     int64 label1 = output[index];
     int64 label2 = output[nyxm1];
