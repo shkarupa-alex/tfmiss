@@ -11,6 +11,7 @@ py_library(
         "__init__.py",
     ],
     deps = [
+        "//tfmiss/image",
         "//tfmiss/keras",
         "//tfmiss/nn",
         "//tfmiss/preprocessing",

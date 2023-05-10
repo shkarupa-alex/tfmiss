@@ -19,9 +19,16 @@ custom_op_library(
         # dcn v2
         "cc/kernels/dcnv2/dcn_v2.h",
         "cc/kernels/dcnv2/dcn_v2.cc",
-
         "cc/ops/dcnv2/dcn_v2.cc",
 
+        # image
+        "cc/kernels/image/conn_comp.h",
+        "cc/kernels/image/conn_comp.cc",
+        "cc/ops/image/conn_comp.cc",
+
+        "cc/kernels/image/euclidean_dist.h",
+        "cc/kernels/image/euclidean_dist.cc",
+        "cc/ops/image/euclidean_dist.cc",
 
         # preprocessing
         "cc/kernels/preprocessing/cbow_context.cc",
@@ -102,8 +109,12 @@ custom_op_library(
         "cc/ops/unicode/transform/zero_digits.cc",
     ],
     cuda_srcs = [
+        "cc/kernels/image/conn_comp.h",
+        "cc/kernels/image/conn_comp.cu.cc",
         "cc/kernels/dcnv2/dcn_v2.h",
         "cc/kernels/dcnv2/dcn_v2.cu.cc",
+        "cc/kernels/image/euclidean_dist.h",
+        "cc/kernels/image/euclidean_dist.cu.cc",
         "cc/kernels/qrnn/fo_pool.h",
         "cc/kernels/qrnn/fo_pool.cu.cc",
     ],
