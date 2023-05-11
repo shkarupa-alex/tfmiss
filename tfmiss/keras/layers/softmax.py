@@ -9,12 +9,12 @@ from keras.saving import register_keras_serializable
 from keras.src.utils.control_flow_util import smart_cond
 from keras.src.utils.losses_utils import compute_weighted_loss as _compute_weighted_loss, ReductionV2 as Reduction
 from keras.src.utils.tf_utils import shape_type_conversion
-from tensorflow.python.distribute import distribution_strategy_context
+from tensorflow.python.distribute import distribute_lib
 from tensorflow.python.ops import data_flow_ops
 
 
 def compute_weighted_loss(losses, sample_weight=None, reduction=Reduction.SUM_OVER_BATCH_SIZE):
-    if distribution_strategy_context.has_strategy() and \
+    if distribute_lib.has_strategy() and \
             reduction in {Reduction.AUTO, Reduction.SUM_OVER_BATCH_SIZE}:
         raise ValueError(
             'Please use `Reduction.SUM` or  `Reduction.NONE` for loss reduction when '
