@@ -13,21 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 ==============================================================================*/
 
-#ifndef CUDA_CUDA_CONFIG_H_
-#define CUDA_CUDA_CONFIG_H_
+#ifndef ROCM_ROCM_CONFIG_H_
+#define ROCM_ROCM_CONFIG_H_
 
-#define TF_CUDA_VERSION "%{cuda_version}"
-#define TF_CUDART_VERSION "%{cudart_version}"
-#define TF_CUPTI_VERSION "%{cupti_version}"
-#define TF_CUBLAS_VERSION "%{cublas_version}"
-#define TF_CUSOLVER_VERSION "%{cusolver_version}"
-#define TF_CURAND_VERSION "%{curand_version}"
-#define TF_CUFFT_VERSION "%{cufft_version}"
-#define TF_CUSPARSE_VERSION "%{cusparse_version}"
-#define TF_CUDNN_VERSION "%{cudnn_version}"
+#define TF_ROCM_TOOLKIT_PATH "%{rocm_toolkit_path}"
 
-#define TF_CUDA_TOOLKIT_PATH "%{cuda_toolkit_path}"
+#define TF_ROCM_VERSION %{rocm_version_number}
+#define TF_MIOPEN_VERSION %{miopen_version_number}
+#define TF_HIPRUNTIME_VERSION %{hipruntime_version_number}
 
-#define TF_CUDA_COMPUTE_CAPABILITIES %{cuda_compute_capabilities}
-
-#endif  // CUDA_CUDA_CONFIG_H_
+#endif  // ROCM_ROCM_CONFIG_H_

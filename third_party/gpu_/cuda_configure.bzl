@@ -25,7 +25,7 @@
   * `PYTHON_BIN_PATH`: The python binary path
 """
 
-load(":download_clang.bzl", "download_clang")
+load("//third_party/clang_toolchain:download_clang.bzl", "download_clang")
 load(
     "@bazel_tools//tools/cpp:lib_cc_configure.bzl",
     "escape_string",
@@ -38,7 +38,7 @@ load(
     "setup_vc_env_vars",
 )
 load(
-    ":remote_config_common.bzl",
+    "//third_party/remote_config:common.bzl",
     "config_repo_label",
     "err_out",
     "execute",
@@ -759,14 +759,14 @@ def _tpl(repository_ctx, tpl, substitutions = {}, out = None):
         out = tpl.replace(":", "/")
     repository_ctx.template(
         out,
-        Label("//third_party/gpu/%s.tpl" % tpl),
+        Label("//third_party/gpus/%s.tpl" % tpl),
         substitutions,
     )
 
 def _file(repository_ctx, label):
     repository_ctx.template(
         label.replace(":", "/"),
-        Label("//third_party/gpu/%s.tpl" % label),
+        Label("//third_party/gpus/%s.tpl" % label),
         {},
     )
 
@@ -973,7 +973,7 @@ def _compute_cuda_extra_copts(repository_ctx, compute_capabilities):
     return str(copts)
 
 def _tpl_path(repository_ctx, filename):
-    return repository_ctx.path(Label("//third_party/gpu/%s.tpl" % filename))
+    return repository_ctx.path(Label("//third_party/gpus/%s.tpl" % filename))
 
 def _basename(repository_ctx, path_str):
     """Returns the basename of a path of type string.
@@ -1008,7 +1008,7 @@ def _create_local_cuda_repository(repository_ctx):
         "cuda:cuda_config.py",
     ]}
     tpl_paths["cuda:BUILD"] = _tpl_path(repository_ctx, "cuda:BUILD.windows" if is_windows(repository_ctx) else "cuda:BUILD")
-    find_cuda_config_script = repository_ctx.path(Label("//third_party/gpu:find_cuda_config.py.gz.base64"))
+    find_cuda_config_script = repository_ctx.path(Label("@org_tensorflow//third_party/gpus:find_cuda_config.py.gz.base64"))
 
     cuda_config = _get_cuda_config(repository_ctx, find_cuda_config_script)
 
@@ -1107,7 +1107,7 @@ def _create_local_cuda_repository(repository_ctx):
         ],
     ))
 
-    check_cuda_libs_script = repository_ctx.path(Label("//third_party/gpu:check_cuda_libs.py"))
+    check_cuda_libs_script = repository_ctx.path(Label("@org_tensorflow//third_party/gpus:check_cuda_libs.py"))
     cuda_libs = _find_libs(repository_ctx, check_cuda_libs_script, cuda_config)
     cuda_lib_srcs = []
     cuda_lib_outs = []
@@ -1419,7 +1419,7 @@ def _create_remote_cuda_repository(repository_ctx, remote_config_repo):
 
 def _cuda_autoconf_impl(repository_ctx):
     """Implementation of the cuda_autoconf repository rule."""
-    build_file = Label("//third_party/gpu:local_config_cuda.BUILD")
+    build_file = Label("//third_party/gpus:local_config_cuda.BUILD")
 
     if not enable_cuda(repository_ctx):
         _create_dummy_repository(repository_ctx)
