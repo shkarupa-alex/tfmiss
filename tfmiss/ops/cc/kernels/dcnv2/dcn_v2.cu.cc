@@ -129,6 +129,7 @@ struct CastToFunctor<GPUDevice, T, PT>
 };
 
 template struct CastToFunctor<GPUDevice, Eigen::half, float>;
+template struct CastToFunctor<GPUDevice, Eigen::bfloat16, float>;
 
 }  // end namespace miss
 }  // end namespace tensorflow

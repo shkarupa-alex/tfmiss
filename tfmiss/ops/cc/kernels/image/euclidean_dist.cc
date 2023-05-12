@@ -90,82 +90,69 @@ class EuclideanDistanceOp : public OpKernel
   }
 };
 
-#define REGISTER(TYPE)                                                                                              \
-  REGISTER_KERNEL_BUILDER(                                                                                          \
-      Name("Miss>EuclideanDistance")                                                                                \
-          .Device(DEVICE_CPU)                                                                                       \
-          .TypeConstraint<TYPE>("DT")                                                                               \
-          .TypeConstraint<Eigen::half>("dtype"),                                                                    \
-      EuclideanDistanceOp<CPUDevice, TYPE, Eigen::half>);                                                           \
-  REGISTER_KERNEL_BUILDER(                                                                                          \
-      Name("Miss>EuclideanDistance")                                                                                \
-          .Device(DEVICE_CPU)                                                                                       \
-          .TypeConstraint<TYPE>("DT")                                                                               \
-          .TypeConstraint<Eigen::bfloat16>("dtype"),                                                                \
-      EuclideanDistanceOp<CPUDevice, TYPE, Eigen::bfloat16>);                                                       \
-  REGISTER_KERNEL_BUILDER(                                                                                          \
-      Name("Miss>EuclideanDistance").Device(DEVICE_CPU).TypeConstraint<TYPE>("DT").TypeConstraint<float>("dtype"),  \
-      EuclideanDistanceOp<CPUDevice, TYPE, float>);                                                                 \
-  REGISTER_KERNEL_BUILDER(                                                                                          \
-      Name("Miss>EuclideanDistance").Device(DEVICE_CPU).TypeConstraint<TYPE>("DT").TypeConstraint<double>("dtype"), \
-      EuclideanDistanceOp<CPUDevice, TYPE, double>);
+#define REGISTER(T)                                                                                                   \
+  REGISTER_KERNEL_BUILDER(                                                                                            \
+      Name("Miss>EuclideanDistance").Device(DEVICE_CPU).TypeConstraint<T>("DT").TypeConstraint<Eigen::half>("dtype"), \
+      EuclideanDistanceOp<CPUDevice, T, Eigen::half>);                                                                \
+  REGISTER_KERNEL_BUILDER(                                                                                            \
+      Name("Miss>EuclideanDistance")                                                                                  \
+          .Device(DEVICE_CPU)                                                                                         \
+          .TypeConstraint<T>("DT")                                                                                    \
+          .TypeConstraint<Eigen::bfloat16>("dtype"),                                                                  \
+      EuclideanDistanceOp<CPUDevice, T, Eigen::bfloat16>);                                                            \
+  REGISTER_KERNEL_BUILDER(                                                                                            \
+      Name("Miss>EuclideanDistance").Device(DEVICE_CPU).TypeConstraint<T>("DT").TypeConstraint<float>("dtype"),       \
+      EuclideanDistanceOp<CPUDevice, T, float>);                                                                      \
+  REGISTER_KERNEL_BUILDER(                                                                                            \
+      Name("Miss>EuclideanDistance").Device(DEVICE_CPU).TypeConstraint<T>("DT").TypeConstraint<double>("dtype"),      \
+      EuclideanDistanceOp<CPUDevice, T, double>);
 
 TF_CALL_REAL_NUMBER_TYPES(REGISTER);
 TF_CALL_bool(REGISTER);
-
 #undef REGISTER
 
 #if GOOGLE_CUDA
 
-#define DECLARE_FUNCTOR(TYPE)                                                                                         \
+#define REGISTER(T)                                                                                                   \
   template <>                                                                                                         \
-  void EuclideanDistanceFunctor<GPUDevice, TYPE, Eigen::half>::operator()(                                            \
-      OpKernelContext *ctx, const TYPE *input, const int batch, const int height, const int width, const int channel, \
+  void EuclideanDistanceFunctor<GPUDevice, T, Eigen::half>::operator()(                                               \
+      OpKernelContext *ctx, const T *input, const int batch, const int height, const int width, const int channel,    \
       Eigen::half *output) const;                                                                                     \
-  extern template struct EuclideanDistanceFunctor<GPUDevice, TYPE, Eigen::half>;                                      \
+  extern template struct EuclideanDistanceFunctor<GPUDevice, T, Eigen::half>;                                         \
+  REGISTER_KERNEL_BUILDER(                                                                                            \
+      Name("Miss>EuclideanDistance").Device(DEVICE_GPU).TypeConstraint<T>("DT").TypeConstraint<Eigen::half>("dtype"), \
+      EuclideanDistanceOp<GPUDevice, T, Eigen::half>);                                                                \
   template <>                                                                                                         \
-  void EuclideanDistanceFunctor<GPUDevice, TYPE, Eigen::bfloat16>::operator()(                                        \
-      OpKernelContext *ctx, const TYPE *input, const int batch, const int height, const int width, const int channel, \
+  void EuclideanDistanceFunctor<GPUDevice, T, Eigen::bfloat16>::operator()(                                           \
+      OpKernelContext *ctx, const T *input, const int batch, const int height, const int width, const int channel,    \
       Eigen::bfloat16 *output) const;                                                                                 \
-  extern template struct EuclideanDistanceFunctor<GPUDevice, TYPE, Eigen::bfloat16>;                                  \
+  extern template struct EuclideanDistanceFunctor<GPUDevice, T, Eigen::bfloat16>;                                     \
+  REGISTER_KERNEL_BUILDER(                                                                                            \
+      Name("Miss>EuclideanDistance")                                                                                  \
+          .Device(DEVICE_GPU)                                                                                         \
+          .TypeConstraint<T>("DT")                                                                                    \
+          .TypeConstraint<Eigen::bfloat16>("dtype"),                                                                  \
+      EuclideanDistanceOp<GPUDevice, T, Eigen::bfloat16>);                                                            \
   template <>                                                                                                         \
-  void EuclideanDistanceFunctor<GPUDevice, TYPE, float>::operator()(                                                  \
-      OpKernelContext *ctx, const TYPE *input, const int batch, const int height, const int width, const int channel, \
+  void EuclideanDistanceFunctor<GPUDevice, T, float>::operator()(                                                     \
+      OpKernelContext *ctx, const T *input, const int batch, const int height, const int width, const int channel,    \
       float *output) const;                                                                                           \
-  extern template struct EuclideanDistanceFunctor<GPUDevice, TYPE, float>;                                            \
+  extern template struct EuclideanDistanceFunctor<GPUDevice, T, float>;                                               \
+  REGISTER_KERNEL_BUILDER(                                                                                            \
+      Name("Miss>EuclideanDistance").Device(DEVICE_GPU).TypeConstraint<T>("DT").TypeConstraint<float>("dtype"),       \
+      EuclideanDistanceOp<GPUDevice, T, float>);                                                                      \
   template <>                                                                                                         \
-  void EuclideanDistanceFunctor<GPUDevice, TYPE, double>::operator()(                                                 \
-      OpKernelContext *ctx, const TYPE *input, const int batch, const int height, const int width, const int channel, \
+  void EuclideanDistanceFunctor<GPUDevice, T, double>::operator()(                                                    \
+      OpKernelContext *ctx, const T *input, const int batch, const int height, const int width, const int channel,    \
       double *output) const;                                                                                          \
-  extern template struct EuclideanDistanceFunctor<GPUDevice, TYPE, double>;
-
-TF_CALL_REAL_NUMBER_TYPES(DECLARE_FUNCTOR);
-TF_CALL_bool(DECLARE_FUNCTOR);
-
-#undef DECLARE_FUNCTOR
-
-#define REGISTER(TYPE)                                                                                              \
-  REGISTER_KERNEL_BUILDER(                                                                                          \
-      Name("Miss>EuclideanDistance")                                                                                \
-          .Device(DEVICE_GPU)                                                                                       \
-          .TypeConstraint<TYPE>("DT")                                                                               \
-          .TypeConstraint<Eigen::half>("dtype"),                                                                    \
-      EuclideanDistanceOp<GPUDevice, TYPE, Eigen::half>);                                                           \
-  REGISTER_KERNEL_BUILDER(                                                                                          \
-      Name("Miss>EuclideanDistance")                                                                                \
-          .Device(DEVICE_GPU)                                                                                       \
-          .TypeConstraint<TYPE>("DT")                                                                               \
-          .TypeConstraint<Eigen::bfloat16>("dtype"),                                                                \
-      EuclideanDistanceOp<GPUDevice, TYPE, Eigen::bfloat16>);                                                       \
-  REGISTER_KERNEL_BUILDER(                                                                                          \
-      Name("Miss>EuclideanDistance").Device(DEVICE_GPU).TypeConstraint<TYPE>("DT").TypeConstraint<float>("dtype"),  \
-      EuclideanDistanceOp<GPUDevice, TYPE, float>);                                                                 \
-  REGISTER_KERNEL_BUILDER(                                                                                          \
-      Name("Miss>EuclideanDistance").Device(DEVICE_GPU).TypeConstraint<TYPE>("DT").TypeConstraint<double>("dtype"), \
-      EuclideanDistanceOp<GPUDevice, TYPE, double>);
+  extern template struct EuclideanDistanceFunctor<GPUDevice, T, double>;                                              \
+  REGISTER_KERNEL_BUILDER(                                                                                            \
+      Name("Miss>EuclideanDistance").Device(DEVICE_GPU).TypeConstraint<T>("DT").TypeConstraint<double>("dtype"),      \
+      EuclideanDistanceOp<GPUDevice, T, double>);
 
 TF_CALL_REAL_NUMBER_TYPES(REGISTER);
 TF_CALL_bool(REGISTER);
+#undef REGISTER
 
 #endif  // GOOGLE_CUDA
 

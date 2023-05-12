@@ -13,7 +13,11 @@ namespace tensorflow
 namespace miss
 {
 
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE int64 atomic_min(int64 *address, int64 val) { return atomicMin(address, val); }
+template <typename T>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T atomic_min(T *address, T val)
+{
+  return GpuAtomicMin<T, T>(address, val);
+}
 
 template <typename T>
 __global__ void ConnectedComponentsInitGPUKernel(
@@ -63,50 +67,45 @@ template <typename T>
 struct ConnectedComponentsFunctor<GPUDevice, T>
 {
   void operator()(
-      OpKernelContext *ctx, const IT *input, const int batch, const int height, const int width, const int channel,
-      OT *output) const
+      OpKernelContext *ctx, const T *input, const bool norm, const int batch, const int height, const int width,
+      const int channel, int64 *output) const
   {
     const int num_kernels_full = batch * height * width * channel, num_kernels_safe = batch * channel;
     auto eigen_gpu = ctx->eigen_device<GPUDevice>();
 
-    GpuLaunchConfig config_init = GetGpuLaunchConfig(num_kernels_full, eigen_gpu, ConnectedComponentsInitGPUKernel<T>);
-    TF_CHECK_OK(GpuLaunchKernel(
-        ConnectedComponentsInitGPUKernel<T>, config_init.block_count, config_init.thread_per_block, 0,
-        eigen_gpu.stream(), batch, height, width, channel, output));
+    GpuLaunchConfig config_full = GetGpuLaunchConfig(num_kernels_full, eigen_gpu);
 
-    GpuLaunchConfig config_resolve =
-        GetGpuLaunchConfig(num_kernels_full, eigen_gpu, ConnectedComponentsResolveGPUKernel);
     TF_CHECK_OK(GpuLaunchKernel(
-        ConnectedComponentsResolveGPUKernel, config_resolve.block_count, config_resolve.thread_per_block, 0,
-        eigen_gpu.stream(), batch, height, width, channel, output));
+        ConnectedComponentsInitGPUKernel<T>, config_full.block_count, config_full.thread_per_block, 0,
+        eigen_gpu.stream(), input, batch, height, width, channel, output));
 
-    GpuLaunchConfig config_reduce =
-        GetGpuLaunchConfig(num_kernels_full, eigen_gpu, ConnectedComponentsReduceGPUKernel<T>);
     TF_CHECK_OK(GpuLaunchKernel(
-        ConnectedComponentsReduceGPUKernel<T>, config_reduce.block_count, config_reduce.thread_per_block, 0,
+        ConnectedComponentsResolveGPUKernel, config_full.block_count, config_full.thread_per_block, 0,
         eigen_gpu.stream(), batch, height, width, channel, output));
 
     TF_CHECK_OK(GpuLaunchKernel(
-        ConnectedComponentsResolveGPUKernel, config_resolve.block_count, config_resolve.thread_per_block, 0,
+        ConnectedComponentsReduceGPUKernel<T>, config_full.block_count, config_full.thread_per_block, 0,
+        eigen_gpu.stream(), input, batch, height, width, channel, output));
+
+    TF_CHECK_OK(GpuLaunchKernel(
+        ConnectedComponentsResolveGPUKernel, config_full.block_count, config_full.thread_per_block, 0,
         eigen_gpu.stream(), batch, height, width, channel, output));
 
     if (norm)
     {
-      GpuLaunchConfig config_norm =
-          GetGpuLaunchConfig(num_kernels_safe, eigen_gpu, ConnectedComponentsNormalizeGPUKernel);
+      GpuLaunchConfig config_safe = GetGpuLaunchConfig(num_kernels_safe, eigen_gpu);
       TF_CHECK_OK(GpuLaunchKernel(
-          ConnectedComponentsNormalizeGPUKernel, config_norm.block_count, config_norm.thread_per_block, 0,
+          ConnectedComponentsNormalizeGPUKernel, config_safe.block_count, config_safe.thread_per_block, 0,
           eigen_gpu.stream(), batch, height, width, channel, output));
     }
   }
 };
 
-#define DECLARE_FUNCTOR(TYPE) template struct ConnectedComponentsFunctor<GPUDevice, TYPE>;
+#define DECLARE(T) template struct ConnectedComponentsFunctor<GPUDevice, T>
 
-TF_CALL_REAL_NUMBER_TYPES(DECLARE_FUNCTOR);
-TF_CALL_bool(DECLARE_FUNCTOR);
-
-#undef DECLARE_FUNCTOR
+TF_CALL_REAL_NUMBER_TYPES(DECLARE);
+TF_CALL_bool(DECLARE);
+#undef DECLARE
 
 }  // end namespace miss
 }  // end namespace tensorflow

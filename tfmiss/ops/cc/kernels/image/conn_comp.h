@@ -64,7 +64,8 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void resolve_labels(
   }
 }
 
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE int64 atomic_min(int64 *address, int64 val);
+template <typename T>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T atomic_min(T *address, T val);
 
 template <typename T>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void reduce_labels(
@@ -109,7 +110,7 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void reduce_labels(
         label2 = label3;
       }
 
-      label3 = atomic_min(&output[label1 - 1], label2);
+      label3 = atomic_min<int64>(&output[label1 - 1], label2);
       label1 = (label1 == label3) ? label2 : label3;
     }
   }

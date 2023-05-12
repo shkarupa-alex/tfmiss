@@ -14,9 +14,10 @@ namespace tensorflow
 namespace miss
 {
 
-EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE int64 atomic_min(int64 *address, int64 val)
+template <typename T>
+EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T atomic_min(T *address, T val)
 {
-  const int64 old = *address;
+  const T old = *address;
 
   *address = Eigen::numext::mini(old, val);
 
@@ -100,7 +101,7 @@ struct ConnectedComponentsFunctor<CPUDevice, T>
   }
 };
 
-template <typename Device, typename T> 
+template <typename Device, typename T>
 class ConnectedComponentsOp : public OpKernel
 {
  private:
@@ -141,10 +142,10 @@ class ConnectedComponentsOp : public OpKernel
   }
 };
 
-#define REGISTER(TYPE)                                                                \
-  REGISTER_KERNEL_BUILDER(                                                            \
-      Name("Miss>ConnectedComponents").Device(DEVICE_CPU).TypeConstraint<TYPE>("DT"), \
-      ConnectedComponentsOp<CPUDevice, TYPE>);
+#define REGISTER(T)                                                                \
+  REGISTER_KERNEL_BUILDER(                                                         \
+      Name("Miss>ConnectedComponents").Device(DEVICE_CPU).TypeConstraint<T>("DT"), \
+      ConnectedComponentsOp<CPUDevice, T>)
 
 TF_CALL_REAL_NUMBER_TYPES(REGISTER);
 TF_CALL_bool(REGISTER);
@@ -153,25 +154,20 @@ TF_CALL_bool(REGISTER);
 
 #if GOOGLE_CUDA
 
-#define DECLARE_FUNCTOR(TYPE)                                                                                       \
-  template <>                                                                                                       \
-  void ConnectedComponentsFunctor<GPUDevice, TYPE>::operator()(                                                     \
-      OpKernelContext *ctx, const TYPE *input, const bool norm, const int batch, const int height, const int width, \
-      const int channel, int64 *output) const;                                                                      \
-  extern template struct ConnectedComponentsFunctor<GPUDevice, TYPE>;
-
-TF_CALL_REAL_NUMBER_TYPES(DECLARE_FUNCTOR);
-TF_CALL_bool(DECLARE_FUNCTOR);
-
-#undef DECLARE_FUNCTOR
-
-#define REGISTER(TYPE)                                                                \
-  REGISTER_KERNEL_BUILDER(                                                            \
-      Name("Miss>ConnectedComponents").Device(DEVICE_GPU).TypeConstraint<TYPE>("DT"), \
-      ConnectedComponentsOp<GPUDevice, TYPE>);
+#define REGISTER(T)                                                                                              \
+  template <>                                                                                                    \
+  void ConnectedComponentsFunctor<GPUDevice, T>::operator()(                                                     \
+      OpKernelContext *ctx, const T *input, const bool norm, const int batch, const int height, const int width, \
+      const int channel, int64 *output) const;                                                                   \
+  extern template struct ConnectedComponentsFunctor<GPUDevice, T>;                                               \
+  REGISTER_KERNEL_BUILDER(                                                                                       \
+      Name("Miss>ConnectedComponents").Device(DEVICE_GPU).TypeConstraint<T>("DT"),                               \
+      ConnectedComponentsOp<GPUDevice, T>)
 
 TF_CALL_REAL_NUMBER_TYPES(REGISTER);
 TF_CALL_bool(REGISTER);
+
+#undef REGISTER
 
 #endif  // GOOGLE_CUDA
 
