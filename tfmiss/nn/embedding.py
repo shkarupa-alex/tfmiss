@@ -109,9 +109,16 @@ def adaptive_embedding_lookup(params, ids, transforms, max_norm=None, name=None)
         for p in range(np):
             pids = gather_ids[p]
             transform_fn = transforms[p]
-            with ops.colocate_with(params[p]):
-                result = tf.gather(params[p], pids)
-                result = embedding_ops._clip(transform_fn(result), pids, max_norm)
+
+            result = tf.gather(params[p], pids)
+            if 0 == p:
+                result = transform_fn(result)
+            else:
+                with ops.colocate_with(partitioned_result[0]):
+                    result = tf.identity(result)
+                    result = transform_fn(result)
+            result = embedding_ops._clip(result, pids, max_norm)
+
             partitioned_result.append(result)
 
         # Stitch these back together

@@ -56,8 +56,8 @@ class AdaptiveEmbedding(layers.Embedding):
                     '`cutoffs`, decrease `factor` or increase `output_dim`')
             prev_dim = dim
 
-            with tf.device('cpu:0'):
-                # Always place embeddings on CPU due to main use case is storing large vocabulary embeddings
+            if 0 == i:
+                # Always place root embeddings on default device
                 embed = self.add_weight(
                     shape=(size, dim),
                     initializer=self.embeddings_initializer,
@@ -65,6 +65,17 @@ class AdaptiveEmbedding(layers.Embedding):
                     regularizer=self.embeddings_regularizer,
                     constraint=self.embeddings_constraint
                 )
+            else:
+                with tf.device('cpu:0'):
+                    # Place the rest embeddings on CPU due to
+                    # main use case is storing large vocabulary embeddings
+                    embed = self.add_weight(
+                        shape=(size, dim),
+                        initializer=self.embeddings_initializer,
+                        name='embeddings_{}'.format(i),
+                        regularizer=self.embeddings_regularizer,
+                        constraint=self.embeddings_constraint
+                    )
             self.embeddings.append(embed)
 
             if dim != self.output_dim or self.proj0:
