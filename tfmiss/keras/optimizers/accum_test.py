@@ -12,10 +12,10 @@ from tfmiss.keras.optimizers.accum import Accum
 
 class AccumOptimizerTest(test_combinations.TestCase):
     @parameterized.parameters([
-        ('SGD', 0.01, 0.01), ('Adam', 0.01, 0.01),
+        ('SGD', 0.01, 0.01, None), ('SGD', 0.01, 0.01, 0.05), ('Adam', 0.01, 0.01, None), ('Adam', 0.01, 0.01, 0.005),
         ('Adam', PiecewiseConstantDecay([9, 19], [0.01, 0.02, 0.03]),
-         PiecewiseConstantDecay([29, 59], [0.01, 0.02, 0.03]))])
-    def test_dense_value(self, opt, lr3, lr1):
+         PiecewiseConstantDecay([29, 59], [0.01, 0.02, 0.03]), None)])
+    def test_dense_value(self, opt, lr3, lr1, wd):
         logits = tf.constant([
             [[0.3834889522317029, 0.18652422068782437], [0.5416385105321877, 0.7688347307618931],
              [0.217790919325616, 0.15262361602508145], [0.2878849762271264, 0.303517183413756]],
@@ -49,7 +49,7 @@ class AccumOptimizerTest(test_combinations.TestCase):
 
         weights = tf.Variable(initial, trainable=True, dtype='float32')
         optimizer = optimizers.get({'class_name': opt, 'config': {
-            'learning_rate': lr3, 'weight_decay': 1e-3, 'is_legacy_optimizer': False}})
+            'learning_rate': lr3, 'weight_decay': wd, 'is_legacy_optimizer': False}})
         logits_, targets_ = tf.reshape(logits, [3, 12, 2]), tf.reshape(targets, [3, 12, 1])
 
         expected = []
@@ -66,7 +66,7 @@ class AccumOptimizerTest(test_combinations.TestCase):
         weights = tf.Variable(initial, trainable=True, dtype='float32')
         optimizer = Accum(optimizers.get(
             {'class_name': opt, 'config': {
-                'learning_rate': lr1, 'weight_decay': 1e-3, 'is_legacy_optimizer': False}}), 3)
+                'learning_rate': lr1, 'weight_decay': wd, 'is_legacy_optimizer': False}}), 3)
 
         for e in range(10):
             for b in range(9):
