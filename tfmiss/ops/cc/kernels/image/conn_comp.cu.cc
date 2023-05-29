@@ -101,7 +101,7 @@ struct ConnectedComponentsFunctor<GPUDevice, T>
   }
 };
 
-#define DECLARE(T) template struct ConnectedComponentsFunctor<GPUDevice, T>
+#define DECLARE(T) template struct ConnectedComponentsFunctor<GPUDevice, T>;
 
 TF_CALL_REAL_NUMBER_TYPES(DECLARE);
 TF_CALL_bool(DECLARE);
