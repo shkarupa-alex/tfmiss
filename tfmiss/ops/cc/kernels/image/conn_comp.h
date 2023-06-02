@@ -122,39 +122,28 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void normalize_labels(
   const int batch_id = index / channel;
   const int channel_id = index % channel;
   const int offset0 = batch_id * height * width * channel + channel_id;
-
-  absl::flat_hash_map<int64, int64> uniq;
-
-  uniq.emplace(0, 0);
-  for (int row_id = 0; row_id < height; row_id++)
-  {
-    const int offset1 = row_id * width * channel;
-    for (int column_id = 0; column_id < width; column_id++)
-    {
-      uniq.emplace(output[offset0 + offset1 + column_id * channel], 0);
-    }
-  }
-
-  std::vector<int64> keys;
-  keys.reserve(uniq.size());
-  for (auto &it : uniq)
-  {
-    keys.push_back(it.first);
-  }
-  std::sort(keys.begin(), keys.end());
-
-  for (int i = 0; i < static_cast<int>(keys.size()); i++)
-  {
-    uniq[keys[i]] = i;
-  }
+  int counter = 1;
 
   for (int row_id = 0; row_id < height; row_id++)
   {
-    const int offset1 = row_id * width * channel;
+    const int offset1 = offset0 + row_id * width * channel;
+
     for (int column_id = 0; column_id < width; column_id++)
     {
-      const int nyx = offset0 + offset1 + column_id * channel;
-      output[nyx] = uniq[output[nyx]];
+      const int nyx = offset1 + column_id * channel;
+      const int64 label = output[nyx];
+
+      if (label)
+      {
+        if (label - 1 == nyx)
+        {
+          output[nyx] = counter++;
+        }
+        else
+        {
+          output[nyx] = output[label - 1];
+        }
+      }
     }
   }
 }

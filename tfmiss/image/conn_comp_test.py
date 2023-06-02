@@ -25,14 +25,14 @@ class ConnectedComponentsTest(tf.test.TestCase):
         [0, 0, 0, 0, 0, 0, 0, 0, 0]]).astype('bool')[None, ..., None]
 
     def test_zeros(self):
-        inputs = np.zeros((100, 20, 50, 2)).astype('bool')
+        inputs = np.zeros((100, 20, 50, 3)).astype('bool')
 
         result = connected_components(inputs)
         result = self.evaluate(result)
         self.assertAllEqual(inputs, result)
 
     def test_ones(self):
-        inputs = np.ones((100, 50, 50, 1)).astype('int32')
+        inputs = np.ones((100, 50, 20, 7)).astype('int32')
 
         result = connected_components(inputs)
         result = self.evaluate(result)
@@ -89,11 +89,11 @@ class ConnectedComponentsTest(tf.test.TestCase):
         self.assertAllEqual(expected, result)
 
     def test_random(self):
-        inputs = np.random.randint(0, 2, size=(10, 100, 200, 5), dtype='uint8')
+        inputs = np.random.randint(0, 2, size=(9, 77, 88, 13), dtype='uint8')
 
-        expected_ = inputs.transpose((0, 3, 1, 2)).reshape((50, 100, 200))
-        expected_ = np.stack([cv2.connectedComponents(expected_[i], connectivity=4)[1] for i in range(50)])
-        expected = expected_.reshape((10, 5, 100, 200)).transpose((0, 2, 3, 1))
+        expected_ = inputs.transpose((0, 3, 1, 2)).reshape((9 * 13, 77, 88))
+        expected_ = np.stack([cv2.connectedComponents(expected_[i], connectivity=4)[1] for i in range(9 * 13)])
+        expected = expected_.reshape((9, 13, 77, 88)).transpose((0, 2, 3, 1))
 
         result = connected_components(inputs)
         result = self.evaluate(result)

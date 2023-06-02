@@ -20,36 +20,36 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE T atomic_min(T *address, T val)
 }
 
 template <typename T>
-__global__ void ConnectedComponentsInitGPUKernel(
+__global__ void ConnectedComponentsIRRRGPUKernel(
     const T *__restrict__ input, const int batch, const int height, const int width, const int channel,
     int64 *__restrict__ output)
 {
   const int num_kernels = batch * height * width * channel;
+
   for (int index : GpuGridRangeX<int>(num_kernels))
   {
     init_labels<T>(input, index, height, width, channel, output);
   }
-}
 
-__global__ void ConnectedComponentsResolveGPUKernel(
-    const int batch, const int height, const int width, const int channel, int64 *__restrict__ output)
-{
-  const int num_kernels = batch * height * width * channel;
+  __syncthreads();
+
   for (int index : GpuGridRangeX<int>(num_kernels))
   {
     resolve_labels(index, height, width, channel, output);
   }
-}
 
-template <typename T>
-__global__ void ConnectedComponentsReduceGPUKernel(
-    const T *__restrict__ input, const int batch, const int height, const int width, const int channel,
-    int64 *__restrict__ output)
-{
-  const int num_kernels = batch * height * width * channel;
+  __syncthreads();
+
   for (int index : GpuGridRangeX<int>(num_kernels))
   {
     reduce_labels<T>(input, index, height, width, channel, output);
+  }
+
+  __syncthreads();
+
+  for (int index : GpuGridRangeX<int>(num_kernels))
+  {
+    resolve_labels(index, height, width, channel, output);
   }
 }
 
@@ -57,6 +57,7 @@ __global__ void ConnectedComponentsNormalizeGPUKernel(
     const int batch, const int height, const int width, const int channel, int64 *__restrict__ output)
 {
   const int num_kernels = batch * channel;
+
   for (int index : GpuGridRangeX<int>(num_kernels))
   {
     normalize_labels(index, height, width, channel, output);
@@ -76,20 +77,8 @@ struct ConnectedComponentsFunctor<GPUDevice, T>
     GpuLaunchConfig config_full = GetGpuLaunchConfig(num_kernels_full, eigen_gpu);
 
     TF_CHECK_OK(GpuLaunchKernel(
-        ConnectedComponentsInitGPUKernel<T>, config_full.block_count, config_full.thread_per_block, 0,
+        ConnectedComponentsIRRRGPUKernel<T>, config_full.block_count, config_full.thread_per_block, 0,
         eigen_gpu.stream(), input, batch, height, width, channel, output));
-
-    TF_CHECK_OK(GpuLaunchKernel(
-        ConnectedComponentsResolveGPUKernel, config_full.block_count, config_full.thread_per_block, 0,
-        eigen_gpu.stream(), batch, height, width, channel, output));
-
-    TF_CHECK_OK(GpuLaunchKernel(
-        ConnectedComponentsReduceGPUKernel<T>, config_full.block_count, config_full.thread_per_block, 0,
-        eigen_gpu.stream(), input, batch, height, width, channel, output));
-
-    TF_CHECK_OK(GpuLaunchKernel(
-        ConnectedComponentsResolveGPUKernel, config_full.block_count, config_full.thread_per_block, 0,
-        eigen_gpu.stream(), batch, height, width, channel, output));
 
     if (norm)
     {

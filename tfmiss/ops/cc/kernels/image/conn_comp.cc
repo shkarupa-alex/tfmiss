@@ -54,6 +54,7 @@ struct ConnectedComponentsFunctor<CPUDevice, T>
           }
         });
 
+    // Safe reducing due to unsafe atomic min
     thread_pool->ParallelFor(
         num_kernels_safe, 9 * 2 * height * width,
         [&](int64 start_index, int64 end_index)
@@ -66,11 +67,11 @@ struct ConnectedComponentsFunctor<CPUDevice, T>
 
             for (int row_id = 0; row_id < height; row_id++)
             {
-              const int offset1 = row_id * width * channel;
+              const int offset1 = offset0 + row_id * width * channel;
 
               for (int column_id = 0; column_id < width; column_id++)
               {
-                reduce_labels<T>(input, offset0 + offset1 + column_id * channel, height, width, channel, output);
+                reduce_labels<T>(input, offset1 + column_id * channel, height, width, channel, output);
               }
             }
           }
