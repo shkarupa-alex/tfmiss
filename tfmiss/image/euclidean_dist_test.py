@@ -18,8 +18,8 @@ class EuclideanDistanceTest(tf.test.TestCase, parameterized.TestCase):
         'bool', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'half', 'bfloat16', 'float',
         'double'], ['float16', 'bfloat16', 'float32', 'float64']))
     def test_zeros(self, idtype, odtype):
-        inputs = np.zeros([1, 10, 8, 1]).astype(idtype)
-        expected = np.zeros([1, 10, 8, 1]).astype(odtype)
+        inputs = np.zeros([100, 20, 50, 3]).astype(idtype)
+        expected = np.zeros([100, 20, 50, 3]).astype(odtype)
 
         result = euclidean_distance(inputs, dtype=odtype)
         result = self.evaluate(result)
@@ -30,9 +30,8 @@ class EuclideanDistanceTest(tf.test.TestCase, parameterized.TestCase):
         'bool', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'half', 'bfloat16', 'float',
         'double'], ['float16', 'bfloat16', 'float32', 'float64']))
     def test_ones(self, idtype, odtype):
-        inputs = np.ones([1, 8, 10, 1]).astype(idtype)
-        maxval = 3.3762923259610003e38 if 'bfloat16' == odtype else tf.dtypes.as_dtype(odtype).max
-        expected = np.ones([1, 8, 10, 1]).astype(odtype) * maxval ** 0.5
+        inputs = np.ones([100, 50, 20, 7]).astype(idtype)
+        expected = np.ones([100, 50, 20, 7]).astype(odtype) * tf.dtypes.as_dtype(odtype).max
 
         result = euclidean_distance(inputs, dtype=odtype)
         result = self.evaluate(result)
@@ -48,17 +47,17 @@ class EuclideanDistanceTest(tf.test.TestCase, parameterized.TestCase):
             [1, 1, 1, 1, 1],
             [0, 1, 0, 1, 0],
             [1, 0, 1, 0, 1],
-            [0, 1, 0, 1, 0]]).astype(idtype)
+            [0, 1, 0, 1, 0]])[None, ..., None].astype(idtype)
         expected = np.array([
             [2, 2.23606801, 2, 2.23606801, 2],
             [1, 1.41421354, 1, 1.41421354, 1],
             [0, 1, 0, 1, 0],
             [1, 0, 1, 0, 1],
-            [0, 1, 0, 1, 0]]).astype(odtype)
+            [0, 1, 0, 1, 0]])[None, ..., None].astype(odtype)
 
-        result = euclidean_distance(inputs[None, ..., None], dtype=odtype)
+        result = euclidean_distance(inputs, dtype=odtype)
         result = self.evaluate(result)
-        self.assertAllClose(result[0, ..., 0], expected)
+        self.assertAllClose(result, expected)
         self.assertDTypeEqual(result, odtype)
 
     @parameterized.parameters(itertools.product([
