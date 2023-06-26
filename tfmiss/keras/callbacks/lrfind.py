@@ -19,7 +19,7 @@ class LRFinder(callbacks.Callback):
         smooth: Parameter for averaging the loss. Pick between 0 and 1.
     """
 
-    def __init__(self, max_steps, min_lr=1e-7, max_lr=.1, smooth=0.98):
+    def __init__(self, max_steps, min_lr=1e-7, max_lr=.01, smooth=0.98):
         super(LRFinder, self).__init__()
 
         self.max_steps = max_steps
