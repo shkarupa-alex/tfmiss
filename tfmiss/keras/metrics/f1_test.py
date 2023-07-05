@@ -5,7 +5,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from keras import layers, optimizers
-from keras.testing_infra import test_combinations, test_utils
+from keras.src.testing_infra import test_combinations, test_utils
 from tensorflow.python.ops import variables
 from tfmiss.keras.metrics.f1 import F1Binary, F1Micro, F1Macro
 
@@ -138,7 +138,7 @@ class F1BinaryTest(test_combinations.TestCase):
             layers.Dense(1, activation='sigmoid')
         ], input_shape=(4,))
         model.compile(
-            loss='binary_crossentropy', metrics=[f1_obj], optimizer=optimizers.adam.Adam(),
+            loss='binary_crossentropy', metrics=[f1_obj], optimizer=optimizers.Adam(),
             run_eagerly=test_utils.should_run_eagerly())
         model.run_eagerly = test_utils.should_run_eagerly()
         x = np.random.rand(100, 4)
@@ -283,7 +283,7 @@ class F1MicroTest(test_combinations.TestCase):
             layers.Dense(2, activation='softmax')
         ], input_shape=(4,))
         model.compile(
-            loss='sparse_categorical_crossentropy', metrics=[f1_obj], optimizer=optimizers.adam.Adam(),
+            loss='sparse_categorical_crossentropy', metrics=[f1_obj], optimizer=optimizers.Adam(),
             run_eagerly=test_utils.should_run_eagerly())
         model.run_eagerly = test_utils.should_run_eagerly()
         x = np.random.rand(100, 4)
@@ -436,7 +436,7 @@ class F1MacroTest(test_combinations.TestCase):
             layers.Dense(2, activation='softmax')
         ], input_shape=(4,))
         model.compile(
-            loss='sparse_categorical_crossentropy', metrics=[f1_obj], optimizer=optimizers.adam.Adam(),
+            loss='sparse_categorical_crossentropy', metrics=[f1_obj], optimizer=optimizers.Adam(),
             run_eagerly=test_utils.should_run_eagerly())
         model.run_eagerly = test_utils.should_run_eagerly()
         x = np.random.rand(100, 4)

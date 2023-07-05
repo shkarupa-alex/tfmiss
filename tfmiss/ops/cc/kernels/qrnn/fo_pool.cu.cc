@@ -40,9 +40,10 @@ struct FoPoolForwardFunctor<GPUDevice, T>
   }
 };
 
-template struct FoPoolForwardFunctor<GPUDevice, Eigen::half>;
-template struct FoPoolForwardFunctor<GPUDevice, float>;
-template struct FoPoolForwardFunctor<GPUDevice, double>;
+#define DECLARE(T) template struct FoPoolForwardFunctor<GPUDevice, T>;
+
+TF_CALL_FLOAT_TYPES(DECLARE);
+#undef DECLARE
 
 template <typename T>
 __global__ void FoPoolBackwardGPUKernel(
@@ -75,9 +76,10 @@ struct FoPoolBackwardFunctor<GPUDevice, T>
   }
 };
 
-template struct FoPoolBackwardFunctor<GPUDevice, Eigen::half>;
-template struct FoPoolBackwardFunctor<GPUDevice, float>;
-template struct FoPoolBackwardFunctor<GPUDevice, double>;
+#define DECLARE(T) template struct FoPoolBackwardFunctor<GPUDevice, T>;
+
+TF_CALL_FLOAT_TYPES(DECLARE);
+#undef DECLARE
 
 }  // namespace miss
 }  // end namespace tensorflow

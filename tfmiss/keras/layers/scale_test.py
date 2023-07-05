@@ -4,7 +4,7 @@ from __future__ import print_function
 
 import tensorflow as tf
 from keras import layers, models
-from keras.testing_infra import test_combinations, test_utils
+from keras.src.testing_infra import test_combinations, test_utils
 from tfmiss.keras.layers.scale import L2Scale
 from tfmiss.keras.layers.wrappers import WithRagged
 

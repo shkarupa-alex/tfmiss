@@ -5,17 +5,17 @@ from __future__ import print_function
 import tensorflow as tf
 from absl.testing import parameterized
 from keras import optimizers
-from keras.optimizers.schedules.learning_rate_schedule import PiecewiseConstantDecay
-from keras.testing_infra import test_combinations
+from keras.optimizers.schedules import PiecewiseConstantDecay
+from keras.src.testing_infra import test_combinations
 from tfmiss.keras.optimizers.accum import Accum
 
 
 class AccumOptimizerTest(test_combinations.TestCase):
     @parameterized.parameters([
-        ('SGD', 0.01, 0.01), ('Adam', 0.01, 0.01),
+        ('SGD', 0.01, 0.01, None), ('SGD', 0.01, 0.01, 0.05), ('Adam', 0.01, 0.01, None), ('Adam', 0.01, 0.01, 0.005),
         ('Adam', PiecewiseConstantDecay([9, 19], [0.01, 0.02, 0.03]),
-         PiecewiseConstantDecay([29, 59], [0.01, 0.02, 0.03]))])
-    def test_dense_value(self, opt, lr3, lr1):
+         PiecewiseConstantDecay([29, 59], [0.01, 0.02, 0.03]), None)])
+    def test_dense_value(self, opt, lr3, lr1, wd):
         logits = tf.constant([
             [[0.3834889522317029, 0.18652422068782437], [0.5416385105321877, 0.7688347307618931],
              [0.217790919325616, 0.15262361602508145], [0.2878849762271264, 0.303517183413756]],
@@ -49,7 +49,7 @@ class AccumOptimizerTest(test_combinations.TestCase):
 
         weights = tf.Variable(initial, trainable=True, dtype='float32')
         optimizer = optimizers.get({'class_name': opt, 'config': {
-            'learning_rate': lr3, 'weight_decay': 1e-3, 'is_legacy_optimizer': False}})
+            'learning_rate': lr3, 'weight_decay': wd, 'is_legacy_optimizer': False}})
         logits_, targets_ = tf.reshape(logits, [3, 12, 2]), tf.reshape(targets, [3, 12, 1])
 
         expected = []
@@ -66,7 +66,7 @@ class AccumOptimizerTest(test_combinations.TestCase):
         weights = tf.Variable(initial, trainable=True, dtype='float32')
         optimizer = Accum(optimizers.get(
             {'class_name': opt, 'config': {
-                'learning_rate': lr1, 'weight_decay': 1e-3, 'is_legacy_optimizer': False}}), 3)
+                'learning_rate': lr1, 'weight_decay': wd, 'is_legacy_optimizer': False}}), 3)
 
         for e in range(10):
             for b in range(9):
@@ -141,15 +141,15 @@ class AccumOptimizerTest(test_combinations.TestCase):
                     self.assertAllClose(actual, expected[(e * 9 + b - 1) // 3], atol=1e-5)
 
     def test_wrapper(self):
-        optimizer = optimizers.adam.Adam(0.15)
+        optimizer = optimizers.Adam(0.15)
         wrapped = Accum(optimizer, 3)
 
         self.assertEqual(optimizer.learning_rate, wrapped.learning_rate)
         self.assertEqual(optimizer.beta_1, wrapped.beta_1)
 
     def test_lr(self):
-        opt_1 = Accum(optimizers.adam.Adam(learning_rate=1.0), 4)
-        opt_2 = Accum(optimizers.adam.Adam(learning_rate=lambda: tf.constant(0.5, 'float32')), 4)
+        opt_1 = Accum(optimizers.Adam(learning_rate=1.0), 4)
+        opt_2 = Accum(optimizers.Adam(learning_rate=lambda: tf.constant(0.5, 'float32')), 4)
         opt_3 = Accum.from_config(opt_2.get_config())
 
         self.assertIsInstance(opt_1.lr, tf.Variable)

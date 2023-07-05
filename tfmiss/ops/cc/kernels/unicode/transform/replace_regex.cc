@@ -1,6 +1,5 @@
 #include "re2/re2.h"
 #include "unicode_transform.h"
-#include "tensorflow/core/util/ptr_util.h"
 
 namespace tensorflow {
 namespace miss {
@@ -19,7 +18,7 @@ public:
       OP_REQUIRES(ctx, pattern[i].size() > 0,
                   errors::InvalidArgument("Items of \"pattern\" could not be empty"));
 
-      _pattern[i] = MakeUnique<RE2>(pattern[i]);
+      _pattern[i] = std::make_unique<RE2>(pattern[i]);
       OP_REQUIRES(ctx, _pattern[i]->ok(),
                   errors::InvalidArgument("Invalid pattern: ", pattern[i], ", error: ", _pattern[i]->error()));
     }

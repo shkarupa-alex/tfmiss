@@ -177,7 +177,7 @@ LookupStatus LookupTableVocab::Contains(const absl::string_view key,
   keys.flat<tstring>()(0) = tstring(key.data(), key.size());
   Tensor values(DT_INT64, TensorShape({1}));
   auto status = table_->Find(ctx_, keys, &values, default_value_);
-  if (!status.ok()) return LookupStatus(status.error_message());
+  if (!status.ok()) return LookupStatus(std::string(status.message()));
 
   if (static_cast<int64>(values.flat<int64>()(0)) != kOutOfVocabValue) {
     *value = true;
@@ -299,19 +299,19 @@ class WordpieceTokenizeOp : public OpKernel {
                                              &limit_values));
     auto limit_values_vec = limit_values->vec<int64>();
 
-    for (int i = 0; i < subwords.size(); ++i) {
+    for (uint64 i = 0; i < subwords.size(); ++i) {
       output_values_vec(i) = subwords[i];
     }
 
-    for (int i = 0; i < row_partition.size(); ++i) {
+    for (uint64 i = 0; i < row_partition.size(); ++i) {
       output_row_partition_vec(i) = row_partition[i];
     }
 
-    for (int i = 0; i < begin_offset.size(); ++i) {
+    for (uint64 i = 0; i < begin_offset.size(); ++i) {
       start_values_vec(i) = begin_offset[i];
     }
 
-    for (int i = 0; i < end_offset.size(); ++i) {
+    for (uint64 i = 0; i < end_offset.size(); ++i) {
       limit_values_vec(i) = end_offset[i];
     }
   }

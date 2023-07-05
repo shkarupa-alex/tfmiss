@@ -5,7 +5,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from keras import backend, models
-from keras.testing_infra import test_combinations, test_utils
+from keras.src.testing_infra import test_combinations, test_utils
 from tensorflow.python.util import object_identity
 from tensorflow.python.training.tracking import util as trackable_util
 from tfmiss.keras.layers.tcn import TemporalBlock, TemporalConvNet

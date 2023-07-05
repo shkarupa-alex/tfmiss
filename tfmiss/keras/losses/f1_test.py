@@ -5,7 +5,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from keras import layers, models
-from keras.utils.losses_utils import ReductionV2 as Reduction
+from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from tensorflow.python.framework import test_util
 from tfmiss.keras.losses.f1 import macro_soft_f1, binary_soft_f1, MacroSoftF1, BinarySoftF1
 

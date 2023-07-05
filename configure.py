@@ -123,6 +123,15 @@ def get_shared_lib_name():
         return namespec[1][3:]
 
 
+def get_compute_capabilities():
+    import tensorflow as tf
+
+    build_info = tf.sysconfig.get_build_info()
+    comp_cap = build_info.get('cuda_compute_capabilities', [])
+
+    return ','.join(comp_cap)
+
+
 def create_build_configuration():
     print()
     print("Configuring TF Miss to be built from source...")
@@ -188,9 +197,13 @@ def configure_cuda():
     write_action_env("TF_CUDA_VERSION", os.getenv("TF_CUDA_VERSION", "11.8"))
     write_action_env("TF_CUDNN_VERSION", os.getenv("TF_CUDNN_VERSION", "8"))
 
+    comp_cap = get_compute_capabilities()
+    if comp_cap:
+        write_action_env("TF_CUDA_COMPUTE_CAPABILITIES", comp_cap)
+
     write("test --config=cuda")
     write("build --config=cuda")
-    write("build:cuda --define=using_cuda=true --define=using_cuda_nvcc=true")
+    write("build:cuda --@local_config_cuda//:enable_cuda")
 
     if os.getenv("DOCKER_BUILD", "0") == "1":
         write("build:cuda --crosstool_top=//third_party/gcc9_manylinux2014-nvcc-cuda11:toolchain")

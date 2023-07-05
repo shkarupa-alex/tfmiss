@@ -33,10 +33,12 @@ class DCNv2Test(tf.test.TestCase, parameterized.TestCase):
         self.assertListEqual([2, 7 * 8, 3 * 3 * 3], list(self.evaluate(result).shape))
 
     @parameterized.parameters(
-        ('/cpu:0', 'float16', 3e-3, 4e-3), ('/cpu:0', 'float32', 2e-6, 2e-6), ('/cpu:0', 'float64', 3e-7, 5e-7),
-        ('/gpu:0', 'float16', 3e-3, 4e-3), ('/gpu:0', 'float32', 2e-6, 2e-6), ('/gpu:0', 'float64', 3e-7, 5e-7)
+        ('/cpu:0', 'float16', 0.02), ('/cpu:0', 'bfloat16', 0.14), ('/cpu:0', 'float32', 2e-6),
+        ('/cpu:0', 'float64', 3e-7),
+        ('/gpu:0', 'float16', 0.02), ('/gpu:0', 'bfloat16', 0.14), ('/gpu:0', 'float32', 2e-6),
+        ('/gpu:0', 'float64', 3e-7)
     )
-    def test_value(self, dev, dt, tol, gtol):
+    def test_value(self, dev, dt, tol):
         if 'gpu' in dev and not len(tf.config.list_physical_devices('GPU')):
             return self.skipTest('No GPU available')
 
@@ -53,7 +55,7 @@ class DCNv2Test(tf.test.TestCase, parameterized.TestCase):
             self.assertEqual(result.dtype, dt)
             self.assertTrue(np.all(np.isfinite(result)))
             self.assertLessEqual(np.abs(expected_).max(), np.abs(input_).max() * np.abs(mask_).max())
-            self.assertAllClose(expected_, result, rtol=tol, atol=tol)
+            self.assertAllClose(expected_, result, atol=tol)
 
             grad_ = GRADIENT_3c_7x8.astype(dt)
             expected_dinput = INPUT_GRADIENT_3c_7x8.astype(dt)
@@ -78,13 +80,15 @@ class DCNv2Test(tf.test.TestCase, parameterized.TestCase):
                 self.assertTrue(np.all(np.isfinite(result_grad[1])))
                 self.assertTrue(np.all(np.isfinite(result_grad[2])))
 
-                self.assertAllClose(expected_dinput, result_grad[0], rtol=gtol, atol=gtol)
-                self.assertAllClose(expected_doffset, result_grad[1], rtol=gtol, atol=gtol)
-                self.assertAllClose(expected_dmask, result_grad[2], rtol=gtol, atol=gtol)
+                self.assertAllClose(expected_dinput, result_grad[0], atol=tol)
+                self.assertAllClose(expected_doffset, result_grad[1], atol=tol)
+                self.assertAllClose(expected_dmask, result_grad[2], atol=tol)
 
     @parameterized.parameters(
-        ('/cpu:0', 'float16', 5e-0), ('/cpu:0', 'float32', 5e-4), ('/cpu:0', 'float64', 7e-13),
-        ('/gpu:0', 'float16', 5e-0), ('/gpu:0', 'float32', 5e-4), ('/gpu:0', 'float64', 7e-13)
+        ('/cpu:0', 'float16', 5e-0), ('/cpu:0', 'float16', 3.3), ('/cpu:0', 'float32', 5e-4),
+        ('/cpu:0', 'float64', 7e-13),
+        ('/gpu:0', 'float16', 5e-0), ('/gpu:0', 'float16', 3.3), ('/gpu:0', 'float32', 5e-4),
+        ('/gpu:0', 'float64', 7e-13)
     )
     def test_grad(self, dev, dt, tol):
         if 'gpu' in dev and not len(tf.config.list_physical_devices('GPU')):

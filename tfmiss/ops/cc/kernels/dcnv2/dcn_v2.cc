@@ -361,7 +361,7 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
     const T *column = column_tensor->flat<T>().data();
     const T *grad = grad_tensor->flat<T>().data();
 
-    if (!std::is_same<T, Eigen::half>::value)  // T == PT == float/double
+    if (!std::is_same<T, Eigen::half>::value && !std::is_same<T, Eigen::bfloat16>::value)  // T == PT == float/double
     {
       zero_functor(ctx, grad_input_tensor->flat<PT>());
       zero_functor(ctx, grad_offset_tensor->flat<PT>());
@@ -376,7 +376,7 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
           kernel_h, kernel_w, pad_hb, pad_wb, stride_h, stride_w, dilation_h, dilation_w, deformable_group, grad_input,
           grad_offset, grad_mask);
     }
-    else  // T == half, PT = float
+    else  // T == half or bfloat16, PT = float
     {
       // https://github.com/tensorflow/tensorflow/blob/master/tensorflow/core/kernels/image/resize_bilinear_op.cc#L361
       // Accumulate output to float instead of half/bfloat16 tensor, since float accumulation is more numerically
@@ -411,86 +411,85 @@ class ModulatedDeformableColumnBackwardOp : public OpKernel
   }
 };
 
-#define REGISTER(T, PT)                                                                  \
-  REGISTER_KERNEL_BUILDER(                                                               \
-      Name("Miss>ModulatedDeformableColumn").Device(DEVICE_CPU).TypeConstraint<T>("FT"), \
-      ModulatedDeformableColumnOp<CPUDevice, T, PT>)
-#define REGISTER_FLOAT(T) REGISTER(T, float)
-#define REGISTER_SAME(T) REGISTER(T, T)
-
-TF_CALL_half(REGISTER_FLOAT);
-TF_CALL_float(REGISTER_SAME);
-TF_CALL_double(REGISTER_SAME);
-#undef REGISTER_SAME
-#undef REGISTER_FLOAT
-#undef REGISTER
-
-#define REGISTER(T, PT)                                                                          \
+#define REGISTER_FLOAT(T)                                                                        \
+  REGISTER_KERNEL_BUILDER(                                                                       \
+      Name("Miss>ModulatedDeformableColumn").Device(DEVICE_CPU).TypeConstraint<T>("FT"),         \
+      ModulatedDeformableColumnOp<CPUDevice, T, float>);                                         \
   REGISTER_KERNEL_BUILDER(                                                                       \
       Name("Miss>ModulatedDeformableColumnBackward").Device(DEVICE_CPU).TypeConstraint<T>("FT"), \
-      ModulatedDeformableColumnBackwardOp<CPUDevice, T, PT>)
-#define REGISTER_FLOAT(T) REGISTER(T, float)
-#define REGISTER_SAME(T) REGISTER(T, T)
+      ModulatedDeformableColumnBackwardOp<CPUDevice, T, float>)
 
 TF_CALL_half(REGISTER_FLOAT);
+TF_CALL_bfloat16(REGISTER_FLOAT);
+#undef REGISTER_FLOAT
+
+#define REGISTER_SAME(T)                                                                         \
+  REGISTER_KERNEL_BUILDER(                                                                       \
+      Name("Miss>ModulatedDeformableColumn").Device(DEVICE_CPU).TypeConstraint<T>("FT"),         \
+      ModulatedDeformableColumnOp<CPUDevice, T, T>);                                             \
+  REGISTER_KERNEL_BUILDER(                                                                       \
+      Name("Miss>ModulatedDeformableColumnBackward").Device(DEVICE_CPU).TypeConstraint<T>("FT"), \
+      ModulatedDeformableColumnBackwardOp<CPUDevice, T, T>)
+
 TF_CALL_float(REGISTER_SAME);
 TF_CALL_double(REGISTER_SAME);
 #undef REGISTER_SAME
-#undef REGISTER_FLOAT
-#undef REGISTER
 
 #if GOOGLE_CUDA
 
-#define DECLARE(T, PT)                                                                                                 \
+#define REGISTER_FLOAT(T)                                                                                              \
   template <>                                                                                                          \
-  void ModulatedDeformableColumnForwardFunctor<GPUDevice, T, PT>::operator()(                                          \
+  void ModulatedDeformableColumnForwardFunctor<GPUDevice, T, float>::operator()(                                       \
       OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const int batch_size, const int height_in, \
       const int width_in, const int channel_in, const int height_out, const int width_out, const int kernel_h,         \
       const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w,                    \
       const int dilation_h, const int dilation_w, const int deformable_group, T *column) const;                        \
-  extern template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T, PT>
-#define DECLARE_FLOAT(T) DECLARE(T, float)
-#define DECLARE_SAME(T) DECLARE(T, T)
-
-TF_CALL_half(DECLARE_FLOAT);
-TF_CALL_float(DECLARE_SAME);
-TF_CALL_double(DECLARE_SAME);
-#undef DECLARE_SAME
-#undef DECLARE_FLOAT
-#undef DECLARE
-
-#define REGISTER(T, PT)                                                                  \
-  REGISTER_KERNEL_BUILDER(                                                               \
-      Name("Miss>ModulatedDeformableColumn").Device(DEVICE_GPU).TypeConstraint<T>("FT"), \
-      ModulatedDeformableColumnOp<GPUDevice, T, PT>)
-#define REGISTER_FLOAT(T) REGISTER(T, float)
-#define REGISTER_SAME(T) REGISTER(T, T)
+  extern template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T, float>;                                 \
+  REGISTER_KERNEL_BUILDER(                                                                                             \
+      Name("Miss>ModulatedDeformableColumn").Device(DEVICE_GPU).TypeConstraint<T>("FT"),                               \
+      ModulatedDeformableColumnOp<GPUDevice, T, float>);                                                               \
+  template <>                                                                                                          \
+  void ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, float>::operator()(                                      \
+      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *column, const T *grad,            \
+      const int batch_size, const int height_in, const int width_in, const int channel_in, const int height_out,       \
+      const int width_out, const int kernel_h, const int kernel_w, const int pad_h, const int pad_w,                   \
+      const int stride_h, const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group,  \
+      float *grad_input, float *grad_offset, float *grad_mask) const;                                                  \
+  extern template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, float>;                                \
+  REGISTER_KERNEL_BUILDER(                                                                                             \
+      Name("Miss>ModulatedDeformableColumnBackward").Device(DEVICE_GPU).TypeConstraint<T>("FT"),                       \
+      ModulatedDeformableColumnBackwardOp<GPUDevice, T, float>)
 
 TF_CALL_half(REGISTER_FLOAT);
+TF_CALL_bfloat16(REGISTER_FLOAT);
+#undef REGISTER_FLOAT
+
+#define REGISTER_SAME(T)                                                                                               \
+  template <>                                                                                                          \
+  void ModulatedDeformableColumnForwardFunctor<GPUDevice, T, T>::operator()(                                           \
+      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const int batch_size, const int height_in, \
+      const int width_in, const int channel_in, const int height_out, const int width_out, const int kernel_h,         \
+      const int kernel_w, const int pad_h, const int pad_w, const int stride_h, const int stride_w,                    \
+      const int dilation_h, const int dilation_w, const int deformable_group, T *column) const;                        \
+  extern template struct ModulatedDeformableColumnForwardFunctor<GPUDevice, T, T>;                                     \
+  REGISTER_KERNEL_BUILDER(                                                                                             \
+      Name("Miss>ModulatedDeformableColumn").Device(DEVICE_GPU).TypeConstraint<T>("FT"),                               \
+      ModulatedDeformableColumnOp<GPUDevice, T, T>);                                                                   \
+  template <>                                                                                                          \
+  void ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, T>::operator()(                                          \
+      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *column, const T *grad,            \
+      const int batch_size, const int height_in, const int width_in, const int channel_in, const int height_out,       \
+      const int width_out, const int kernel_h, const int kernel_w, const int pad_h, const int pad_w,                   \
+      const int stride_h, const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group,  \
+      T *grad_input, T *grad_offset, T *grad_mask) const;                                                              \
+  extern template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, T>;                                    \
+  REGISTER_KERNEL_BUILDER(                                                                                             \
+      Name("Miss>ModulatedDeformableColumnBackward").Device(DEVICE_GPU).TypeConstraint<T>("FT"),                       \
+      ModulatedDeformableColumnBackwardOp<GPUDevice, T, T>)
+
 TF_CALL_float(REGISTER_SAME);
 TF_CALL_double(REGISTER_SAME);
 #undef REGISTER_SAME
-#undef REGISTER_FLOAT
-#undef REGISTER
-
-#define DECLARE(T, PT)                                                                                                \
-  template <>                                                                                                         \
-  void ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>::operator()(                                        \
-      OpKernelContext *ctx, const T *input, const T *offset, const T *mask, const T *column, const T *grad,           \
-      const int batch_size, const int height_in, const int width_in, const int channel_in, const int height_out,      \
-      const int width_out, const int kernel_h, const int kernel_w, const int pad_h, const int pad_w,                  \
-      const int stride_h, const int stride_w, const int dilation_h, const int dilation_w, const int deformable_group, \
-      PT *grad_input, PT *grad_offset, PT *grad_mask) const;                                                          \
-  extern template struct ModulatedDeformableColumnBackwardFunctor<GPUDevice, T, PT>
-#define DECLARE_FLOAT(T) DECLARE(T, float)
-#define DECLARE_SAME(T) DECLARE(T, T)
-
-TF_CALL_half(DECLARE_FLOAT);
-TF_CALL_float(DECLARE_SAME);
-TF_CALL_double(DECLARE_SAME);
-#undef DECLARE_SAME
-#undef DECLARE_FLOAT
-#undef DECLARE
 
 #define DECLARE(T)                                                                                      \
   template <>                                                                                           \
@@ -498,6 +497,7 @@ TF_CALL_double(DECLARE_SAME);
   extern template struct SetZeroFunctor<GPUDevice, T>
 
 TF_CALL_half(DECLARE);
+TF_CALL_bfloat16(DECLARE);
 TF_CALL_float(DECLARE);
 TF_CALL_double(DECLARE);
 #undef DECLARE
@@ -509,23 +509,10 @@ TF_CALL_double(DECLARE);
   extern template struct CastToFunctor<GPUDevice, T, float>
 
 TF_CALL_half(DECLARE);
+TF_CALL_bfloat16(DECLARE);
 #undef DECLARE
-
-#define REGISTER(T, PT)                                                                          \
-  REGISTER_KERNEL_BUILDER(                                                                       \
-      Name("Miss>ModulatedDeformableColumnBackward").Device(DEVICE_GPU).TypeConstraint<T>("FT"), \
-      ModulatedDeformableColumnBackwardOp<GPUDevice, T, PT>)
-#define REGISTER_FLOAT(T) REGISTER(T, float)
-#define REGISTER_SAME(T) REGISTER(T, T)
-
-TF_CALL_half(REGISTER_FLOAT);
-TF_CALL_float(REGISTER_SAME);
-TF_CALL_double(REGISTER_SAME);
-#undef REGISTER_SAME
-#undef REGISTER_FLOAT
-#undef REGISTER
 
 #endif  // GOOGLE_CUDA
 
-}  // namespace miss
+}  // end namespace miss
 }  // end namespace tensorflow

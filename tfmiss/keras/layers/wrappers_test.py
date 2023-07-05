@@ -4,8 +4,8 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras import layers, models
-from keras.testing_infra import test_combinations, test_utils
+from keras import layers, models, utils
+from keras.src.testing_infra import test_combinations, test_utils
 from tensorflow.python.util import object_identity
 from tensorflow.python.training.tracking import util as trackable_util
 from tfmiss.keras.layers.wrappers import MapFlat, WeightNorm, WithRagged
@@ -14,14 +14,19 @@ from tfmiss.keras.layers.wrappers import MapFlat, WeightNorm, WithRagged
 @test_combinations.run_all_keras_modes
 class MapFlatTest(test_combinations.TestCase):
     def test_layer(self):
-        test_utils.layer_test(
-            MapFlat,
-            kwargs={'layer': layers.Lambda(lambda x: tf.stack([x, x], axis=-1))},
-            input_shape=(3, 10),
-            input_dtype='float32',
-            expected_output_dtype='float32',
-            expected_output_shape=(None, 10, 2)
-        )
+        class Stack2(layers.Layer):
+            def call(self, inputs, *args, **kwargs):
+                return tf.stack([inputs, inputs], axis=-1)
+
+        with utils.custom_object_scope({'Stack2': Stack2}):
+            test_utils.layer_test(
+                MapFlat,
+                kwargs={'layer': Stack2()},
+                input_shape=(3, 10),
+                input_dtype='float32',
+                expected_output_dtype='float32',
+                expected_output_shape=(None, 10, 2)
+            )
 
 
 @test_combinations.run_all_keras_modes

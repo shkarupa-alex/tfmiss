@@ -12,9 +12,9 @@ from __future__ import print_function
 import functools
 import tensorflow as tf
 from keras import backend
-from keras.losses import LossFunctionWrapper
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.losses_utils import ReductionV2 as Reduction
+from keras.saving import register_keras_serializable
+from keras.src.losses import LossFunctionWrapper
+from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from tensorflow.python.framework import ops
 
 

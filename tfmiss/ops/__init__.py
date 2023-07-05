@@ -7,6 +7,10 @@ import tensorflow as tf
 
 tfmiss_ops = tf.load_op_library(os.path.join(os.path.dirname(os.path.abspath(__file__)), '_tfmiss_ops.so'))
 
+# image
+tf.no_gradient('Miss>ConnectedComponents')
+tf.no_gradient('Miss>EuclideanDistance')
+
 # preprocessing
 tf.no_gradient('Miss>SampleMask')
 tf.no_gradient('Miss>SkipGram')

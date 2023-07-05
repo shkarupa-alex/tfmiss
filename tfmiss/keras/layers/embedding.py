@@ -4,8 +4,8 @@ from __future__ import print_function
 
 import tensorflow as tf
 from keras import backend, constraints, initializers, layers, regularizers
-from keras.saving.object_registration import register_keras_serializable
-from keras.utils.tf_utils import shape_type_conversion
+from keras.saving import register_keras_serializable
+from keras.src.utils.tf_utils import shape_type_conversion
 from tensorflow.python.distribute import sharded_variable
 from tfmiss.nn.embedding import adaptive_embedding_lookup
 
@@ -56,8 +56,8 @@ class AdaptiveEmbedding(layers.Embedding):
                     '`cutoffs`, decrease `factor` or increase `output_dim`')
             prev_dim = dim
 
-            with tf.device('cpu:0'):
-                # Always place embeddings on CPU due to main use case is storing large vocabulary embeddings
+            if 0 == i:
+                # Always place root embeddings on default device
                 embed = self.add_weight(
                     shape=(size, dim),
                     initializer=self.embeddings_initializer,
@@ -65,6 +65,17 @@ class AdaptiveEmbedding(layers.Embedding):
                     regularizer=self.embeddings_regularizer,
                     constraint=self.embeddings_constraint
                 )
+            else:
+                with tf.device('cpu:0'):
+                    # Place the rest embeddings on CPU due to
+                    # main use case is storing large vocabulary embeddings
+                    embed = self.add_weight(
+                        shape=(size, dim),
+                        initializer=self.embeddings_initializer,
+                        name='embeddings_{}'.format(i),
+                        regularizer=self.embeddings_regularizer,
+                        constraint=self.embeddings_constraint
+                    )
             self.embeddings.append(embed)
 
             if dim != self.output_dim or self.proj0:
