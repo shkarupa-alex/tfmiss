@@ -51,14 +51,10 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void euclidean_distance_1d(
 template <typename IT, typename OT>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void euclidean_distance_column(
     const IT *input, const int batch_id, const int column_id, const int channel_id, const int height, const int width,
-    const int channels, OT *output)
+    const int channels, OT *output, float *f, float *d, int *v, float *z)
 {
   const int o = (batch_id * height * width + column_id) * channels + channel_id;
   const int s = width * channels;
-  float *f = new float[height];
-  float *d = new float[height];
-  int *v = new int[height];
-  float *z = new float[height + 1];
 
   for (int y = 0; y < height; y++)
   {
@@ -73,24 +69,15 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void euclidean_distance_column(
                             ? Eigen::NumTraits<OT>::highest()
                             : static_cast<OT>(d[y]);
   }
-
-  delete[] f;
-  delete[] d;
-  delete[] v;
-  delete[] z;
 }
 
 template <typename T>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void euclidean_distance_row(
     const int batch_id, const int row_id, const int channel_id, const int height, const int width, const int channels,
-    T *output)
+    T *output, float *f, float *d, int *v, float *z)
 {
   const int o = (batch_id * height + row_id) * width * channels + channel_id;
   const int s = channels;
-  float *f = new float[width];
-  float *d = new float[width];
-  int *v = new int[width];
-  float *z = new float[width + 1];
 
   for (int x = 0; x < width; x++)
   {
@@ -116,11 +103,6 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void euclidean_distance_row(
                               : static_cast<T>(v);
     }
   }
-
-  delete[] f;
-  delete[] d;
-  delete[] v;
-  delete[] z;
 }
 
 template <typename Device, typename IT, typename OT>

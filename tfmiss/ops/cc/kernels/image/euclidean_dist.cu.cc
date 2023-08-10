@@ -18,6 +18,11 @@ __global__ void EuclideanDistanceColumnGPUKernel(
     const IT *__restrict__ input, const int batch, const int height, const int width, const int channel,
     OT *__restrict__ output)
 {
+  float *f = new float[height];
+  float *d = new float[height];
+  int *v = new int[height];
+  float *z = new float[height + 1];
+
   const int num_kernels = batch * width * channel;
   for (int index : GpuGridRangeX<int>(num_kernels))
   {
@@ -25,14 +30,25 @@ __global__ void EuclideanDistanceColumnGPUKernel(
     const int column_id = index / channel % width;
     const int channel_id = index % channel;
 
-    euclidean_distance_column<IT, OT>(input, batch_id, column_id, channel_id, height, width, channel, output);
+    euclidean_distance_column<IT, OT>(
+        input, batch_id, column_id, channel_id, height, width, channel, output, f, d, v, z);
   }
+
+  delete[] f;
+  delete[] d;
+  delete[] v;
+  delete[] z;
 }
 
 template <typename OT>
 __global__ void EuclideanDistanceRowGPUKernel(
     const int batch, const int height, const int width, const int channel, OT *__restrict__ output)
 {
+  float *f = new float[width];
+  float *d = new float[width];
+  int *v = new int[width];
+  float *z = new float[width + 1];
+
   const int num_kernels = batch * height * channel;
   for (int index : GpuGridRangeX<int>(num_kernels))
   {
@@ -40,8 +56,13 @@ __global__ void EuclideanDistanceRowGPUKernel(
     const int row_id = index / channel % height;
     const int channel_id = index % channel;
 
-    euclidean_distance_row<OT>(batch_id, row_id, channel_id, height, width, channel, output);
+    euclidean_distance_row<OT>(batch_id, row_id, channel_id, height, width, channel, output, f, d, v, z);
   }
+
+  delete[] f;
+  delete[] d;
+  delete[] v;
+  delete[] z;
 }
 
 template <typename IT, typename OT>

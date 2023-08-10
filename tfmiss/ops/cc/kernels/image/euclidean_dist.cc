@@ -28,27 +28,49 @@ struct EuclideanDistanceFunctor<CPUDevice, IT, OT>
         num_kernels_column, 17 * 2 * height,
         [&](int64 start_index, int64 end_index)
         {
+          float *f = new float[height];
+          float *d = new float[height];
+          int *v = new int[height];
+          float *z = new float[height + 1];
+
           for (int index = start_index; index < end_index; index++)
           {
             const int batch_id = index / channel / width;
             const int column_id = index / channel % width;
             const int channel_id = index % channel;
 
-            euclidean_distance_column<IT, OT>(input, batch_id, column_id, channel_id, height, width, channel, output);
+            euclidean_distance_column<IT, OT>(
+                input, batch_id, column_id, channel_id, height, width, channel, output, f, d, v, z);
           }
+
+          delete[] f;
+          delete[] d;
+          delete[] v;
+          delete[] z;
         });
+
     thread_pool->ParallelFor(
         num_kernels_row, 8 * 2 * width,
         [&](int64 start_index, int64 end_index)
         {
+          float *f = new float[width];
+          float *d = new float[width];
+          int *v = new int[width];
+          float *z = new float[width + 1];
+
           for (int index = start_index; index < end_index; index++)
           {
             const int batch_id = index / channel / height;
             const int row_id = index / channel % height;
             const int channel_id = index % channel;
 
-            euclidean_distance_row<OT>(batch_id, row_id, channel_id, height, width, channel, output);
+            euclidean_distance_row<OT>(batch_id, row_id, channel_id, height, width, channel, output, f, d, v, z);
           }
+
+          delete[] f;
+          delete[] d;
+          delete[] v;
+          delete[] z;
         });
   }
 };
