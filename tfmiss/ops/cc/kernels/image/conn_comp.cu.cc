@@ -34,7 +34,8 @@ __global__ void ConnectedComponentsInitGPUKernel(
 __global__ void ConnectedComponentsResolveGPUKernel(
     const int batch, const int height, const int width, const int channel, int64 *__restrict__ output)
 {
-  const int num_kernels = batch * height * width * channel;  for (int index : GpuGridRangeX<int>(num_kernels))
+  const int num_kernels = batch * height * width * channel;
+  for (int index : GpuGridRangeX<int>(num_kernels))
   {
     resolve_labels(index, height, width, channel, output);
   }
