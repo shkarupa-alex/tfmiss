@@ -65,6 +65,17 @@ __global__ void ConnectedComponentsNormalizeGPUKernel(
   }
 }
 
+__global__ void ConnectedComponentsMinimizeGPUKernel(
+    const int batch, const int height, const int width, const int channel, int64 *__restrict__ output)
+{
+  const int num_kernels = batch * height * width * channel;
+
+  for (int index : GpuGridRangeX<int>(num_kernels))
+  {
+    minimize_labels(index, height, width, channel, output);
+  }
+}
+
 template <typename T>
 struct ConnectedComponentsFunctor<GPUDevice, T>
 {
@@ -98,6 +109,12 @@ struct ConnectedComponentsFunctor<GPUDevice, T>
       GpuLaunchConfig config_safe = GetGpuLaunchConfig(num_kernels_safe, eigen_gpu);
       TF_CHECK_OK(GpuLaunchKernel(
           ConnectedComponentsNormalizeGPUKernel, config_safe.block_count, config_safe.thread_per_block, 0,
+          eigen_gpu.stream(), batch, height, width, channel, output));
+    }
+    else if (batch > 1 || channel > 1)
+    {
+      TF_CHECK_OK(GpuLaunchKernel(
+          ConnectedComponentsMinimizeGPUKernel, config_full.block_count, config_full.thread_per_block, 0,
           eigen_gpu.stream(), batch, height, width, channel, output));
     }
   }

@@ -73,7 +73,6 @@ class ConnectedComponentsTest(tf.test.TestCase):
             [1, 0, 0, 1, 1, 0, 0, 1],
             [0, 1, 1, 1, 1, 0, 1, 1],
             [1, 0, 1, 1, 1, 0, 1, 1]])[None, ..., None].astype('int32')
-
         expected = np.array([
             [1, 1, 1, 0, 0, 0, 2, 2],
             [1, 0, 0, 0, 2, 2, 2, 2],
@@ -87,6 +86,13 @@ class ConnectedComponentsTest(tf.test.TestCase):
         result = connected_components(inputs)
         result = self.evaluate(result)
         self.assertAllEqual(expected, result)
+
+    def test_no_norm(self):
+        inputs = np.random.randint(0, 2, size=(9, 77, 88, 13), dtype='uint8')
+
+        result = connected_components(inputs, normalize=False)
+        result = self.evaluate(result)
+        self.assertLessEqual(result.max(), 77 * 88 * 13 + 1)
 
     def test_random(self):
         inputs = np.random.randint(0, 2, size=(9, 77, 88, 13), dtype='uint8')

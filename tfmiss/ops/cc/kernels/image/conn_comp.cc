@@ -99,6 +99,18 @@ struct ConnectedComponentsFunctor<CPUDevice, T>
             }
           });
     }
+    else if (batch > 1 || channel > 1)
+    {
+      thread_pool->ParallelFor(
+          num_kernels_full, 12 * 2,
+          [&](int64 start_index, int64 end_index)
+          {
+            for (int index = start_index; index < end_index; index++)
+            {
+              minimize_labels(index, height, width, channel, output);
+            }
+          });
+    }
   }
 };
 
