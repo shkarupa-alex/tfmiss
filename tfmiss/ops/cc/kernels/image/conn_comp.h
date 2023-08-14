@@ -152,8 +152,6 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void minimize_labels(
     const int index, const int height, const int width, const int channel, int64 *output)
 {
   const int batch_id = index / channel / width / height;
-  const int row_id = index / channel / width % height;
-  const int column_id = index / channel % width;
   const int channel_id = index % channel;
 
   if (output[index])

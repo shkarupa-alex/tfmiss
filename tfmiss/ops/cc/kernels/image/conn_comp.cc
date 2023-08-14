@@ -144,8 +144,7 @@ class ConnectedComponentsOp : public OpKernel
 
     // Prepare output
     Tensor *output_tensor;
-    TensorShape output_shape(input_tensor->shape());
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, output_shape, &output_tensor));
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, input_tensor->shape(), &output_tensor));
 
     // Do calculations
     const T *input = input_tensor->tensor<T, 4>().data();
