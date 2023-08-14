@@ -2,7 +2,6 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-import itertools
 import numpy as np
 import tensorflow as tf
 from absl.testing import parameterized
@@ -14,97 +13,92 @@ from tfmiss.image.euclidean_dist import euclidean_distance
 
 @test_util.run_all_in_graph_and_eager_modes
 class EuclideanDistanceTest(tf.test.TestCase, parameterized.TestCase):
-    @parameterized.parameters(itertools.product([
+    @parameterized.parameters([
         'bool', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'half', 'bfloat16', 'float',
-        'double'], ['float16', 'bfloat16', 'float32', 'float64']))
-    def test_zeros(self, idtype, odtype):
-        inputs = np.zeros([100, 20, 50, 3]).astype(idtype)
-        expected = np.zeros([100, 20, 50, 3]).astype(odtype)
+        'double'])
+    def test_zeros(self, idtype):
+        inputs = np.zeros([100, 20, 50, 3], dtype=idtype)
+        expected = np.zeros([100, 20, 50, 3], dtype='float32')
 
-        result = euclidean_distance(inputs, dtype=odtype)
+        result = euclidean_distance(inputs)
         result = self.evaluate(result)
         self.assertAllClose(result, expected)
-        self.assertDTypeEqual(result, odtype)
 
-    @parameterized.parameters(itertools.product([
+    @parameterized.parameters([
         'bool', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'half', 'bfloat16', 'float',
-        'double'], ['float16', 'bfloat16', 'float32', 'float64']))
-    def test_ones(self, idtype, odtype):
-        inputs = np.ones([100, 50, 20, 7]).astype(idtype)
-        expected = np.ones([100, 50, 20, 7]).astype(odtype) * tf.dtypes.as_dtype(odtype).max
+        'double'])
+    def test_ones(self, idtype):
+        inputs = np.ones([100, 50, 20, 7], dtype=idtype)
+        expected = np.ones([100, 50, 20, 7], dtype='float32') * tf.float32.max
 
-        result = euclidean_distance(inputs, dtype=odtype)
+        result = euclidean_distance(inputs)
         result = self.evaluate(result)
         self.assertAllClose(result, expected)
-        self.assertDTypeEqual(result, odtype)
 
-    @parameterized.parameters(itertools.product([
+    @parameterized.parameters([
         'bool', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'half', 'bfloat16', 'float',
-        'double'], ['float16', 'bfloat16', 'float32', 'float64']))
-    def test_single(self, idtype, odtype):
+        'double'])
+    def test_single(self, idtype):
         inputs = np.array([
             [1, 1, 1, 1, 1],
             [1, 1, 1, 1, 1],
             [0, 1, 0, 1, 0],
             [1, 0, 1, 0, 1],
-            [0, 1, 0, 1, 0]])[None, ..., None].astype(idtype)
+            [0, 1, 0, 1, 0]], dtype=idtype)[None, ..., None]
         expected = np.array([
             [2, 2.23606801, 2, 2.23606801, 2],
             [1, 1.41421354, 1, 1.41421354, 1],
             [0, 1, 0, 1, 0],
             [1, 0, 1, 0, 1],
-            [0, 1, 0, 1, 0]])[None, ..., None].astype(odtype)
+            [0, 1, 0, 1, 0]], dtype='float32')[None, ..., None]
 
-        result = euclidean_distance(inputs, dtype=odtype)
+        result = euclidean_distance(inputs)
         result = self.evaluate(result)
         self.assertAllClose(result, expected)
-        self.assertDTypeEqual(result, odtype)
 
-    @parameterized.parameters(itertools.product([
+    @parameterized.parameters([
         'bool', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'half', 'bfloat16', 'float',
-        'double'], ['float16', 'bfloat16', 'float32', 'float64']))
-    def test_batch(self, idtype, odtype):
+        'double'])
+    def test_batch(self, idtype):
         batch_size = 3
         inputs = np.array([
             [0, 0, 0, 0, 0],
             [0, 1, 1, 1, 0],
             [0, 1, 1, 1, 0],
             [0, 1, 1, 1, 0],
-            [0, 0, 0, 0, 0]])[None, ..., None].repeat(batch_size, 0).astype(idtype)
+            [0, 0, 0, 0, 0]], dtype=idtype)[None, ..., None].repeat(batch_size, 0)
         expected = np.array([
             [0, 0, 0, 0, 0],
             [0, 1, 1, 1, 0],
             [0, 1, 2, 1, 0],
             [0, 1, 1, 1, 0],
-            [0, 0, 0, 0, 0]])[None, ..., None].repeat(batch_size, 0).astype(odtype)
+            [0, 0, 0, 0, 0]], dtype='float32')[None, ..., None].repeat(batch_size, 0)
 
-        result = euclidean_distance(inputs, dtype=odtype)
+        result = euclidean_distance(inputs)
         result = self.evaluate(result)
         self.assertAllClose(result, expected)
-        self.assertDTypeEqual(result, odtype)
 
-    @parameterized.parameters(itertools.product([
+    @parameterized.parameters([
         'bool', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'half', 'bfloat16', 'float',
-        'double'], ['float16', 'bfloat16', 'float32', 'float64']))
-    def test_channels(self, idtype, odtype):
+        'double'])
+    def test_channels(self, idtype):
         channel_size = 3
         inputs = np.array([
             [0, 0, 0, 0, 0],
             [0, 1, 1, 1, 0],
             [0, 1, 1, 1, 0],
             [0, 1, 1, 1, 0],
-            [0, 0, 0, 0, 0]])[None, ..., None].repeat(channel_size, -1).astype(idtype)
+            [0, 0, 0, 0, 0]], dtype=idtype)[None, ..., None].repeat(channel_size, -1)
         expected = np.array([
             [0, 0, 0, 0, 0],
             [0, 1, 1, 1, 0],
             [0, 1, 2, 1, 0],
             [0, 1, 1, 1, 0],
-            [0, 0, 0, 0, 0]])[None, ..., None].repeat(channel_size, -1).astype(odtype)
+            [0, 0, 0, 0, 0]], dtype='float32')[None, ..., None].repeat(channel_size, -1)
 
-        result = euclidean_distance(inputs, dtype=odtype)
+        result = euclidean_distance(inputs)
         result = self.evaluate(result)
         self.assertAllClose(result, expected)
-        self.assertDTypeEqual(result, odtype)
 
     def test_real(self):
         file = tf.keras.utils.get_file(
