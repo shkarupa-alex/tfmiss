@@ -99,6 +99,18 @@ struct ConnectedComponentsFunctor<CPUDevice, T>
             }
           });
     }
+    else if (batch > 1 || channel > 1)
+    {
+      thread_pool->ParallelFor(
+          num_kernels_full, 12 * 2,
+          [&](int64 start_index, int64 end_index)
+          {
+            for (int index = start_index; index < end_index; index++)
+            {
+              minimize_labels(index, height, width, channel, output);
+            }
+          });
+    }
   }
 };
 
@@ -132,8 +144,7 @@ class ConnectedComponentsOp : public OpKernel
 
     // Prepare output
     Tensor *output_tensor;
-    TensorShape output_shape(input_tensor->shape());
-    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, output_shape, &output_tensor));
+    OP_REQUIRES_OK(ctx, ctx->allocate_output(0, input_tensor->shape(), &output_tensor));
 
     // Do calculations
     const T *input = input_tensor->tensor<T, 4>().data();
