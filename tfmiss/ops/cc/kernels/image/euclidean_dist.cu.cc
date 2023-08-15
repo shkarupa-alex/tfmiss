@@ -13,16 +13,11 @@ namespace tensorflow
 namespace miss
 {
 
-template <typename IT>
+template <typename T>
 __global__ void EuclideanDistanceColumnGPUKernel(
-    const IT *__restrict__ input, const int batch, const int height, const int width, const int channel,
-    float *__restrict__ output)
+    const T *__restrict__ input, const int batch, const int height, const int width, const int channel,
+    float *__restrict__ fd, int *__restrict__ v, float *__restrict__ z, float *__restrict__ output)
 {
-  float *f = new float[height];
-  float *d = new float[height];
-  int *v = new int[height];
-  float *z = new float[height + 1];
-
   const int num_kernels = batch * width * channel;
   for (int index : GpuGridRangeX<int>(num_kernels))
   {
@@ -30,24 +25,14 @@ __global__ void EuclideanDistanceColumnGPUKernel(
     const int column_id = index / channel % width;
     const int channel_id = index % channel;
 
-    euclidean_distance_column<IT>(
-        input, batch_id, column_id, channel_id, height, width, channel, f, d, v, z, output);
+    euclidean_distance_column<T>(input, batch_id, column_id, channel_id, height, width, channel, fd, v, z, output);
   }
-
-  delete[] f;
-  delete[] d;
-  delete[] v;
-  delete[] z;
 }
 
 __global__ void EuclideanDistanceRowGPUKernel(
-    const int batch, const int height, const int width, const int channel, float *__restrict__ output)
+    const int batch, const int height, const int width, const int channel, float *__restrict__ fd, int *__restrict__ v,
+    float *__restrict__ z, float *__restrict__ output)
 {
-  float *f = new float[width];
-  float *d = new float[width];
-  int *v = new int[width];
-  float *z = new float[width + 1];
-
   const int num_kernels = batch * height * channel;
   for (int index : GpuGridRangeX<int>(num_kernels))
   {
@@ -55,39 +40,33 @@ __global__ void EuclideanDistanceRowGPUKernel(
     const int row_id = index / channel % height;
     const int channel_id = index % channel;
 
-    euclidean_distance_row(batch_id, row_id, channel_id, height, width, channel, f, d, v, z, output);
+    euclidean_distance_row(batch_id, row_id, channel_id, height, width, channel, fd, v, z, output);
   }
-
-  delete[] f;
-  delete[] d;
-  delete[] v;
-  delete[] z;
 }
 
-template <typename IT>
-struct EuclideanDistanceFunctor<GPUDevice, IT>
+template <typename T>
+struct EuclideanDistanceFunctor<GPUDevice, T>
 {
   void operator()(
-      OpKernelContext *ctx, const IT *input, const int batch, const int height, const int width, const int channel,
-      float *output) const
+      OpKernelContext *ctx, const T *input, const int batch, const int height, const int width, const int channel,
+      float *fd, int *v, float *z, float *output) const
   {
     const int num_kernels_column = batch * width * channel, num_kernels_row = batch * height * channel;
     auto eigen_gpu = ctx->eigen_device<GPUDevice>();
 
     GpuLaunchConfig config_column = GetGpuLaunchConfig(num_kernels_column, eigen_gpu);
     TF_CHECK_OK(GpuLaunchKernel(
-        EuclideanDistanceColumnGPUKernel<IT>, config_column.block_count, config_column.thread_per_block, 0,
-        eigen_gpu.stream(), input, batch, height, width, channel, output));
+        EuclideanDistanceColumnGPUKernel<T>, config_column.block_count, config_column.thread_per_block, 0,
+        eigen_gpu.stream(), input, batch, height, width, channel, fd, v, z, output));
 
     GpuLaunchConfig config_row = GetGpuLaunchConfig(num_kernels_row, eigen_gpu);
     TF_CHECK_OK(GpuLaunchKernel(
         EuclideanDistanceRowGPUKernel, config_row.block_count, config_row.thread_per_block, 0, eigen_gpu.stream(),
-        batch, height, width, channel, output));
+        batch, height, width, channel, fd, v, z, output));
   }
 };
 
-#define DECLARE(T)                                                         \
-  template struct EuclideanDistanceFunctor<GPUDevice, T>;           \
+#define DECLARE(T) template struct EuclideanDistanceFunctor<GPUDevice, T>;
 
 TF_CALL_REAL_NUMBER_TYPES(DECLARE);
 TF_CALL_bool(DECLARE);

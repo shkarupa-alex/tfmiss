@@ -14,11 +14,11 @@ namespace tensorflow
 namespace miss
 {
 
-template <typename IT>
-struct EuclideanDistanceFunctor<CPUDevice, IT>
+template <typename T>
+struct EuclideanDistanceFunctor<CPUDevice, T>
 {
   void operator()(
-      OpKernelContext *ctx, const IT *input, const int batch, const int height, const int width, const int channel,
+      OpKernelContext *ctx, const T *input, const int batch, const int height, const int width, const int channel,
       float *fd, int *v, float *z, float *output) const
   {
     const int num_kernels_column = batch * width * channel, num_kernels_row = batch * height * channel;
@@ -34,7 +34,7 @@ struct EuclideanDistanceFunctor<CPUDevice, IT>
             const int column_id = index / channel % width;
             const int channel_id = index % channel;
 
-            euclidean_distance_column<IT>(
+            euclidean_distance_column<T>(
                 input, batch_id, column_id, channel_id, height, width, channel, fd, v, z, output);
           }
         });
@@ -55,11 +55,11 @@ struct EuclideanDistanceFunctor<CPUDevice, IT>
   }
 };
 
-template <typename Device, typename IT>
+template <typename Device, typename T>
 class EuclideanDistanceOp : public OpKernel
 {
  private:
-  EuclideanDistanceFunctor<Device, IT> ed_functor;
+  EuclideanDistanceFunctor<Device, T> ed_functor;
 
  public:
   explicit EuclideanDistanceOp(OpKernelConstruction *ctx) : OpKernel(ctx) {}
@@ -94,7 +94,7 @@ class EuclideanDistanceOp : public OpKernel
     OP_REQUIRES_OK(ctx, ctx->allocate_output(0, input_tensor->shape(), &output_tensor));
 
     // Do calculations
-    const IT *input = input_tensor->tensor<IT, 4>().data();
+    const T *input = input_tensor->tensor<T, 4>().data();
 
     float *fd = fd_tensor.tensor<float, 4>().data();
     int *v = v_tensor.tensor<int, 4>().data();
@@ -120,11 +120,10 @@ TF_CALL_bool(REGISTER);
   template <>                                                                                                      \
   void EuclideanDistanceFunctor<GPUDevice, T>::operator()(                                                         \
       OpKernelContext *ctx, const T *input, const int batch, const int height, const int width, const int channel, \
-      float *output) const;                                                                                        \
+      float *fd, int *v, float *z, float *output) const;                                                           \
   extern template struct EuclideanDistanceFunctor<GPUDevice, T>;                                                   \
   REGISTER_KERNEL_BUILDER(                                                                                         \
-      Name("Miss>EuclideanDistance").Device(DEVICE_GPU).TypeConstraint<T>("DT"),                                   \
-      EuclideanDistanceOp<GPUDevice, T, float>);
+      Name("Miss>EuclideanDistance").Device(DEVICE_GPU).TypeConstraint<T>("DT"), EuclideanDistanceOp<GPUDevice, T>);
 
 TF_CALL_REAL_NUMBER_TYPES(REGISTER);
 TF_CALL_bool(REGISTER);

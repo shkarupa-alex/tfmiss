@@ -51,50 +51,50 @@ EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void euclidean_distance_1d(
   }
 }
 
-template <typename IT>
+template <typename T>
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void euclidean_distance_column(
-    const IT *input, const int batch_id, const int column_id, const int channel_id, const int height, const int width,
-    const int channels, float *fd, int *v, float *z, float *output)
+    const T *input, const int batch_id, const int column_id, const int channel_id, const int height, const int width,
+    const int channels, float *f, int *v, float *z, float *output)
 {
-  const int fdvo = (batch_id * height * width + column_id) * channels + channel_id;
-  const int fdvs = width * channels;
-  const int zo = (batch_id * (height + 1) * (width + 1) + column_id) * channels + channel_id;
-  const int zs = (width + 1) * channels;
-  int i;
+  const int fv_offset = (batch_id * height * width + column_id) * channels + channel_id;
+  const int fv_shift = width * channels;
+  const int z_offset = (batch_id * (height + 1) * (width + 1) + column_id) * channels + channel_id;
+  const int z_shift = (width + 1) * channels;
+  int h_index;
 
   for (int y = 0; y < height; y++)
   {
-    i = fdvo + fdvs * y;
-    fd[i] = input[i] ? Eigen::NumTraits<float>::highest() : 0;
+    h_index = y * fv_shift + fv_offset;
+    f[h_index] = input[h_index] ? Eigen::NumTraits<float>::highest() : 0;
   }
 
-  euclidean_distance_1d(fd + fdvo, output + fdvo, v + fdvo, z + zo, height, fdvs, zs);
+  euclidean_distance_1d(f + fv_offset, output + fv_offset, v + fv_offset, z + z_offset, height, fv_shift, z_shift);
 }
 
 EIGEN_DEVICE_FUNC EIGEN_ALWAYS_INLINE void euclidean_distance_row(
     const int batch_id, const int row_id, const int channel_id, const int height, const int width, const int channels,
-    float *fd, int *v, float *z, float *output)
+    float *d, int *v, float *z, float *output)
 {
-  const int fdvo = (batch_id * height + row_id) * width * channels + channel_id;
-  const int zo = (batch_id * (height + 1) + row_id) * (width + 1) * channels + channel_id;
-  const int fdvzs = channels;
-  int i;
+  const int dv_offset = (batch_id * height + row_id) * width * channels + channel_id;
+  const int z_offset = (batch_id * (height + 1) + row_id) * (width + 1) * channels + channel_id;
+  const int dvz_shift = channels;
+  int w_index;
 
-  euclidean_distance_1d(output + fdvo, fd + fdvo, v + fdvo, z + zo, width, fdvzs, fdvzs);
+  euclidean_distance_1d(output + dv_offset, d + dv_offset, v + dv_offset, z + z_offset, width, dvz_shift, dvz_shift);
 
   for (int x = 0; x < width; x++)
   {
-    i = fdvo + fdvzs * x;
-    output[i] =
-        fd[i] == Eigen::NumTraits<float>::highest() ? Eigen::NumTraits<float>::highest() : Eigen::numext::sqrt(fd[i]);
+    w_index = x * dvz_shift + dv_offset;
+    output[w_index] = d[w_index] == Eigen::NumTraits<float>::highest() ? Eigen::NumTraits<float>::highest()
+                                                                       : Eigen::numext::sqrt(d[w_index]);
   }
 }
 
-template <typename Device, typename IT>
+template <typename Device, typename T>
 struct EuclideanDistanceFunctor
 {
   void operator()(
-      OpKernelContext *ctx, const IT *input, const int batch, const int height, const int width, const int channel,
+      OpKernelContext *ctx, const T *input, const int batch, const int height, const int width, const int channel,
       float *fd, int *v, float *z, float *output) const;
 };
 
