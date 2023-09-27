@@ -7,7 +7,7 @@ import tensorflow as tf
 from keras import backend, models
 from keras.src.testing_infra import test_combinations, test_utils
 from tensorflow.python.util import object_identity
-from tensorflow.python.training.tracking import util as trackable_util
+from tensorflow.python.checkpoint import checkpoint
 from tfmiss.keras.layers.tcn import TemporalBlock, TemporalConvNet
 
 
@@ -67,7 +67,7 @@ class TemporalBlockTest(test_combinations.TestCase):
         model.get_config()
 
         # check whether the model variables are present in the trackable list of objects
-        checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
+        checkpointed_objects = object_identity.ObjectIdentitySet(checkpoint.list_objects(model))
         for v in model.variables:
             self.assertIn(v, checkpointed_objects)
 
@@ -124,7 +124,7 @@ class TemporalConvNetTest(test_combinations.TestCase):
         model.get_config()
 
         # check whether the model variables are present in the trackable list of objects
-        checkpointed_objects = object_identity.ObjectIdentitySet(trackable_util.list_objects(model))
+        checkpointed_objects = object_identity.ObjectIdentitySet(checkpoint.list_objects(model))
         for v in model.variables:
             self.assertIn(v, checkpointed_objects)
 
