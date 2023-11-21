@@ -250,7 +250,7 @@ class NgramEmbedding(WordEmbedding):
 
 
 @register_keras_serializable(package='Miss')
-class BpeEmbedding(WordEmbedding):
+class BpeEmbedding(WordEmbedding):  # TODO: rename to WordPiece
     UNK_CHAR = '##[UNK]'
 
     def __init__(self, vocabulary=None, output_dim=None, vocab_size=32000, upper_thresh=None, lower_thresh=2,
