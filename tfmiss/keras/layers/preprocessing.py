@@ -1,11 +1,6 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from keras import layers
 from keras.saving import register_keras_serializable
-from keras.src.utils.tf_utils import shape_type_conversion
 from tfmiss.text import char_category, lower_case, title_case, upper_case
 
 
@@ -52,7 +47,6 @@ class WordShape(layers.Layer):
         self.std_len = std_len
         self.char_cat = char_cat
 
-    @shape_type_conversion
     def build(self, input_shape):
         if self.options & WordShape.SHAPE_CHAR_CAT_FIRST or self.options & WordShape.SHAPE_CHAR_CAT_LAST:
             self.ccat_vocab = self.char_cat or self.CHARACTER_CATEGORIES
@@ -171,7 +165,6 @@ class WordShape(layers.Layer):
 
         return tf.concat([outputs_one, *outputs_many], axis=-1)
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         units = 0
         options = [

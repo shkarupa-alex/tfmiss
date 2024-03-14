@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
 import tensorflow as tf
 from absl.testing import parameterized
@@ -11,7 +7,6 @@ from tensorflow.python.framework import test_util
 from tfmiss.image.euclidean_dist import euclidean_distance
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class EuclideanDistanceTest(tf.test.TestCase, parameterized.TestCase):
     @parameterized.parameters([
         'bool', 'int8', 'uint8', 'int16', 'uint16', 'int32', 'uint32', 'int64', 'uint64', 'half', 'bfloat16', 'float',

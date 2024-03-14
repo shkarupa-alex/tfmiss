@@ -1,14 +1,9 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from collections import Counter
 from tensorflow.python.framework import test_util
 from tfmiss.preprocessing.sampling import down_sample, sample_mask, sample_probs
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class DownSampleTest(tf.test.TestCase):
     def test_empty(self):
         source = tf.constant([], dtype=tf.string)
@@ -98,7 +93,6 @@ class DownSampleTest(tf.test.TestCase):
         ], downsampled.tolist())
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class SampleMaskTest(tf.test.TestCase):
     def test_dense_shape_inference(self):
         freq_vocab = Counter({'_': 1})
@@ -151,7 +145,6 @@ class SampleMaskTest(tf.test.TestCase):
         )
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class SampleProbsTest(tf.test.TestCase):
     def setUp(self):
         self.freq_vocab = Counter({

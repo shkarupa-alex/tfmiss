@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import cv2
 import numpy as np
 import tensorflow as tf
@@ -10,7 +6,6 @@ from tensorflow.python.framework import test_util
 from tfmiss.image.conn_comp import connected_components
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class ConnectedComponentsTest(tf.test.TestCase):
     SNAKE = np.asarray([
         [0, 0, 0, 0, 0, 0, 0, 0, 0],

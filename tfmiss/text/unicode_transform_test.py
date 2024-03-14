@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from tensorflow.python.framework import test_util
 from tfmiss.text.unicode_transform import char_category, lower_case, normalize_unicode, replace_regex, replace_string
 from tfmiss.text.unicode_transform import sub_string, title_case, upper_case, wrap_with, zero_digits
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class CharCategoryTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [
@@ -78,7 +73,6 @@ class CharCategoryTest(tf.test.TestCase):
         self.assertAllEqual([[b'Lu', b'-Y-', b'Ll']], result)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class LowerCaseTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [
@@ -146,7 +140,6 @@ class LowerCaseTest(tf.test.TestCase):
         self.assertAllEqual([[b'x', b'-Y-', b'z']], result)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class NormalizeUnicodeTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [
@@ -244,7 +237,6 @@ class NormalizeUnicodeTest(tf.test.TestCase):
         self.assertAllEqual(expected, result)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class ReplaceRegexTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [
@@ -329,7 +321,6 @@ class ReplaceRegexTest(tf.test.TestCase):
         self.assertAllEqual([[b'0test0', b'1t3']], result)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class ReplaceStringTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [
@@ -410,7 +401,6 @@ class ReplaceStringTest(tf.test.TestCase):
         self.assertAllEqual([[b'>test>', b'<unk>']], result)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class SubStringTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [
@@ -535,7 +525,6 @@ class SubStringTest(tf.test.TestCase):
         self.assertAllEqual([[b'<', b'<unk>']], result)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class TitleCaseTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [
@@ -610,7 +599,6 @@ class TitleCaseTest(tf.test.TestCase):
         self.assertAllEqual([[b'X', b'y']], result)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class UpperCaseUnicodeTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [
@@ -685,7 +673,6 @@ class UpperCaseUnicodeTest(tf.test.TestCase):
         self.assertAllEqual([[b'X', b'y']], result)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class WrapWithTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [
@@ -760,7 +747,6 @@ class WrapWithTest(tf.test.TestCase):
         self.assertAllEqual([[b'<X>', b'y']], result)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class ZeroDigitsTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [

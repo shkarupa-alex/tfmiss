@@ -1,9 +1,7 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
 import tensorflow as tf
+from keras.saving import register_keras_serializable
+from keras.src.backend.common import KerasVariable
 from tfmiss.keras.optimizers.adan import Adan
 
 
@@ -94,7 +92,9 @@ class AdanOptimizerTest(tf.test.TestCase):
             [[0.4159269630908966], [0.2378503382205963]], [[0.4140421748161316], [0.23730289936065674]]], 'float32')
 
         weights = tf.Variable([[0.9189467373291287], [0.5046289624616127]], trainable=True, dtype='float32')
-        optimizer = Adan(learning_rate=0.01, weight_decay=0.0, beta_1=0.99, beta_2=0.92, beta_3=0.9, epsilon=1e-8)
+        optimizer = Adan(
+            learning_rate=0.01, weight_decay=0.0, beta_1=0.99, beta_2=0.92, beta_3=0.9, epsilon=1e-8,
+            sparse_support=True)
 
         for e in range(10):
             for b in range(10):
@@ -112,8 +112,7 @@ class AdanOptimizerTest(tf.test.TestCase):
 
         weights = tf.Variable([[0.9189467373291287], [0.5046289624616127]], trainable=True, dtype='float32')
         optimizer = Adan(
-            learning_rate=0.01, weight_decay=0.0, beta_1=0.99, beta_2=0.92, beta_3=0.9, epsilon=1e-8,
-            sparse_support=False)
+            learning_rate=0.01, weight_decay=0.0, beta_1=0.99, beta_2=0.92, beta_3=0.9, epsilon=1e-8)
 
         for e in range(10):
             for b in range(10):
@@ -436,7 +435,9 @@ class AdanOptimizerTest(tf.test.TestCase):
             [0.23922160713307927, 0.3744851446884956], [0.12467899195548227, 0.582473576084052],
             [0.03158169648583875, 0.5722574065524645], [0.8287652988660922, 0.315956053134146],
             [0.09411076902398452, 0.33044468551739103]], trainable=True, dtype='float32')
-        optimizer = Adan(learning_rate=0.01, weight_decay=0.0, beta_1=0.99, beta_2=0.92, beta_3=0.9, epsilon=1e-8)
+        optimizer = Adan(
+            learning_rate=0.01, weight_decay=0.0, beta_1=0.99, beta_2=0.92, beta_3=0.9, epsilon=1e-8,
+            sparse_support=True)
 
         for e in range(10):
             for b in range(10):
@@ -449,13 +450,17 @@ class AdanOptimizerTest(tf.test.TestCase):
                 self.assertAllClose(actual, expected[e * 10 + b])
 
     def test_lr(self):
+        @register_keras_serializable()
+        def _lr_schedule_test(_):
+            return tf.constant(0.5, 'float32')
+
         opt_1 = Adan(learning_rate=1.0)
-        opt_2 = Adan(learning_rate=lambda: tf.constant(0.5, 'float32'))
+        opt_2 = Adan(learning_rate=_lr_schedule_test)
         opt_3 = Adan.from_config(opt_2.get_config())
 
-        self.assertIsInstance(opt_1.lr, tf.Variable)
-        self.assertIsInstance(opt_2.lr, tf.Variable)
-        self.assertIsInstance(opt_3.lr, tf.Variable)
+        self.assertIsInstance(opt_1.learning_rate, KerasVariable)
+        self.assertIsInstance(opt_2.learning_rate, tf.Tensor)
+        self.assertIsInstance(opt_3.learning_rate, tf.Tensor)
 
         self.assertAllClose(self.evaluate(opt_1.learning_rate), 1.0)
         self.assertAllClose(self.evaluate(opt_2.learning_rate), 0.5)

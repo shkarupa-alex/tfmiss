@@ -1,24 +1,20 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import os
 import numpy as np
 import tensorflow as tf
-from keras import layers
-from keras.src.testing_infra import test_combinations, test_utils
+from keras import layers, models, utils
+from keras.src import testing
 from tfmiss.keras.callbacks.lrfind import LRFinder
 
 
-@test_combinations.run_with_all_model_types
-@test_combinations.run_all_keras_modes
-class LRFInderTest(test_combinations.TestCase):
+class LRFInderTest(testing.TestCase):
     def test_no_exceptions(self):
-        model = test_utils.get_model_from_layers([
+        utils.set_random_seed(87654321)
+
+        model = models.Sequential([
             layers.Dense(3, activation='relu', kernel_initializer='ones'),
             layers.Dense(1, activation='sigmoid', kernel_initializer='ones')
-        ], input_shape=(10,))
-        model.compile(loss='mae', optimizer='rmsprop', run_eagerly=test_utils.should_run_eagerly())
+        ])
+        model.compile(loss='mae', optimizer='rmsprop', run_eagerly=True)
 
         x = np.random.rand(1000, 10)
         y = np.mean(x, axis=-1) + np.random.rand(1000) / 10.
@@ -27,7 +23,7 @@ class LRFInderTest(test_combinations.TestCase):
         model.fit(x, y, batch_size=5, callbacks=[lrf_cb])
         best_lr, loss_graph = lrf_cb.plot()
 
-        self.assertAlmostEqual(best_lr, 0.3273407, places=7)
+        self.assertAlmostEqual(best_lr, 0.3273407, decimal=7)
         self.assertTrue(os.path.exists(loss_graph))
 
 

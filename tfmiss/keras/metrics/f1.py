@@ -1,11 +1,6 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from keras.metrics import Metric, Precision, Recall
 from keras.saving import register_keras_serializable
-from tensorflow.python.ops.losses.util import squeeze_or_expand_dimensions
 
 
 @register_keras_serializable(package='Miss')
@@ -26,12 +21,6 @@ class F1Binary(Metric):
         self.recall = Recall(threshold)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        if sample_weight is None:
-            y_pred, y_true = squeeze_or_expand_dimensions(y_pred, y_true)
-        else:
-            y_pred, y_true, sample_weight = squeeze_or_expand_dimensions(
-                y_pred, y_true, sample_weight=sample_weight)
-
         self.precision.update_state(y_true, y_pred, sample_weight)
         self.recall.update_state(y_true, y_pred, sample_weight)
 
@@ -94,12 +83,14 @@ class F1Macro(Metric):
         """
         super(F1Macro, self).__init__(name=name, dtype=dtype, **kwargs)
 
-        self.class2f1 = [F1Binary()]
+        self.class2f1 = []
 
     def update_state(self, y_true, y_pred, sample_weight=None):
         num_classes = y_pred.shape[-1]
-        for _ in range(num_classes - len(self.class2f1)):
-            self.class2f1.append(F1Binary())
+
+        if not self.class2f1:
+            for i in range(num_classes):
+                self.class2f1.append(F1Binary())
 
         y_pred = tf.argmax(y_pred, axis=-1, output_type=y_true.dtype)
         for c, f1 in enumerate(self.class2f1):

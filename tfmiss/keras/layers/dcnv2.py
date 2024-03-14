@@ -2,8 +2,7 @@ import numpy as np
 import tensorflow as tf
 from keras import layers, initializers
 from keras.saving import register_keras_serializable
-from keras.src.utils.conv_utils import normalize_tuple
-from keras.src.utils.tf_utils import shape_type_conversion
+from keras.src.utils.argument_validation import standardize_tuple
 from tfmiss.nn import modulated_deformable_column
 
 
@@ -21,10 +20,10 @@ class DCNv2(layers.Layer):
             ]
 
         self.filters = filters
-        self.kernel_size = normalize_tuple(kernel_size, 2, 'kernel_size')
-        self.strides = normalize_tuple(strides, 2, 'strides')
+        self.kernel_size = standardize_tuple(kernel_size, 2, 'kernel_size')
+        self.strides = standardize_tuple(strides, 2, 'strides')
         self.padding = padding
-        self.dilation_rate = normalize_tuple(dilation_rate, 2, 'dilation_rate')
+        self.dilation_rate = standardize_tuple(dilation_rate, 2, 'dilation_rate')
         self.deformable_groups = deformable_groups
         self.use_bias = use_bias
         self.custom_alignment = custom_alignment
@@ -38,7 +37,6 @@ class DCNv2(layers.Layer):
         else:
             raise ValueError('The `padding` argument must be one of "valid" or "same". Received: {}'.format(padding))
 
-    @shape_type_conversion
     def build(self, input_shape):
         channels = input_shape[-1]
         if self.custom_alignment:
@@ -73,9 +71,10 @@ class DCNv2(layers.Layer):
             strides=self.strides,
             padding=self.padding,
             dilation_rate=self.dilation_rate,
-            kernel_initializer='zeros')
+            kernel_initializer='zeros',
+            dtype=self.dtype_policy)
 
-        self.sigmoid = layers.Activation('sigmoid')
+        self.sigmoid = layers.Activation('sigmoid', dtype=self.dtype_policy)
 
         super().build(input_shape)
 
@@ -83,6 +82,7 @@ class DCNv2(layers.Layer):
         alignments = inputs
         if self.custom_alignment:
             inputs, alignments = inputs
+            alignments = tf.cast(alignments, inputs.dtype)
 
         offset_mask = self.offset_mask(alignments)
 
@@ -115,7 +115,6 @@ class DCNv2(layers.Layer):
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         source_shape = input_shape
         if self.custom_alignment:

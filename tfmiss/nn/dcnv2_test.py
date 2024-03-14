@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
 import tensorflow as tf
 from absl.testing import parameterized
@@ -10,7 +6,6 @@ from tensorflow.python.ops.gradient_checker_v2 import max_error
 from tfmiss.nn.dcnv2 import modulated_deformable_column
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class DCNv2Test(tf.test.TestCase, parameterized.TestCase):
     def test_shape_inference_valid(self):
         inputs = np.zeros((2, 7, 8, 3), 'float32')

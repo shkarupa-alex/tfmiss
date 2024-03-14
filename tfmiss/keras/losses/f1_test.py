@@ -1,11 +1,6 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
 import tensorflow as tf
 from keras import layers, models
-from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from tensorflow.python.framework import test_util
 from tfmiss.keras.losses.f1 import macro_soft_f1, binary_soft_f1, MacroSoftF1, BinarySoftF1
 
@@ -23,15 +18,14 @@ def _log10(x):
     return numerator / denominator
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class MacroSoftF1Test(tf.test.TestCase):
     def test_config(self):
         bce_obj = MacroSoftF1(
-            reduction=Reduction.NONE,
+            reduction='none',
             name='macro_soft_f1'
         )
         self.assertEqual(bce_obj.name, 'macro_soft_f1')
-        self.assertEqual(bce_obj.reduction, Reduction.NONE)
+        self.assertEqual(bce_obj.reduction, 'none')
 
     def test_logits(self):
         prediction_tensor = tf.constant([
@@ -68,15 +62,14 @@ class MacroSoftF1Test(tf.test.TestCase):
         self.assertAllClose(fl, [0.424087, 0.440516, 0.559642], atol=1e-8)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class BinarySoftF1Test(tf.test.TestCase):
     def test_config(self):
         bce_obj = BinarySoftF1(
-            reduction=Reduction.NONE,
+            reduction='none',
             name='binary_soft_f1'
         )
         self.assertEqual(bce_obj.name, 'binary_soft_f1')
-        self.assertEqual(bce_obj.reduction, Reduction.NONE)
+        self.assertEqual(bce_obj.reduction, 'none')
 
     def test_logits(self):
         prediction_tensor = tf.constant([

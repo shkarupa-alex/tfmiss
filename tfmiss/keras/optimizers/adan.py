@@ -1,8 +1,8 @@
 import tensorflow as tf
 from keras.optimizers import Optimizer
 from keras.saving import register_keras_serializable
+from keras.src.backend.common import KerasVariable
 from keras.src.optimizers.optimizer import base_optimizer_keyword_args
-from keras.src.utils.control_flow_util import smart_cond
 
 
 @register_keras_serializable(package='Miss')
@@ -30,15 +30,16 @@ class Adan(Optimizer):
     """
 
     def __init__(
-            self, learning_rate=0.001, beta_1=0.98, beta_2=0.92, beta_3=0.99, epsilon=1e-8, sparse_support=True,
-            weight_decay=None, clipnorm=None, clipvalue=None, global_clipnorm=None, use_ema=False, ema_momentum=0.99,
-            ema_overwrite_frequency=None, jit_compile=True, name='Adan', **kwargs):
+            self, learning_rate=0.001, beta_1=0.98, beta_2=0.92, beta_3=0.99, epsilon=1e-8, sparse_support=False,
+            name='Adan', weight_decay=None, clipnorm=None, clipvalue=None, global_clipnorm=None, use_ema=False,
+            ema_momentum=0.99, ema_overwrite_frequency=None, loss_scale_factor=None, gradient_accumulation_steps=None,
+            **kwargs):
         super().__init__(
-            name=name, weight_decay=weight_decay, clipnorm=clipnorm, clipvalue=clipvalue,
+            learning_rate, name=name, weight_decay=weight_decay, clipnorm=clipnorm, clipvalue=clipvalue,
             global_clipnorm=global_clipnorm, use_ema=use_ema, ema_momentum=ema_momentum,
-            ema_overwrite_frequency=ema_overwrite_frequency, jit_compile=jit_compile, **kwargs)
+            ema_overwrite_frequency=ema_overwrite_frequency, loss_scale_factor=loss_scale_factor,
+            gradient_accumulation_steps=gradient_accumulation_steps, **kwargs)
 
-        self._learning_rate = self._build_learning_rate(learning_rate)
         self._beta_1 = beta_1
         self._beta_2 = beta_2
         self._beta_3 = beta_3
@@ -63,22 +64,24 @@ class Adan(Optimizer):
             self.prev_grads.append(self.add_variable_from_reference(var, 'prev_grad'))
 
             if self._sparse_support and len(var.shape):
-                self.sparse_steps.append(self.add_variable_from_reference(var, 'sparse_step', shape=var.shape[:1]))
+                if hasattr(var, 'path'):
+                    name = var.path.replace('/', '_') + '_var'
+                else:
+                    name = str(var.name).replace(':', '_') + '_var'
+                self.sparse_steps.append(
+                    self.add_variable(shape=var.shape[:1], initializer='zeros', dtype=var.dtype, name=name))
 
-        self._built = True
-
-    def update_step(self, gradient, variable):
+    def update_step(self, gradient, variable, learning_rate):
         if isinstance(gradient, tf.IndexedSlices) and not self._sparse_support:
             raise ValueError('Optimizer not configured to support sparse updates.')
 
-        lr = tf.cast(self.learning_rate, variable.dtype)
+        lr = tf.cast(learning_rate, variable.dtype)
         beta_1 = tf.cast(self._beta_1, variable.dtype)
         beta_2 = tf.cast(self._beta_2, variable.dtype)
         beta_3 = tf.cast(self._beta_3, variable.dtype)
         epsilon_2 = tf.cast(self._epsilon ** 2, variable.dtype)
 
-        var_key = self._var_key(variable)
-        var_idx = self._index_dict[var_key]
+        var_idx = self._get_variable_index(variable)
 
         exp_avg = self.exp_avgs[var_idx]
         exp_avg_sq = self.exp_avg_sqs[var_idx]
@@ -99,7 +102,7 @@ class Adan(Optimizer):
             exp_avg_sq_t = tf.gather(exp_avg_sq, gradient.indices) * beta_3 + update_t ** 2 * (1. - beta_3)
         else:
             update_step_t = tf.cast(self.iterations + 1, variable.dtype)
-            prev_grad_t = smart_cond(
+            prev_grad_t = tf.cond(
                 self.iterations == 0, lambda: tf.identity(gradient), lambda: tf.identity(prev_grad))
             diff_t = gradient - prev_grad_t
             update_t = gradient + beta_2 * diff_t
@@ -115,24 +118,35 @@ class Adan(Optimizer):
         var_t = - var_t * lr
 
         if isinstance(gradient, tf.IndexedSlices):
-            exp_avg.scatter_update(tf.IndexedSlices(exp_avg_t, gradient.indices))
-            exp_avg_diff.scatter_update(tf.IndexedSlices(exp_avg_diff_t, gradient.indices))
-            exp_avg_sq.scatter_update(tf.IndexedSlices(exp_avg_sq_t, gradient.indices))
-            prev_grad.scatter_update(gradient)
-            variable.scatter_add(tf.IndexedSlices(var_t, gradient.indices))
-            sparse_step.scatter_add(tf.IndexedSlices(
+
+            self._scatter_update(exp_avg, tf.IndexedSlices(exp_avg_t, gradient.indices))
+            self._scatter_update(exp_avg_diff, tf.IndexedSlices(exp_avg_diff_t, gradient.indices))
+            self._scatter_update(exp_avg_sq, tf.IndexedSlices(exp_avg_sq_t, gradient.indices))
+            self._scatter_update(prev_grad, gradient)
+            self.assign_add(variable, tf.IndexedSlices(var_t, gradient.indices))
+            self.assign_add(sparse_step, tf.IndexedSlices(
                 tf.ones_like(gradient.indices, dtype=variable.dtype), gradient.indices))
         else:
-            exp_avg.assign(exp_avg_t)
-            exp_avg_diff.assign(exp_avg_diff_t)
-            exp_avg_sq.assign(exp_avg_sq_t)
-            prev_grad.assign(gradient)
-            variable.assign_add(var_t)
+
+            self.assign(exp_avg, exp_avg_t)
+            self.assign(exp_avg_diff, exp_avg_diff_t)
+            self.assign(exp_avg_sq, exp_avg_sq_t)
+            self.assign(prev_grad, gradient)
+            self.assign_add(variable, var_t)
+
+    def _scatter_update(self, variable, value):
+        if isinstance(variable, KerasVariable):
+            variable = variable.value
+        value = tf.cast(value, variable.dtype)
+
+        if not isinstance(value, tf.IndexedSlices):
+            raise ValueError(f'Expected value of `tf.IndexedSlices`, got {type(value)}')
+
+        variable.scatter_update(value)
 
     def get_config(self):
         config = super().get_config()
         config.update({
-            'learning_rate': self._serialize_hyperparameter(self._learning_rate),
             'beta_1': self._beta_1,
             'beta_2': self._beta_2,
             'beta_3': self._beta_3,

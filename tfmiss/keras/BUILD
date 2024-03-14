@@ -10,23 +10,7 @@ py_library(
         "//tfmiss/keras/layers",
          "//tfmiss/keras/losses",
          "//tfmiss/keras/metrics",
-         "//tfmiss/keras/optimizers",
-         ":testing_utils"
+         "//tfmiss/keras/optimizers"
     ],
     srcs_version = "PY2AND3",
-)
-
-py_library(
-    name = "testing_utils",
-    srcs = [
-        "testing_utils.py",
-    ],
-    srcs_version = "PY2AND3",
-)
-
-py_test(
-    name = "testing_utils_test",
-    srcs = ["testing_utils_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [":testing_utils"],
 )

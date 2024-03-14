@@ -4,7 +4,6 @@ py_library(
     name = "layers",
     srcs = [
         "__init__.py",
-        "attention.py",
         "dcnv2.py",
         "dropout.py",
         "embedding.py",
@@ -13,7 +12,6 @@ py_library(
         "reduction.py",
         "scale.py",
         "softmax.py",
-        "tcn.py",
         "todense.py",
         "wordvec.py",
         "wrappers.py",
@@ -26,59 +24,38 @@ py_library(
 )
 
 py_test(
-    name = "attention_test",
-    srcs = ["attention_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        ":layers"
-    ],
-)
-
-py_test(
     name = "dcnv2_test",
     srcs = ["dcnv2_test.py"],
     srcs_version = "PY2AND3",
-    deps = [
-        "//tfmiss/keras:testing_utils",
-        ":layers"
-    ],
+    deps = [":layers"],
 )
 
 py_test(
     name = "dropout_test",
     srcs = ["dropout_test.py"],
     srcs_version = "PY2AND3",
-    deps = [
-        ":layers"
-    ],
+    deps = [":layers"],
 )
 
 py_test(
     name = "embedding_test",
     srcs = ["embedding_test.py"],
     srcs_version = "PY2AND3",
-    deps = [
-        ":layers"
-    ],
+    deps = [":layers"],
 )
 
 py_test(
     name = "preprocessing_test",
     srcs = ["preprocessing_test.py"],
     srcs_version = "PY2AND3",
-    deps = [
-        ":layers"
-    ],
+    deps = [":layers"],
 )
 
 py_test(
     name = "qrnn_test",
     srcs = ["qrnn_test.py"],
     srcs_version = "PY2AND3",
-    deps = [
-        "//tfmiss/keras:testing_utils",
-        ":layers"
-    ],
+    deps = [":layers"],
 )
 
 py_test(
@@ -92,24 +69,12 @@ py_test(
     name = "scale_test",
     srcs = ["scale_test.py"],
     srcs_version = "PY2AND3",
-    deps = [
-        ":layers"
-    ],
+    deps = [":layers"],
 )
 
 py_test(
     name = "softmax_test",
     srcs = ["softmax_test.py"],
-    srcs_version = "PY2AND3",
-    deps = [
-        "//tfmiss/keras:testing_utils",
-        ":layers"
-    ],
-)
-
-py_test(
-    name = "tcn_test",
-    srcs = ["tcn_test.py"],
     srcs_version = "PY2AND3",
     deps = [":layers"],
 )

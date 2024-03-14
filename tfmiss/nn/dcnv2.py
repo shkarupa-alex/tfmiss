@@ -1,9 +1,5 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
-from keras.src.utils.conv_utils import normalize_tuple
+from keras.src.utils.argument_validation import standardize_tuple
 from tfmiss.ops import tfmiss_ops
 
 
@@ -31,10 +27,10 @@ def modulated_deformable_column(
         offset = tf.convert_to_tensor(offset, dtype=inputs.dtype)
         mask = tf.convert_to_tensor(mask, dtype=inputs.dtype)
 
-        kernel_size = normalize_tuple(kernel_size, 2, 'kernel_size')
-        strides = normalize_tuple(strides, 2, 'strides')
-        padding = normalize_tuple(padding, 4, 'padding', allow_zero=True)
-        dilation_rate = normalize_tuple(dilation_rate, 2, 'dilation_rate')
+        kernel_size = standardize_tuple(kernel_size, 2, 'kernel_size')
+        strides = standardize_tuple(strides, 2, 'strides')
+        padding = standardize_tuple(padding, 4, 'padding', allow_zero=True)
+        dilation_rate = standardize_tuple(dilation_rate, 2, 'dilation_rate')
 
         outputs = tfmiss_ops.miss_modulated_deformable_column(
             input=inputs,

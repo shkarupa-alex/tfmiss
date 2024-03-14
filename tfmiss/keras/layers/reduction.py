@@ -1,11 +1,6 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from keras import layers
 from keras.saving import register_keras_serializable
-from keras.src.utils.tf_utils import shape_type_conversion
 
 
 @register_keras_serializable(package='Miss')
@@ -57,7 +52,6 @@ class Reduction(layers.Layer):
 
         return self.reduction_ops[self.reduction](inputs, axis=self.axis)
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         if -1 == self.axis:
             return input_shape[:self.axis]

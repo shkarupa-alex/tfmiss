@@ -1,11 +1,6 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from keras import layers
 from keras.saving import register_keras_serializable
-from keras.src.utils.tf_utils import shape_type_conversion
 
 
 @register_keras_serializable(package='Miss')
@@ -28,7 +23,6 @@ class L2Scale(layers.Layer):
 
         self.alpha = alpha
 
-    @shape_type_conversion
     def build(self, input_shape):
         if len(input_shape) < 2:
             raise ValueError('Shape {} must have rank >= 2'.format(input_shape))
@@ -44,7 +38,6 @@ class L2Scale(layers.Layer):
     def call(self, inputs, **kwargs):
         return tf.math.l2_normalize(inputs, axis=-1) * self.alpha
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape
 

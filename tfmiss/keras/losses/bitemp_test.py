@@ -1,14 +1,7 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
-from keras.src.utils.losses_utils import ReductionV2 as Reduction
-from tensorflow.python.framework import test_util
 from tfmiss.keras.losses import bitemp
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class BiTempLossTest(tf.test.TestCase):
     def test_normalization(self):
         """Test the normalization constant."""
@@ -182,19 +175,18 @@ class BiTempLossTest(tf.test.TestCase):
         self.assertAllClose(expected_sigmoid_probabilities_t_4, sigmoid_probabilities_t_4)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class BiTemperedBinaryLogistic(tf.test.TestCase):
     def test_config(self):
         cl_obj = bitemp.BiTemperedBinaryLogistic(
-            reduction=Reduction.SUM, from_logits=True, t1=0.5, t2=1.5)
+            reduction='sum', from_logits=True, t1=0.5, t2=1.5)
         self.assertEqual(cl_obj.name, 'bi_tempered_binary_logistic')
-        self.assertEqual(cl_obj.reduction, Reduction.SUM)
+        self.assertEqual(cl_obj.reduction, 'sum')
 
     def test_normal(self):
         y_true = tf.constant([1, 0], dtype=tf.int64)
         y_pred = tf.constant([0.0, 0.0], dtype=tf.float32)
         btl_obj = bitemp.BiTemperedBinaryLogistic(
-            reduction=Reduction.SUM, from_logits=True, t1=1.0, t2=1.0)
+            reduction='sum', from_logits=True, t1=1.0, t2=1.0)
         loss = btl_obj(y_true, y_pred)
         self.assertAlmostEqual(self.evaluate(loss), 2 * 0.69314718, 3)
 
@@ -204,28 +196,27 @@ class BiTemperedBinaryLogistic(tf.test.TestCase):
         y_pred = tf.nn.sigmoid(y_logits)
 
         logits_btl = bitemp.BiTemperedBinaryLogistic(
-            reduction=Reduction.SUM, from_logits=True, t1=0.5, t2=2.0)
+            reduction='sum', from_logits=True, t1=0.5, t2=2.0)
         sigmoid_btl = bitemp.BiTemperedBinaryLogistic(
-            reduction=Reduction.SUM, t1=0.5, t2=2.0)
+            reduction='sum', t1=0.5, t2=2.0)
 
         logits_loss = logits_btl(y_true, y_logits)
         sigmoid_loss = sigmoid_btl(y_true, y_pred)
         self.assertAlmostEqual(self.evaluate(logits_loss), self.evaluate(sigmoid_loss), 3)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class BiTemperedLogistic(tf.test.TestCase):
     def test_config(self):
         cl_obj = bitemp.BiTemperedLogistic(
-            reduction=Reduction.SUM, from_logits=True, t1=0.5, t2=1.5)
+            reduction='sum', from_logits=True, t1=0.5, t2=1.5)
         self.assertEqual(cl_obj.name, 'bi_tempered_logistic')
-        self.assertEqual(cl_obj.reduction, Reduction.SUM)
+        self.assertEqual(cl_obj.reduction, 'sum')
 
     def test_normal(self):
         y_true = tf.constant([[1, 0, 0], [0, 1, 0], [0, 0, 1]], dtype=tf.int64)
         y_pred = tf.constant([[-0.5, 0.1, 2.0], [0.1, 1.5, -5.0], [4.0, -3.0, -6.0]], dtype=tf.float32)
         btl_obj = bitemp.BiTemperedLogistic(
-            reduction=Reduction.SUM, from_logits=True, t1=0.5, t2=1.5, label_smoothing=0.1)
+            reduction='sum', from_logits=True, t1=0.5, t2=1.5, label_smoothing=0.1)
         loss = btl_obj(y_true, y_pred)
         self.assertAlmostEqual(self.evaluate(loss), 0.76652711 + 0.08627685 + 1.35443510, 3)
 
@@ -238,29 +229,28 @@ class BiTemperedLogistic(tf.test.TestCase):
         y_pred = tf.nn.softmax(y_logits)
 
         logits_btl = bitemp.BiTemperedLogistic(
-            reduction=Reduction.SUM, from_logits=True, t1=0.5, t2=2.0)
+            reduction='sum', from_logits=True, t1=0.5, t2=2.0)
         softmax_btl = bitemp.BiTemperedLogistic(
-            reduction=Reduction.SUM, t1=0.5, t2=2.0)
+            reduction='sum', t1=0.5, t2=2.0)
 
         logits_loss = logits_btl(y_true, y_logits)
         softmax_loss = softmax_btl(y_true, y_pred)
         self.assertAlmostEqual(self.evaluate(logits_loss), self.evaluate(softmax_loss), 3)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class SparseBiTemperedLogistic(tf.test.TestCase):
     def test_config(self):
         cl_obj = bitemp.SparseBiTemperedLogistic(
-            reduction=Reduction.SUM, from_logits=True, t1=0.5, t2=1.5)
+            reduction='sum', from_logits=True, t1=0.5, t2=1.5)
         self.assertEqual(cl_obj.name, 'sparse_bi_tempered_logistic')
-        self.assertEqual(cl_obj.reduction, Reduction.SUM)
+        self.assertEqual(cl_obj.reduction, 'sum')
 
     def test_normal(self):
         y_true = tf.constant([0, 2, 1, 0], dtype=tf.int64)
         y_pred = tf.constant(
             [[-0.5, 0.1, 2.0], [0.1, 1.5, -5.0], [4.0, -3.0, -6.0], [-1.5, 0.7, 5.2]], dtype=tf.float32)
         btl_obj = bitemp.SparseBiTemperedLogistic(
-            reduction=Reduction.SUM, from_logits=True, t1=0.5, t2=1.5)
+            reduction='sum', from_logits=True, t1=0.5, t2=1.5)
         loss = btl_obj(y_true, y_pred)
         self.assertAlmostEqual(self.evaluate(loss), 5.269439, 3)
 
@@ -274,9 +264,9 @@ class SparseBiTemperedLogistic(tf.test.TestCase):
         y_pred = tf.nn.softmax(y_logits)
 
         logits_btl = bitemp.SparseBiTemperedLogistic(
-            reduction=Reduction.SUM, from_logits=True, t1=0.5, t2=2.0)
+            reduction='sum', from_logits=True, t1=0.5, t2=2.0)
         softmax_btl = bitemp.SparseBiTemperedLogistic(
-            reduction=Reduction.SUM, t1=0.5, t2=2.0)
+            reduction='sum', t1=0.5, t2=2.0)
 
         logits_loss = logits_btl(y_true, y_logits)
         softmax_loss = softmax_btl(y_true, y_pred)

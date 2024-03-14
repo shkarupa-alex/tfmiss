@@ -1,14 +1,9 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
 from tfmiss.nn.embedding import adaptive_embedding_lookup
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class AdaptiveEmbeddingLookupTest(tf.test.TestCase):
     def test_max_norm_constant(self):
         params = [tf.constant([[2.0]]), tf.constant([[2.0]])]

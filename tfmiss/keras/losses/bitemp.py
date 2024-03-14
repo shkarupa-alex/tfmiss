@@ -5,16 +5,11 @@ https://arxiv.org/pdf/1906.03361.pdf
 Source: https://github.com/google/bi-tempered-loss/
 Description: https://ai.googleblog.com/2019/08/bi-tempered-logistic-loss-for-training.html
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import functools
 import tensorflow as tf
 from keras import backend
 from keras.saving import register_keras_serializable
 from keras.src.losses import LossFunctionWrapper
-from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from tensorflow.python.framework import ops
 
 
@@ -352,6 +347,7 @@ def sparse_bi_tempered_logistic_loss(labels, activations, t1, t2, num_iters=5):
       A loss tensor.
     """
     with tf.name_scope('sparse_bitempered_logistic'):
+        labels = tf.cast(labels, tf.int32)
         t1 = tf.convert_to_tensor(t1)
         t2 = tf.convert_to_tensor(t2)
         num_classes = tf.shape(activations)[-1]
@@ -484,7 +480,7 @@ class BiTemperedBinaryLogistic(LossFunctionWrapper):
     """Computes Bi-Tempered Binary Logistic Loss."""
 
     def __init__(self, t1, t2, label_smoothing=0.0, num_iters=5, from_logits=False,
-                 reduction=Reduction.AUTO, name='bi_tempered_binary_logistic'):
+                 reduction='sum_over_batch_size', name='bi_tempered_binary_logistic'):
         super(BiTemperedBinaryLogistic, self).__init__(
             bi_tempered_binary_logistic, name=name, reduction=reduction, from_logits=from_logits,
             t1=t1, t2=t2, label_smoothing=label_smoothing, num_iters=num_iters)
@@ -495,7 +491,7 @@ class BiTemperedLogistic(LossFunctionWrapper):
     """Computes Bi-Tempered Logistic Loss."""
 
     def __init__(self, t1, t2, label_smoothing=0.0, num_iters=5, from_logits=False,
-                 reduction=Reduction.AUTO, name='bi_tempered_logistic'):
+                 reduction='sum_over_batch_size', name='bi_tempered_logistic'):
         super(BiTemperedLogistic, self).__init__(
             bi_tempered_logistic, name=name, reduction=reduction, from_logits=from_logits,
             t1=t1, t2=t2, label_smoothing=label_smoothing, num_iters=num_iters)
@@ -506,7 +502,7 @@ class SparseBiTemperedLogistic(LossFunctionWrapper):
     """Computes Sparse Bi-Tempered Logistic Loss."""
 
     def __init__(self, t1, t2, num_iters=5, from_logits=False,
-                 reduction=Reduction.AUTO, name='sparse_bi_tempered_logistic'):
+                 reduction='sum_over_batch_size', name='sparse_bi_tempered_logistic'):
         super(SparseBiTemperedLogistic, self).__init__(
             sparse_bi_tempered_logistic, name=name, reduction=reduction, from_logits=from_logits,
             t1=t1, t2=t2, num_iters=num_iters)

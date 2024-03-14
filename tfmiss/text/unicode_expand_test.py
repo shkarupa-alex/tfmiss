@@ -1,14 +1,9 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from tensorflow.python.framework import test_util
 from tfmiss.text.unicode_expand import char_ngrams, split_chars, split_words
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class CharNgramsTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [
@@ -199,7 +194,6 @@ class CharNgramsTest(tf.test.TestCase):
         self.assertAllEqual(expected, result)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class SplitCharsTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [
@@ -303,7 +297,6 @@ class SplitCharsTest(tf.test.TestCase):
         self.assertAllEqual(expected, result)
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class SplitWordsTest(tf.test.TestCase):
     def test_inference_shape(self):
         source = [

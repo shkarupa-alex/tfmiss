@@ -1,12 +1,6 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
-from keras import activations, backend, constraints, initializers, layers, regularizers
+from keras import activations, constraints, initializers, layers, regularizers
 from keras.saving import register_keras_serializable
-from keras.src.utils.control_flow_util import smart_cond
-from keras.src.utils.tf_utils import shape_type_conversion
 from tfmiss.nn import fo_pool
 
 
@@ -40,6 +34,7 @@ class QRNN(layers.Layer):
         super(QRNN, self).__init__(**kwargs)
         self.input_spec = layers.InputSpec(ndim=3)
         self.supports_masking = return_sequences
+        self.stateful = False
 
         self.units = units
         self.window = window
@@ -62,7 +57,6 @@ class QRNN(layers.Layer):
 
         self.zero_output_for_mask = zero_output_for_mask
 
-    @shape_type_conversion
     def build(self, input_shape):
         if len(input_shape) != 3:
             raise ValueError('Shape {} must have rank 3'.format(input_shape))
@@ -84,10 +78,11 @@ class QRNN(layers.Layer):
             kernel_regularizer=self.kernel_regularizer,
             bias_regularizer=self.bias_regularizer,
             kernel_constraint=self.kernel_constraint,
-            bias_constraint=self.bias_constraint)
+            bias_constraint=self.bias_constraint,
+            dtype=self.dtype_policy)
 
         if self.zoneout > 0.:
-            self.drop = layers.Dropout(self.zoneout)
+            self.drop = layers.Dropout(self.zoneout, dtype=self.dtype_policy)
 
         self.initial_state = self.add_weight(
             name='initial_state',
@@ -96,19 +91,16 @@ class QRNN(layers.Layer):
             trainable=True,
             dtype=self.dtype)
 
-        self.act = layers.Activation(activation=self.activation)
-        self.gate_act = layers.Activation(activation=self.gate_activation)
+        self.act = layers.Activation(activation=self.activation, dtype=self.dtype_policy)
+        self.gate_act = layers.Activation(activation=self.gate_activation, dtype=self.dtype_policy)
 
         super(QRNN, self).build(input_shape)
 
-    def call(self, inputs, training=None, mask=None, initial_state=None):
+    def call(self, inputs, training=False, mask=None, initial_state=None):
         shape = tf.shape(inputs)
 
         if self.go_backwards:
             inputs = tf.reverse(inputs, [1])
-
-        if training is None:
-            training = backend.learning_phase()
 
         if mask is not None:
             mask = mask[..., None]
@@ -131,11 +123,8 @@ class QRNN(layers.Layer):
         sequence = self.act(sequence)
         forget = self.gate_act(forget)
 
-        if self.zoneout > 0.:
-            forget = smart_cond(
-                training,
-                lambda: self.drop(forget) * (1. - self.zoneout),  # tf.nn.dropout upscales preserved values, revert
-                lambda: tf.identity(forget))
+        if self.zoneout > 0. and training:
+            forget = self.drop(forget) * (1. - self.zoneout)  # tf.nn.dropout upscales preserved values, revert
 
         if mask is not None:
             forget = tf.where(mask, forget, 0.)
@@ -161,7 +150,6 @@ class QRNN(layers.Layer):
 
         return hidden
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         hidden_shape = input_shape[:-1] + (self.units,)
         state_shape = (hidden_shape[0], hidden_shape[2])

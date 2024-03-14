@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
 import tensorflow as tf
 from absl.testing import parameterized
@@ -20,7 +16,6 @@ def np_fo_pooling(x, forget, initial_state):
     return dst[:, 1:]
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class FoPoolTest(tf.test.TestCase, parameterized.TestCase):
     def test_shape_inference_valid(self):
         shape = (8, 128, 32)

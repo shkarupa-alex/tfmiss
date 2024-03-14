@@ -1,12 +1,9 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
 import tensorflow as tf
 import tempfile
-from keras import backend, callbacks
+from keras import callbacks
 from keras.saving import register_keras_serializable
+from keras.src import backend
 
 
 @register_keras_serializable(package='Miss')
@@ -42,7 +39,7 @@ class LRFinder(callbacks.Callback):
         self.losses = []
         self.lrs = []
 
-        backend.set_value(self.model.optimizer.lr, self.min_lr)
+        self.model.optimizer.learning_rate = self.min_lr
         tf.get_logger().warning('Don\'t forget to set "epochs=1" and "steps_per_epoch={}" '
                                 'in model.fit() call'.format(self.max_steps))
 
@@ -81,7 +78,7 @@ class LRFinder(callbacks.Callback):
         if self.curr_step == 0 or smooth_loss < self.best_value:
             self.best_value = smooth_loss
 
-        curr_lr = backend.get_value(self.model.optimizer.lr)
+        curr_lr = float(backend.convert_to_numpy(self.model.optimizer.learning_rate))
         self.lrs.append(curr_lr)
         self.losses.append(smooth_loss)
 
@@ -93,7 +90,7 @@ class LRFinder(callbacks.Callback):
 
         # Set next lr (annealing exponential)
         next_lr = self.min_lr * (self.max_lr / self.min_lr) ** (self.curr_step / self.max_steps)
-        backend.set_value(self.model.optimizer.lr, next_lr)
+        self.model.optimizer.learning_rate = next_lr
 
         self.curr_step += 1
 

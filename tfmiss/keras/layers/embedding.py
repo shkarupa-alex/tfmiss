@@ -1,11 +1,6 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from keras import backend, constraints, initializers, layers, regularizers
 from keras.saving import register_keras_serializable
-from keras.src.utils.tf_utils import shape_type_conversion
 from tensorflow.python.distribute import sharded_variable
 from tfmiss.nn.embedding import adaptive_embedding_lookup
 
@@ -21,11 +16,11 @@ class AdaptiveEmbedding(layers.Embedding):
     def __init__(
             self, cutoff, input_dim, output_dim, factor=4, proj0=False, embeddings_initializer='uniform',
             embeddings_regularizer=None, embeddings_constraint=None, kernel_initializer='glorot_uniform',
-            kernel_regularizer=None, kernel_constraint=None, mask_zero=False, input_length=None, **kwargs):
+            kernel_regularizer=None, kernel_constraint=None, mask_zero=False, **kwargs):
         super(AdaptiveEmbedding, self).__init__(
             input_dim=input_dim, output_dim=output_dim, embeddings_initializer=embeddings_initializer,
             embeddings_regularizer=embeddings_regularizer, embeddings_constraint=embeddings_constraint,
-            mask_zero=mask_zero, input_length=input_length, **kwargs)
+            mask_zero=mask_zero, **kwargs)
 
         if cutoff[-1] > input_dim:
             raise ValueError('Can\'t specify cutoff larger than vocab size')
@@ -38,9 +33,8 @@ class AdaptiveEmbedding(layers.Embedding):
         self.kernel_regularizer = regularizers.get(kernel_regularizer)
         self.kernel_constraint = constraints.get(kernel_constraint)
 
-    @shape_type_conversion
     def build(self, input_shape):
-        self.embeddings = []
+        self.embeddings_ = []
         self.projections = []
 
         prev_dim = None
@@ -76,7 +70,7 @@ class AdaptiveEmbedding(layers.Embedding):
                         regularizer=self.embeddings_regularizer,
                         constraint=self.embeddings_constraint
                     )
-            self.embeddings.append(embed)
+            self.embeddings_.append(embed)
 
             if dim != self.output_dim or self.proj0:
                 project = layers.Dense(
@@ -97,21 +91,20 @@ class AdaptiveEmbedding(layers.Embedding):
         return tf.cast(embedding, self.compute_dtype)
 
     def call(self, inputs):
-        dtype = backend.dtype(inputs)
-        if dtype not in {'int32', 'int64'}:
+        if backend.standardize_dtype(inputs.dtype) not in {'int32', 'int64'}:
             inputs = tf.cast(inputs, 'int32')
 
-        if isinstance(self.embeddings[0], sharded_variable.ShardedVariable):
-            embeddings = [e.variables for e in self.embeddings]
+        if isinstance(self.embeddings_[0], sharded_variable.ShardedVariable):
+            embeddings = [e.variables for e in self.embeddings_]
         else:
-            embeddings = self.embeddings
+            embeddings = self.embeddings_
 
         out = adaptive_embedding_lookup(embeddings, inputs, self.projections)
 
-        if self._dtype_policy.compute_dtype != self._dtype_policy.variable_dtype:
+        if self.dtype_policy.compute_dtype != self.dtype_policy.variable_dtype:
             # Instead of casting the variable as in most layers, cast the output, as
             # this is mathematically equivalent but is faster.
-            out = tf.cast(out, self._dtype_policy.compute_dtype)
+            out = tf.cast(out, self.compute_dtype)
 
         return out
 

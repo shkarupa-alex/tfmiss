@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
 import tensorflow as tf
 from tensorflow.python.framework import test_util
@@ -9,7 +5,6 @@ from tfmiss.preprocessing.preprocessing import cbow_context, cont_bow, skip_gram
 from tfmiss.text.unicode_expand import split_words
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class CbowContextTest(tf.test.TestCase):
     def test_empty(self):
         source = tf.ragged.constant(np.array([]).reshape(0, 2), dtype=tf.string)
@@ -105,7 +100,6 @@ class CbowContextTest(tf.test.TestCase):
         ], positions.tolist())
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class ContBowTest(tf.test.TestCase):
     def test_empty(self):
         source = tf.ragged.constant(np.array([]).reshape(0, 2), dtype=tf.string)
@@ -203,7 +197,6 @@ class ContBowTest(tf.test.TestCase):
         ], positions.tolist())
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class SkipGramTest(tf.test.TestCase):
     def test_empty(self):
         source = tf.ragged.constant(np.array([]).reshape(0, 2), dtype=tf.string)
@@ -274,7 +267,6 @@ class SkipGramTest(tf.test.TestCase):
         ], pairs.tolist())
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class SpacesAfterTest(tf.test.TestCase):
     def test_empty(self):
         source = tf.ragged.constant(np.array([]).reshape(0, 2), dtype=tf.string)

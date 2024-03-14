@@ -1,13 +1,8 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import numpy as np
 import tensorflow as tf
 from nlpvocab import Vocabulary
 from keras import activations, initializers, layers
 from keras.saving import register_keras_serializable
-from keras.src.utils.tf_utils import shape_type_conversion
 from tfmiss.keras.layers import AdaptiveEmbedding, Reduction
 from tfmiss import text as miss_text
 
@@ -138,7 +133,6 @@ class WordEmbedding(layers.Layer):
 
         return indices
 
-    @shape_type_conversion
     def build(self, input_shape):
         if not self.output_dim:
             raise ValueError('Can\'t build embedding matrix without output_dim')
@@ -148,10 +142,11 @@ class WordEmbedding(layers.Layer):
         if 'adapt' == self.embed_type:
             self.embed = AdaptiveEmbedding(
                 self.adapt_cutoff, self._lookup.vocabulary_size(), self.output_dim, factor=self.adapt_factor,
-                embeddings_initializer=self.embeddings_initializer)
+                embeddings_initializer=self.embeddings_initializer, dtype=self.dtype_policy)
         else:
             self.embed = layers.Embedding(
-                self._lookup.vocabulary_size(), self.output_dim, embeddings_initializer=self.embeddings_initializer)
+                self._lookup.vocabulary_size(), self.output_dim, embeddings_initializer=self.embeddings_initializer,
+                dtype=self.dtype_policy)
             if 'dense_cpu' == self.embed_type:
                 with tf.device('cpu:0'):
                     self.embed.build(input_shape)
@@ -164,7 +159,6 @@ class WordEmbedding(layers.Layer):
 
         return self.embed(inputs)
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape + (self.output_dim,)
 
@@ -214,9 +208,8 @@ class NgramEmbedding(WordEmbedding):
 
         return ngrams
 
-    @shape_type_conversion
     def build(self, input_shape=None):
-        self.reduce = Reduction(self.reduction)
+        self.reduce = Reduction(self.reduction, dtype=self.dtype_policy)
 
         super().build(input_shape)
 
@@ -229,7 +222,6 @@ class NgramEmbedding(WordEmbedding):
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         prep_shape = input_shape
         if not self.with_prep:
@@ -330,9 +322,8 @@ class BpeEmbedding(WordEmbedding):  # TODO: rename to WordPiece
 
         return subwords
 
-    @shape_type_conversion
     def build(self, input_shape=None):
-        self.reduce = Reduction(self.reduction)
+        self.reduce = Reduction(self.reduction, dtype=self.dtype_policy)
 
         super().build(input_shape)
 
@@ -345,7 +336,6 @@ class BpeEmbedding(WordEmbedding):  # TODO: rename to WordPiece
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         prep_shape = input_shape
         if not self.with_prep:
@@ -477,7 +467,6 @@ class CnnEmbedding(WordEmbedding):
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         prep_shape = input_shape
         if not self.with_prep:
@@ -515,11 +504,13 @@ class Highway(layers.Layer):
             channels,
             kernel_initializer=kernel_initializer,
             bias_initializer=initializers.constant(-2.),
-            activation='sigmoid')
+            activation='sigmoid',
+            dtype=self.dtype_policy)
         self.transform = layers.Dense(
             channels,
             kernel_initializer=kernel_initializer,
-            activation='relu')
+            activation='relu',
+            dtype=self.dtype_policy)
 
         super().build(input_shape)
 
@@ -530,6 +521,5 @@ class Highway(layers.Layer):
 
         return outputs
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         return input_shape

@@ -1,15 +1,10 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from tensorflow.python.framework import test_util
 from tensorflow.python.ops.lookup_ops import StaticVocabularyTableV1
 from tfmiss.text.wordpiece import word_piece
 
 
-@test_util.run_all_in_graph_and_eager_modes
 class WordPieceTest(tf.test.TestCase):
     def _lookup_table(self):
         init = tf.lookup.KeyValueTensorInitializer(

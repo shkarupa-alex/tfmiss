@@ -1,12 +1,7 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from keras import backend
 from keras.saving import register_keras_serializable
 from keras.src.losses import LossFunctionWrapper
-from keras.src.utils.losses_utils import ReductionV2 as Reduction
 
 
 @register_keras_serializable(package='Miss')
@@ -71,7 +66,7 @@ class MacroSoftF1(LossFunctionWrapper):
     """Computes macro soft F1 loss."""
 
     def __init__(self, double=True, from_logits=False,
-                 reduction=Reduction.AUTO, name='macro_soft_f1'):
+                 reduction='sum_over_batch_size', name='macro_soft_f1'):
         super(MacroSoftF1, self).__init__(
             macro_soft_f1, name=name, reduction=reduction, from_logits=from_logits, double=double)
 
@@ -81,6 +76,6 @@ class BinarySoftF1(LossFunctionWrapper):
     """Computes binary soft F1 loss."""
 
     def __init__(self, double=True, from_logits=False,
-                 reduction=Reduction.AUTO, name='binary_soft_f1'):
+                 reduction='sum_over_batch_size', name='binary_soft_f1'):
         super(BinarySoftF1, self).__init__(
             binary_soft_f1, name=name, reduction=reduction, from_logits=from_logits, double=double)

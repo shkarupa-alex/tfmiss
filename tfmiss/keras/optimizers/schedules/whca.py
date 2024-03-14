@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import math
 import tensorflow as tf
 from keras import backend
@@ -35,7 +31,6 @@ class WarmHoldCoolAnnihilateScheduler(LearningRateSchedule):
         self.annih_factor = annih_factor
         self.name = name
 
-    @tf.function
     def __call__(self, step):
         step = tf.cast(tf.convert_to_tensor(step), 'float32')
         min_lr = tf.convert_to_tensor(self.min_lr, 'float32')
@@ -118,10 +113,11 @@ class WarmHoldCosineCoolAnnihilateScheduler(WarmHoldCoolAnnihilateScheduler):
 
         cycle_idx = tf.math.floor(tf.math.log(
             1.0 - complete_fraction * (1.0 - self.cosine_width)) / tf.math.log(self.cosine_width))
-        current_fraction = (1.0 - self.cosine_width ** cycle_idx) / (1.0 - self.cosine_width)
-        complete_fraction = (complete_fraction - current_fraction) / self.cosine_width ** cycle_idx
+        width_fraction = tf.pow(self.cosine_width, cycle_idx)
+        current_fraction = (1.0 - width_fraction) / (1.0 - self.cosine_width)
+        complete_fraction = (complete_fraction - current_fraction) / width_fraction
 
-        height_fraction = self.cosine_height ** cycle_idx
+        height_fraction = tf.pow(self.cosine_height, cycle_idx)
         cosine_decayed = 0.5 * height_fraction * (1.0 + tf.math.cos(math.pi * complete_fraction))
         decayed = (1 - alpha) * cosine_decayed + alpha
 
