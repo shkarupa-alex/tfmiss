@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from keras.datasets import imdb
+from tf_keras.datasets import imdb
 
 
 def data_generator(batch_size):

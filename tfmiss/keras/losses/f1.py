@@ -3,10 +3,10 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from keras import backend
-from keras.saving import register_keras_serializable
-from keras.src.losses import LossFunctionWrapper
-from keras.src.utils.losses_utils import ReductionV2 as Reduction
+from tf_keras import backend
+from tf_keras.saving import register_keras_serializable
+from tf_keras.src.losses import LossFunctionWrapper
+from tf_keras.src.utils.losses_utils import ReductionV2 as Reduction
 
 
 @register_keras_serializable(package='Miss')

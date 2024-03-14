@@ -4,8 +4,8 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras import backend, models
-from keras.src.testing_infra import test_combinations, test_utils
+from tf_keras import backend, models
+from tf_keras.src.testing_infra import test_combinations, test_utils
 from tensorflow.python.util import object_identity
 from tensorflow.python.checkpoint import checkpoint
 from tfmiss.keras.layers.tcn import TemporalBlock, TemporalConvNet

@@ -5,7 +5,7 @@ from __future__ import print_function
 import argparse
 import numpy as np
 from matplotlib import pyplot
-from keras import optimizers
+from tf_keras import optimizers
 from model import CopyModel
 from utils import data_generator
 

@@ -4,11 +4,11 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras import backend, constraints, initializers, layers, models, regularizers
-from keras.saving import register_keras_serializable
-from keras.src.utils.control_flow_util import smart_cond
-from keras.src.utils.losses_utils import compute_weighted_loss as _compute_weighted_loss, ReductionV2 as Reduction
-from keras.src.utils.tf_utils import shape_type_conversion
+from tf_keras import backend, constraints, initializers, layers, models, regularizers
+from tf_keras.saving import register_keras_serializable
+from tf_keras.src.utils.control_flow_util import smart_cond
+from tf_keras.src.utils.losses_utils import compute_weighted_loss as _compute_weighted_loss, ReductionV2 as Reduction
+from tf_keras.src.utils.tf_utils import shape_type_conversion
 from tensorflow.python.distribute import distribute_lib
 from tensorflow.python.ops import data_flow_ops
 

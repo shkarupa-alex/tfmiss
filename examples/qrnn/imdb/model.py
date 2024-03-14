@@ -2,7 +2,7 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import print_function
 
-from keras import layers, models
+from tf_keras import layers, models
 from tfmiss.keras.layers import QRNN, ToDense, MapFlat
 
 

@@ -6,7 +6,7 @@ import argparse
 import numpy as np
 import time
 from matplotlib import pyplot
-from keras import optimizers
+from tf_keras import optimizers
 from model import ImdbModel
 from utils import data_generator
 

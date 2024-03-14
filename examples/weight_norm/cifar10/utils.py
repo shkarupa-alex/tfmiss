@@ -4,8 +4,8 @@ from __future__ import print_function
 
 import numpy as np
 import tensorflow as tf
-from keras.datasets import cifar10
-from keras_preprocessing.image import ImageDataGenerator
+from tf_keras.datasets import cifar10
+from tf_keras_preprocessing.image import ImageDataGenerator
 
 
 def data_generator(batch_size):
