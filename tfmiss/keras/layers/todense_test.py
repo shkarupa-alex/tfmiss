@@ -6,8 +6,8 @@ from __future__ import print_function
 from absl.testing import parameterized
 import numpy as np
 import tensorflow as tf
-from keras import backend, layers
-from keras.src.testing_infra import test_combinations, test_utils
+from tf_keras import backend, layers
+from tf_keras.src.testing_infra import test_combinations, test_utils
 from tensorflow.python.framework import test_util
 from tfmiss.keras.layers import ToDense
 

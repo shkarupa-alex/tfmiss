@@ -5,7 +5,7 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 from absl.testing import parameterized
-from keras import utils
+from tf_keras import utils
 from scipy.ndimage import distance_transform_edt
 from tensorflow.python.framework import test_util
 from tfmiss.image.euclidean_dist import euclidean_distance

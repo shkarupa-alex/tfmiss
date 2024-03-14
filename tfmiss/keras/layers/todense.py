@@ -4,8 +4,8 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from keras import layers
-from keras.saving import register_keras_serializable
+from tf_keras import layers
+from tf_keras.saving import register_keras_serializable
 
 
 @register_keras_serializable(package='Miss')

@@ -3,7 +3,7 @@ from __future__ import division
 from __future__ import print_function
 
 import tensorflow as tf
-from keras.src.utils.conv_utils import normalize_tuple
+from tf_keras.src.utils.conv_utils import normalize_tuple
 from tfmiss.ops import tfmiss_ops
 
 

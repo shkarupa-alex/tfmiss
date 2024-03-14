@@ -5,7 +5,7 @@ from __future__ import print_function
 import cv2
 import numpy as np
 import tensorflow as tf
-from keras import utils
+from tf_keras import utils
 from tensorflow.python.framework import test_util
 from tfmiss.image.conn_comp import connected_components
 

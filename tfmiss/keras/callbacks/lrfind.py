@@ -5,8 +5,8 @@ from __future__ import print_function
 import numpy as np
 import tensorflow as tf
 import tempfile
-from keras import backend, callbacks
-from keras.saving import register_keras_serializable
+from tf_keras import backend, callbacks
+from tf_keras.saving import register_keras_serializable
 
 
 @register_keras_serializable(package='Miss')
