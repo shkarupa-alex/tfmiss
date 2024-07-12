@@ -35,7 +35,6 @@ class WarmHoldCoolAnnihilateScheduler(LearningRateSchedule):
         self.annih_factor = annih_factor
         self.name = name
 
-    @tf.function
     def __call__(self, step):
         step = tf.cast(tf.convert_to_tensor(step), 'float32')
         min_lr = tf.convert_to_tensor(self.min_lr, 'float32')
