@@ -25,7 +25,7 @@ RUN bazel build --jobs=4 \
         --noshow_loading_progress \
         --verbose_failures \
         --test_output=errors \
-        --crosstool_top=//third_party/gcc9_manylinux2014-nvcc-cuda11:toolchain build_pip_pkg && \
+        --crosstool_top=//third_party/gcc_manylinux2014-nvcc-cuda:toolchain build_pip_pkg && \
     # Package Whl
     bazel-bin/build_pip_pkg artifacts
 

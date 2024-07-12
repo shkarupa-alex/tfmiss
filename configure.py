@@ -206,7 +206,7 @@ def configure_cuda():
     write("build:cuda --@local_config_cuda//:enable_cuda")
 
     if os.getenv("DOCKER_BUILD", "0") == "1":
-        write("build:cuda --crosstool_top=//third_party/gcc9_manylinux2014-nvcc-cuda11:toolchain")
+        write("build:cuda --crosstool_top=//third_party/gcc_manylinux2014-nvcc-cuda:toolchain")
     else:
         write("build:cuda --crosstool_top=@local_config_cuda//crosstool:toolchain")
 
