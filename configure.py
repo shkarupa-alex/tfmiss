@@ -194,8 +194,8 @@ def configure_cuda():
         "CUDNN_INSTALL_PATH",
         os.getenv("CUDNN_INSTALL_PATH", "/usr/lib/x86_64-linux-gnu"),
     )
-    write_action_env("TF_CUDA_VERSION", os.getenv("TF_CUDA_VERSION", "12.2"))
-    write_action_env("TF_CUDNN_VERSION", os.getenv("TF_CUDNN_VERSION", "8"))
+    write_action_env("TF_CUDA_VERSION", os.getenv("TF_CUDA_VERSION", "12.3"))
+    write_action_env("TF_CUDNN_VERSION", os.getenv("TF_CUDNN_VERSION", "9"))
 
     comp_cap = get_compute_capabilities()
     if comp_cap:

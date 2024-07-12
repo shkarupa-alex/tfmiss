@@ -1,5 +1,5 @@
-#!/usr/bin/env python
-# Copyright 2019 The TensorFlow Authors. All Rights Reserved.
+#!/usr/bin/env python3
+# Copyright 2015 The TensorFlow Authors. All Rights Reserved.
 #
 # Licensed under the Apache License, Version 2.0 (the "License");
 # you may not use this file except in compliance with the License.
@@ -13,10 +13,13 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 # ==============================================================================
+
 """Crosstool wrapper for compiling CUDA programs.
+
 SYNOPSIS:
   crosstool_wrapper_is_not_gcc [options passed in by cc_library()
                                 or cc_binary() rule]
+
 DESCRIPTION:
   This script is expected to be called by the cc_library() or cc_binary() bazel
   rules. When the option "-x cuda" is present in the list of arguments passed
@@ -24,24 +27,31 @@ DESCRIPTION:
   as is as a string to --compiler-options of nvcc. When "-x cuda" is not
   present, this wrapper invokes hybrid_driver_is_not_gcc with the input
   arguments as is.
+
+NOTES:
+  Changes to the contents of this file must be propagated from
+  //third_party/gpus/crosstool/crosstool_wrapper_is_not_gcc to
+  //third_party/gpus/crosstool/v*/*/clang/bin/crosstool_wrapper_is_not_gcc
 """
 
-from __future__ import print_function
+__author__ = 'keveman@google.com (Manjunath Kudlur)'
 
 from argparse import ArgumentParser
 import os
 import subprocess
 import re
 import sys
-import pipes
+import shlex
 
 # Template values set by cuda_autoconf.
-CPU_COMPILER = ('/dt9/usr/bin/gcc')
-GCC_HOST_COMPILER_PATH = ('/dt9/usr/bin/gcc')
+CPU_COMPILER = ('%{cpu_compiler}')
+HOST_COMPILER_PATH = ('%{host_compiler_path}')
 
-NVCC_PATH = '/usr/local/cuda-12.2/bin/nvcc'
-PREFIX_DIR = os.path.dirname(GCC_HOST_COMPILER_PATH)
-NVCC_VERSION = '12.2'
+NVCC_PATH = '%{nvcc_path}'
+PREFIX_DIR = os.path.dirname(HOST_COMPILER_PATH)
+USE_CLANG_COMPILER = '%{use_clang_compiler}'
+NVCC_VERSION = '%{cuda_version}'
+
 
 def Log(s):
     print('gpus/crosstool: {0}'.format(s))
@@ -49,9 +59,11 @@ def Log(s):
 
 def GetOptionValue(argv, option):
     """Extract the list of values for option from the argv list.
+
     Args:
       argv: A list of strings, possibly the argv passed to main().
       option: The option whose value to extract, with the leading '-'.
+
     Returns:
       A list of values, either directly following the option,
       (eg., -opt val1 val2) or values collected from multiple occurrences of
@@ -70,8 +82,10 @@ def GetOptionValue(argv, option):
 
 def GetHostCompilerOptions(argv):
     """Collect the -isystem, -iquote, and --sysroot option values from argv.
+
     Args:
       argv: A list of strings, possibly the argv passed to main().
+
     Returns:
       The string that can be used as the --compiler-options to nvcc.
     """
@@ -103,18 +117,22 @@ def GetHostCompilerOptions(argv):
 
     return opts
 
+
 def _update_options(nvcc_options):
     if NVCC_VERSION in ("7.0",):
         return nvcc_options
 
-    update_options = { "relaxed-constexpr" : "expt-relaxed-constexpr" }
-    return [ update_options[opt] if opt in update_options else opt
-             for opt in nvcc_options ]
+    update_options = {"relaxed-constexpr": "expt-relaxed-constexpr"}
+    return [update_options[opt] if opt in update_options else opt
+            for opt in nvcc_options]
+
 
 def GetNvccOptions(argv):
     """Collect the -nvcc_options values from argv.
+
     Args:
       argv: A list of strings, possibly the argv passed to main().
+
     Returns:
       The string that can be passed directly to nvcc.
     """
@@ -126,13 +144,16 @@ def GetNvccOptions(argv):
 
     if args.nvcc_options:
         options = _update_options(sum(args.nvcc_options, []))
-        return ' '.join(['--'+a for a in options])
+        return ' '.join(['--' + a for a in options])
     return ''
+
 
 def system(cmd):
     """Invokes cmd with os.system().
+
     Args:
       cmd: The command.
+
     Returns:
       The exit code if the process exited with exit() or -signal
       if the process was terminated by a signal.
@@ -143,11 +164,14 @@ def system(cmd):
     else:
         return -os.WTERMSIG(retv)
 
+
 def InvokeNvcc(argv, log=False):
     """Call nvcc with arguments assembled from argv.
+
     Args:
       argv: A list of strings, possibly the argv passed to main().
       log: True if logging is requested.
+
     Returns:
       The return value of calling system('nvcc ' + args)
     """
@@ -157,6 +181,8 @@ def InvokeNvcc(argv, log=False):
     opt_option = GetOptionValue(argv, '-O')
     m_options = GetOptionValue(argv, '-m')
     m_options = ''.join([' -m' + m for m in m_options if m in ['32', '64']])
+    m_host_options = ''.join([' -m' + m for m in m_options if m not in ['32', '64']])
+    host_compiler_options = ' '.join([host_compiler_options, m_host_options])
     include_options = GetOptionValue(argv, '-I')
     out_file = GetOptionValue(argv, '-o')
     depfiles = GetOptionValue(argv, '-MF')
@@ -167,7 +193,12 @@ def InvokeNvcc(argv, log=False):
     std_options = GetOptionValue(argv, '-std')
     # Supported -std flags as of CUDA 9.0. Only keep last to mimic gcc/clang.
     nvcc_allowed_std_options = ["c++03", "c++11", "c++14"]
-    std_options = ''.join([' -std=' + define
+    nvcc_std_map = {}
+    if int(NVCC_VERSION.split('.')[0]) >= 11:
+        nvcc_std_map["c++1z"] = "c++17"
+        nvcc_allowed_std_options += ["c++17", "c++1z"]
+    std_options = ''.join([' -std=' +
+                           (nvcc_std_map[define] if define in nvcc_std_map else define)
                            for define in std_options if define in nvcc_allowed_std_options][-1:])
     fatbin_options = ''.join([' --fatbin-options=' + option
                               for option in GetOptionValue(argv, '-Xcuda-fatbinary')])
@@ -201,11 +232,21 @@ def InvokeNvcc(argv, log=False):
     out = ' -o ' + out_file[0]
 
     nvccopts = '-D_FORCE_INLINES '
-    for capability in GetOptionValue(argv, "--cuda-gpu-arch"):
+    capabilities_sm = set(GetOptionValue(argv, "--cuda-gpu-arch"))
+    capabilities_compute = set(GetOptionValue(argv, '--cuda-include-ptx'))
+    # When both "code=sm_xy" and "code=compute_xy" are requested for a single
+    # arch, they can be combined using "code=xy,compute_xy" which avoids a
+    # redundant PTX generation during compilation.
+    capabilities_both = capabilities_sm.intersection(capabilities_compute)
+    for capability in capabilities_both:
+        capability = capability[len('sm_'):]
+        nvccopts += r'-gencode=arch=compute_%s,code=\"sm_%s,compute_%s\" ' % (
+            capability, capability, capability)
+    for capability in capabilities_sm - capabilities_both:
         capability = capability[len('sm_'):]
         nvccopts += r'-gencode=arch=compute_%s,\"code=sm_%s\" ' % (capability,
                                                                    capability)
-    for capability in GetOptionValue(argv, '--cuda-include-ptx'):
+    for capability in capabilities_compute - capabilities_both:
         capability = capability[len('sm_'):]
         nvccopts += r'-gencode=arch=compute_%s,\"code=compute_%s\" ' % (capability,
                                                                         capability)
@@ -215,14 +256,26 @@ def InvokeNvcc(argv, log=False):
     nvccopts += std_options
     nvccopts += m_options
     nvccopts += warning_options
+    # Force C++17 dialect (note, everything in just one string!)
+    nvccopts += ' --std c++17 '
     nvccopts += fatbin_options
+    # The option `-allow-unsupported-compiler` is required for the combination of
+    # NVCC+clang compilers.
+    # The following message appears if this option is not provided:
+    # unsupported clang version! clang version must be less than 16 and greater
+    # than 3.2 . The nvcc flag '-allow-unsupported-compiler' can be used
+    # to override this version check; however, using an unsupported host compiler
+    # may cause compilation failure or incorrect run time execution.
+    # Use at your own risk.
+    if USE_CLANG_COMPILER:
+        nvccopts += ' -allow-unsupported-compiler --expt-extended-lambda --expt-relaxed-constexpr '
 
     if depfiles:
         # Generate the dependency file
         depfile = depfiles[0]
         cmd = (NVCC_PATH + ' ' + nvccopts +
                ' --compiler-options "' + host_compiler_options + '"' +
-               ' --compiler-bindir=' + GCC_HOST_COMPILER_PATH +
+               ' --compiler-bindir=' + HOST_COMPILER_PATH +
                ' -I .' +
                ' -x cu ' + opt + includes + ' ' + srcs + ' -M -o ' + depfile)
         if log: Log(cmd)
@@ -232,7 +285,7 @@ def InvokeNvcc(argv, log=False):
 
     cmd = (NVCC_PATH + ' ' + nvccopts +
            ' --compiler-options "' + host_compiler_options + ' -fPIC"' +
-           ' --compiler-bindir=' + GCC_HOST_COMPILER_PATH +
+           ' --compiler-bindir=' + HOST_COMPILER_PATH +
            ' -I .' +
            ' -x cu ' + opt + includes + ' -c ' + srcs + out)
 
@@ -251,7 +304,7 @@ def main():
 
     if args.x and args.x[0] == 'cuda':
         if args.cuda_log: Log('-x cuda')
-        leftover = [pipes.quote(s) for s in leftover]
+        leftover = [shlex.quote(s) for s in leftover]
         if args.cuda_log: Log('using nvcc')
         return InvokeNvcc(leftover, log=args.cuda_log)
 
@@ -264,6 +317,7 @@ def main():
                           if not flag.startswith(('--cuda_log'))]
 
     return subprocess.call([CPU_COMPILER] + cpu_compiler_flags)
+
 
 if __name__ == '__main__':
     sys.exit(main())
