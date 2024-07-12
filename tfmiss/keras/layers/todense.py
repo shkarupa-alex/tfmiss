@@ -1,7 +1,7 @@
 # Inspired by https://github.com/tensorflow/text/blob/master/tensorflow_text/python/keras/layers/todense.py
 import tensorflow as tf
-from tf_keras import layers
-from tf_keras.saving import register_keras_serializable
+from keras import layers
+from keras.saving import register_keras_serializable
 
 
 @register_keras_serializable(package='Miss')

@@ -1,8 +1,8 @@
 import tensorflow as tf
 from absl.testing import parameterized
-from tf_keras import optimizers
-from tf_keras.optimizers.schedules import PiecewiseConstantDecay
-from tf_keras.src.testing_infra import test_combinations
+from keras import optimizers
+from keras.optimizers.schedules import PiecewiseConstantDecay
+from keras.src.testing_infra import test_combinations
 from tfmiss.keras.optimizers.accum import Accum
 
 

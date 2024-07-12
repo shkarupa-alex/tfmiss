@@ -1,8 +1,8 @@
 import argparse
 import numpy as np
 from matplotlib import pyplot
-from tf_keras import backend as K, callbacks, optimizers
-from tf_keras.saving import custom_object_scope
+from keras import backend as K, callbacks, optimizers
+from keras.saving import custom_object_scope
 from model import Cifar10Model
 from utils import data_generator
 

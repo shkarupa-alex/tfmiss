@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tf_keras.src.utils.conv_utils import normalize_tuple
+from keras.src.utils.conv_utils import normalize_tuple
 from tfmiss.ops import tfmiss_ops
 
 

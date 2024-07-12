@@ -1,6 +1,6 @@
 import tensorflow as tf
-from tf_keras import layers, models
-from tf_keras.src.testing_infra import test_combinations, test_utils
+from keras import layers, models
+from keras.src.testing_infra import test_combinations, test_utils
 from tfmiss.keras.layers.scale import L2Scale
 from tfmiss.keras.layers.wrappers import WithRagged
 

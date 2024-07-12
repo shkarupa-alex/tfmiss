@@ -1,7 +1,7 @@
 import argparse
 import numpy as np
 from matplotlib import pyplot
-from tf_keras import optimizers
+from keras import optimizers
 from model import CharModel
 from utils import data_generator
 

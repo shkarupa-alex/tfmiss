@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from tf_keras.src.testing_infra import test_combinations, test_utils
+from keras.src.testing_infra import test_combinations, test_utils
 from tfmiss.keras.layers.preprocessing import WordShape
 
 

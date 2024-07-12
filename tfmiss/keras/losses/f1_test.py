@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tf_keras import layers, models
-from tf_keras.src.utils.losses_utils import ReductionV2 as Reduction
+from keras import layers, models
+from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from tensorflow.python.framework import test_util
 from tfmiss.keras.losses.f1 import macro_soft_f1, binary_soft_f1, MacroSoftF1, BinarySoftF1
 

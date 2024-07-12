@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tf_keras.src.utils.losses_utils import ReductionV2 as Reduction
+from keras.src.utils.losses_utils import ReductionV2 as Reduction
 from tensorflow.python.framework import test_util
 from tfmiss.keras.losses import bitemp
 

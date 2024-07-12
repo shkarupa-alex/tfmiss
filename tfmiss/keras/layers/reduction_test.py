@@ -1,8 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from absl.testing import parameterized
-from tf_keras import layers, models
-from tf_keras.src.testing_infra import test_combinations, test_utils
+from keras import layers, models
+from keras.src.testing_infra import test_combinations, test_utils
 from tfmiss.keras.layers.reduction import Reduction
 
 

@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tf_keras import layers, models
+from keras import layers, models
 from tfmiss.keras.layers import AdaptiveSoftmax, SampledSofmax
 
 

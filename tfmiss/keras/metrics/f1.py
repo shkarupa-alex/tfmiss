@@ -1,6 +1,6 @@
 import tensorflow as tf
-from tf_keras.metrics import Metric, Precision, Recall
-from tf_keras.saving import register_keras_serializable
+from keras.metrics import Metric, Precision, Recall
+from keras.saving import register_keras_serializable
 from tensorflow.python.ops.losses.util import squeeze_or_expand_dimensions
 
 

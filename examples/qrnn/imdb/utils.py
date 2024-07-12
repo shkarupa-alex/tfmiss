@@ -1,5 +1,5 @@
 import tensorflow as tf
-from tf_keras.datasets import imdb
+from keras.datasets import imdb
 
 
 def data_generator(batch_size):

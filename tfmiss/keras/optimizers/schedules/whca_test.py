@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tf_keras import layers, models, optimizers
-from tf_keras.src.testing_infra import test_combinations, test_utils
+from keras import layers, models, optimizers
+from keras.src.testing_infra import test_combinations, test_utils
 from tfmiss.keras.optimizers.schedules import WarmHoldCoolAnnihilateScheduler, WarmHoldCosineCoolAnnihilateScheduler
 
 

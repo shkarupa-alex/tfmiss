@@ -1,8 +1,8 @@
 import tensorflow as tf
-from tf_keras.optimizers import Optimizer
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.optimizers.optimizer import base_optimizer_keyword_args
-from tf_keras.src.utils.control_flow_util import smart_cond
+from keras.optimizers import Optimizer
+from keras.saving import register_keras_serializable
+from keras.src.optimizers.optimizer import base_optimizer_keyword_args
+from keras.src.utils.control_flow_util import smart_cond
 
 
 @register_keras_serializable(package='Miss')

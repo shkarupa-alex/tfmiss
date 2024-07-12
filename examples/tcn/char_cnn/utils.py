@@ -1,6 +1,6 @@
 import tensorflow as tf
 import observations
-from tf_keras.preprocessing.text import Tokenizer
+from keras.preprocessing.text import Tokenizer
 
 
 def data_generator(dataset, seq_length, batch_size):

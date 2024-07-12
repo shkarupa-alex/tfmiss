@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-from tf_keras.datasets import mnist
+from keras.datasets import mnist
 
 
 def data_generator(permute, batch_size):

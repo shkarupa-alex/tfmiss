@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
 import tensorflow as tf
-from tf_keras import utils
+from keras import utils
 from tensorflow.python.framework import test_util
 from tfmiss.image.conn_comp import connected_components
 

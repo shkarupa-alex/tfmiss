@@ -1,6 +1,6 @@
 import tensorflow as tf
-from tf_keras.layers import Dropout, InputSpec
-from tf_keras.saving import register_keras_serializable
+from keras.layers import Dropout, InputSpec
+from keras.saving import register_keras_serializable
 
 
 @register_keras_serializable(package='Miss')

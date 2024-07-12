@@ -2,8 +2,8 @@
 from absl.testing import parameterized
 import numpy as np
 import tensorflow as tf
-from tf_keras import backend, layers
-from tf_keras.src.testing_infra import test_combinations, test_utils
+from keras import backend, layers
+from keras.src.testing_infra import test_combinations, test_utils
 from tensorflow.python.framework import test_util
 from tfmiss.keras.layers import ToDense
 

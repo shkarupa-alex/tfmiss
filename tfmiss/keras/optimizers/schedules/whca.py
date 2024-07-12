@@ -1,8 +1,8 @@
 import math
 import tensorflow as tf
-from tf_keras import backend
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.optimizers.schedules.learning_rate_schedule import LearningRateSchedule
+from keras import backend
+from keras.saving import register_keras_serializable
+from keras.src.optimizers.schedules.learning_rate_schedule import LearningRateSchedule
 
 
 @register_keras_serializable(package='Miss')

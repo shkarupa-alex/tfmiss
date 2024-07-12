@@ -1,7 +1,7 @@
 import numpy as np
 import tensorflow as tf
-from tf_keras import layers, optimizers
-from tf_keras.src.testing_infra import test_combinations, test_utils
+from keras import layers, optimizers
+from keras.src.testing_infra import test_combinations, test_utils
 from tensorflow.python.ops import variables
 from tfmiss.keras.metrics.f1 import F1Binary, F1Micro, F1Macro
 
