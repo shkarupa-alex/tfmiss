@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from tfmiss.training.bucket import init_buckets, waste_frac, merge_buckets, merge_allowed, group_buckets
 from tfmiss.training.bucket import estimate_bucket_boundaries, estimate_bucket_pipeline

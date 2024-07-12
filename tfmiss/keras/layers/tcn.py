@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from tf_keras import activations, backend, constraints, initializers, layers, models, regularizers
 from tf_keras.saving import register_keras_serializable
 from tf_keras.src.utils.tf_utils import shape_type_conversion

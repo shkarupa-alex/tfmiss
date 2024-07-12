@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from tensorflow.python.framework import indexed_slices, ops, tensor_shape
 from tensorflow.python.ops import embedding_ops, data_flow_ops, resource_variable_ops

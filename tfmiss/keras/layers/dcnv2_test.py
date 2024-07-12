@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from tf_keras import mixed_precision
 from tf_keras.src.testing_infra import test_combinations, test_utils

@@ -1,8 +1,4 @@
 # -*- coding: utf-8 -*-
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from tensorflow.python.framework import test_util
 from tfmiss.text.unicode_transform import char_category, lower_case, normalize_unicode, replace_regex, replace_string

@@ -5,10 +5,6 @@ https://arxiv.org/pdf/1906.03361.pdf
 Source: https://github.com/google/bi-tempered-loss/
 Description: https://ai.googleblog.com/2019/08/bi-tempered-logistic-loss-for-training.html
 """
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import functools
 import tensorflow as tf
 from tf_keras import backend

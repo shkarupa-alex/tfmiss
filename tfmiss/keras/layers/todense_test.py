@@ -1,8 +1,4 @@
 # Inspired by https://github.com/tensorflow/text/blob/master/tensorflow_text/python/keras/layers/todense_test.py
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from absl.testing import parameterized
 import numpy as np
 import tensorflow as tf

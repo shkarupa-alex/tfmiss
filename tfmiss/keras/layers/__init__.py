@@ -1,7 +1,3 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 from tfmiss.keras.layers.attention import SelfAttentionWithContext, MultiplicativeSelfAttention, AdditiveSelfAttention
 from tfmiss.keras.layers.dcnv2 import DCNv2
 from tfmiss.keras.layers.dropout import TimestepDropout
