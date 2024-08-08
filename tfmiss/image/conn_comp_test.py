@@ -116,7 +116,7 @@ class ConnectedComponentsTest(tf.test.TestCase):
             'elephant.jpg', 'https://storage.googleapis.com/tensorflow/keras.src-applications/tests/elephant.jpg')
         image = image_utils.load_img(test_image, target_size=(400, 500), interpolation='bicubic')
         image = image_utils.img_to_array(image)
-        image = np.where(image > 127, image, 0).astype("uint8")[..., :1]
+        image = np.where(image > 127, image, 0).astype("uint8")
 
         expected = np.stack(
             [
