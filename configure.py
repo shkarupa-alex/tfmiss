@@ -17,13 +17,12 @@
 #
 
 
+import logging
 import os
 import pathlib
 import platform
-import logging
 
 import tensorflow as tf
-
 from packaging.version import Version
 
 _TFA_BAZELRC = ".bazelrc"
@@ -127,9 +126,9 @@ def get_compute_capabilities():
     import tensorflow as tf
 
     build_info = tf.sysconfig.get_build_info()
-    comp_cap = build_info.get('cuda_compute_capabilities', [])
+    comp_cap = build_info.get("cuda_compute_capabilities", [])
 
-    return ','.join(comp_cap)
+    return ",".join(comp_cap)
 
 
 def create_build_configuration():
@@ -169,7 +168,11 @@ def create_build_configuration():
         write("build:windows --host_cxxopt=/std:" + get_cpp_version())
 
     if is_macos() or is_linux():
-        if not is_linux_ppc64le() and not is_linux_arm() and not is_linux_aarch64():
+        if (
+            not is_linux_ppc64le()
+            and not is_linux_arm()
+            and not is_linux_aarch64()
+        ):
             write("build --copt=-mavx")
         write("build --cxxopt=-std=" + get_cpp_version())
         write("build --host_cxxopt=-std=" + get_cpp_version())
@@ -206,9 +209,14 @@ def configure_cuda():
     write("build:cuda --@local_config_cuda//:enable_cuda")
 
     if os.getenv("DOCKER_BUILD", "0") == "1":
-        write("build:cuda --crosstool_top=//third_party/gcc_manylinux2014-nvcc-cuda:toolchain")
+        write(
+            "build:cuda --crosstool_top="
+            "//third_party/gcc_manylinux2014-nvcc-cuda:toolchain"
+        )
     else:
-        write("build:cuda --crosstool_top=@local_config_cuda//crosstool:toolchain")
+        write(
+            "build:cuda --crosstool_top=@local_config_cuda//crosstool:toolchain"
+        )
 
 
 if __name__ == "__main__":

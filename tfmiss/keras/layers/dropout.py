@@ -1,9 +1,10 @@
 import tensorflow as tf
-from keras.layers import Dropout, InputSpec
-from keras.saving import register_keras_serializable
+from keras.src.layers import Dropout
+from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
 
 
-@register_keras_serializable(package='Miss')
+@register_keras_serializable(package="Miss")
 class TimestepDropout(Dropout):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
