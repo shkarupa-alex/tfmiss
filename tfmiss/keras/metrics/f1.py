@@ -1,37 +1,29 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
-from tf_keras.metrics import Metric, Precision, Recall
-from tf_keras.saving import register_keras_serializable
-from tensorflow.python.ops.losses.util import squeeze_or_expand_dimensions
+from keras.src.metrics import Metric
+from keras.src.metrics import Precision
+from keras.src.metrics import Recall
+from keras.src.saving import register_keras_serializable
 
 
-@register_keras_serializable(package='Miss')
+@register_keras_serializable(package="Miss")
 class F1Binary(Metric):
-    def __init__(self, threshold=0.5, name=None, dtype=None, **kwargs):
+    def __init__(self, threshold=0.5, name=None, dtype=None):
         """Creates a `F1Base` instance.
 
         Args:
-            threshold: A float value compared with prediction values to determine the truth value of predictions
-                (i.e., above the threshold is `true`, below is `false`).
+            threshold: A float value compared with prediction values to
+              determine the truth value of predictions (i.e., above the
+              threshold is `true`, below is `false`).
             name: (Optional) string name of the metric instance.
             dtype: (Optional) data type of the metric result.
         """
-        super(F1Binary, self).__init__(name=name, dtype=dtype, **kwargs)
+        super(F1Binary, self).__init__(name=name, dtype=dtype)
         self.threshold = threshold
 
         self.precision = Precision(threshold)
         self.recall = Recall(threshold)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
-        if sample_weight is None:
-            y_pred, y_true = squeeze_or_expand_dimensions(y_pred, y_true)
-        else:
-            y_pred, y_true, sample_weight = squeeze_or_expand_dimensions(
-                y_pred, y_true, sample_weight=sample_weight)
-
         self.precision.update_state(y_true, y_pred, sample_weight)
         self.recall.update_state(y_true, y_pred, sample_weight)
 
@@ -39,9 +31,8 @@ class F1Binary(Metric):
         precision = self.precision.result()
         recall = self.recall.result()
 
-        return 2. * tf.math.divide_no_nan(
-            precision * recall,
-            precision + recall
+        return 2.0 * tf.math.divide_no_nan(
+            precision * recall, precision + recall
         )
 
     def reset_state(self):
@@ -50,21 +41,21 @@ class F1Binary(Metric):
 
     def get_config(self):
         config = super(F1Binary, self).get_config()
-        config.update({'threshold': self.threshold})
+        config.update({"threshold": self.threshold})
 
         return config
 
 
-@register_keras_serializable(package='Miss')
+@register_keras_serializable(package="Miss")
 class F1Micro(F1Binary):
-    def __init__(self, name=None, dtype=None, **kwargs):
+    def __init__(self, name=None, dtype=None):
         """Creates a `F1Macro` instance.
 
         Args:
             name: (Optional) string name of the metric instance.
             dtype: (Optional) data type of the metric result.
         """
-        super(F1Micro, self).__init__(name=name, dtype=dtype, **kwargs)
+        super(F1Micro, self).__init__(name=name, dtype=dtype)
 
     def update_state(self, y_true, y_pred, sample_weight=None):
         num_classes = y_pred.shape[-1]
@@ -74,39 +65,43 @@ class F1Micro(F1Binary):
             super(F1Micro, self).update_state(
                 tf.cast(y_true == c, y_true.dtype),
                 tf.cast(y_pred == c, y_true.dtype),
-                sample_weight)
+                sample_weight,
+            )
 
     def get_config(self):
         config = super(F1Binary, self).get_config()
-        config.pop('threshold', None)
+        config.pop("threshold", None)
 
         return config
 
 
-@register_keras_serializable(package='Miss')
+@register_keras_serializable(package="Miss")
 class F1Macro(Metric):
-    def __init__(self, name=None, dtype=None, **kwargs):
+    def __init__(self, name=None, dtype=None):
         """Creates a `F1Macro` instance.
 
         Args:
             name: (Optional) string name of the metric instance.
             dtype: (Optional) data type of the metric result.
         """
-        super(F1Macro, self).__init__(name=name, dtype=dtype, **kwargs)
+        super(F1Macro, self).__init__(name=name, dtype=dtype)
 
-        self.class2f1 = [F1Binary()]
+        self.class2f1 = []
 
     def update_state(self, y_true, y_pred, sample_weight=None):
         num_classes = y_pred.shape[-1]
-        for _ in range(num_classes - len(self.class2f1)):
-            self.class2f1.append(F1Binary())
+
+        if not self.class2f1:
+            for i in range(num_classes):
+                self.class2f1.append(F1Binary())
 
         y_pred = tf.argmax(y_pred, axis=-1, output_type=y_true.dtype)
         for c, f1 in enumerate(self.class2f1):
             f1.update_state(
                 tf.cast(y_true == c, y_true.dtype),
                 tf.cast(y_pred == c, y_true.dtype),
-                sample_weight)
+                sample_weight,
+            )
 
     def result(self):
         return sum([f1.result() for f1 in self.class2f1]) / len(self.class2f1)

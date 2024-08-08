@@ -1,9 +1,6 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
 from tensorflow.python.ops.ragged import ragged_tensor
+
 from tfmiss.ops import tfmiss_ops
 
 
@@ -12,14 +9,17 @@ def char_category(source, first=True, skip=None, name=None):
 
     Args:
         source: `Tensor` or `RaggedTensor` of any shape, strings to make lower.
-        first: boolean flag indicating which character should be tested: first or last.
+        first: boolean flag indicating which character should be tested: first
+          or last.
         skip: list of strings to pass without changes or None.
         name: A name for the operation (optional).
     Returns:
         `Tensor` or `RaggedTensor` of same shape as input.
     """
-    with tf.name_scope(name or 'char_category'):
-        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
+    with tf.name_scope(name or "char_category"):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(
+            source, name="source", dtype=tf.string
+        )
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
@@ -43,13 +43,13 @@ def lower_case(source, skip=None, name=None):
     Returns:
         `Tensor` or `RaggedTensor` of same shape as input.
     """
-    with tf.name_scope(name or 'lower_case'):
-        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
+    with tf.name_scope(name or "lower_case"):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(
+            source, name="source", dtype=tf.string
+        )
 
         if isinstance(source, tf.RaggedTensor):
-            return source.with_flat_values(
-                lower_case(source.flat_values, skip)
-            )
+            return source.with_flat_values(lower_case(source.flat_values, skip))
 
         return tfmiss_ops.miss_lower_case(
             source=source,
@@ -70,8 +70,10 @@ def normalize_unicode(source, form, skip=None, name=None):
         `Tensor` or `RaggedTensor` of same shape and size as input.
     """
 
-    with tf.name_scope(name or 'normalize_unicode'):
-        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
+    with tf.name_scope(name or "normalize_unicode"):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(
+            source, name="source", dtype=tf.string
+        )
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
@@ -86,20 +88,25 @@ def normalize_unicode(source, form, skip=None, name=None):
 
 
 def replace_regex(source, pattern, rewrite, skip=None, name=None):
-    """Replaces all regex matchs from `needle` to corresponding unicode strings in `haystack`.
+    """Replaces all regex matchs from `needle` to corresponding unicode strings
+    in `haystack`.
 
     Args:
-        source: `Tensor` or `RaggedTensor` of any shape, source strings for replacing.
+        source: `Tensor` or `RaggedTensor` of any shape, source strings for
+          replacing.
         pattern: List of RE2 patterns to search in source
-        rewrite: List of strings to replace with. Should have same length as `needle`.
+        rewrite: List of strings to replace with. Should have same length as
+          `needle`.
         skip: list of strings to pass without changes or None.
         name: A name for the operation (optional).
     Returns:
         `Tensor` or `RaggedTensor` of same shape and size as input.
     """
 
-    with tf.name_scope(name or 'replace_regex'):
-        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
+    with tf.name_scope(name or "replace_regex"):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(
+            source, name="source", dtype=tf.string
+        )
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
@@ -115,20 +122,25 @@ def replace_regex(source, pattern, rewrite, skip=None, name=None):
 
 
 def replace_string(source, needle, haystack, skip=None, name=None):
-    """Replaces all unicode substrings from `needle` to corresponding unicode strings in `haystack`.
+    """Replaces all unicode substrings from `needle` to corresponding unicode
+    strings in `haystack`.
 
     Args:
-        source: `Tensor` or `RaggedTensor` of any shape, source strings for replacing.
+        source: `Tensor` or `RaggedTensor` of any shape, source strings for
+          replacing.
         needle: List of strings to search in source
-        haystack: List of strings to replace with. Should have same length as `needle`.
+        haystack: List of strings to replace with. Should have same length as
+          `needle`.
         skip: list of strings to pass without changes or None.
         name: A name for the operation (optional).
     Returns:
         `Tensor` or `RaggedTensor` of same shape and size as input.
     """
 
-    with tf.name_scope(name or 'replace_string'):
-        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
+    with tf.name_scope(name or "replace_string"):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(
+            source, name="source", dtype=tf.string
+        )
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
@@ -144,20 +156,26 @@ def replace_string(source, needle, haystack, skip=None, name=None):
 
 
 def sub_string(source, start, limit=None, skip=None, name=None):
-    """Cuts substrings starting at position `start` and spans `limit` characters.
+    """Cuts substrings starting at position `start` and spans `limit`
+    characters.
 
     Args:
-        source: `Tensor` or `RaggedTensor` of any shape, source strings for cut substring.
-        start: Substring start position. If negative, will be interpreted as "from the end of string"
-        limit: Substring length. `None` or any negative value will be interpreted as "to the end of string".
+        source: `Tensor` or `RaggedTensor` of any shape, source strings for
+          cut substring.
+        start: Substring start position. If negative, will be interpreted as
+          "from the end of string"
+        limit: Substring length. `None` or any negative value will be
+          interpreted as "to the end of string".
         skip: list of strings to pass without changes or None.
         name: A name for the operation (optional).
     Returns:
         `Tensor` or `RaggedTensor` of same shape and size as input.
     """
 
-    with tf.name_scope(name or 'sub_string'):
-        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
+    with tf.name_scope(name or "sub_string"):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(
+            source, name="source", dtype=tf.string
+        )
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
@@ -183,13 +201,13 @@ def title_case(source, skip=None, name=None):
         `Tensor` or `RaggedTensor` of same shape and size as input.
     """
 
-    with tf.name_scope(name or 'title_case'):
-        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
+    with tf.name_scope(name or "title_case"):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(
+            source, name="source", dtype=tf.string
+        )
 
         if isinstance(source, tf.RaggedTensor):
-            return source.with_flat_values(
-                title_case(source.flat_values, skip)
-            )
+            return source.with_flat_values(title_case(source.flat_values, skip))
 
         return tfmiss_ops.miss_title_case(
             source=source,
@@ -208,13 +226,13 @@ def upper_case(source, skip=None, name=None):
         `Tensor` or `RaggedTensor` of same shape and size as input.
     """
 
-    with tf.name_scope(name or 'upper_case'):
-        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
+    with tf.name_scope(name or "upper_case"):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(
+            source, name="source", dtype=tf.string
+        )
 
         if isinstance(source, tf.RaggedTensor):
-            return source.with_flat_values(
-                upper_case(source.flat_values, skip)
-            )
+            return source.with_flat_values(upper_case(source.flat_values, skip))
 
         return tfmiss_ops.miss_upper_case(
             source=source,
@@ -226,7 +244,8 @@ def wrap_with(source, left, right, skip=None, name=None):
     """Wraps unicode strings with "left" and "right"
 
     Args:
-        source: `Tensor` or `RaggedTensor` of any shape, strings to replace digits.
+        source: `Tensor` or `RaggedTensor` of any shape, strings to replace
+          digits.
         left: Scalar string to add in the beginning
         right: Scalar string to add in the ending
         skip: list of strings to pass without changes or None.
@@ -235,8 +254,10 @@ def wrap_with(source, left, right, skip=None, name=None):
         `RaggedTensor` of same shape and size as input.
     """
 
-    with tf.name_scope(name or 'wrap_with'):
-        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
+    with tf.name_scope(name or "wrap_with"):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(
+            source, name="source", dtype=tf.string
+        )
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(
@@ -255,15 +276,18 @@ def zero_digits(source, skip=None, name=None):
     """Replaces each digit in unicode strings with 0.
 
     Args:
-        source: `Tensor` or `RaggedTensor` of any shape, strings to replace digits.
+        source: `Tensor` or `RaggedTensor` of any shape, strings to replace
+          digits.
         skip: list of strings to pass without changes or None.
         name: A name for the operation (optional).
     Returns:
         `Tensor` or `RaggedTensor` of same shape and size as input.
     """
 
-    with tf.name_scope(name or 'zero_digits'):
-        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(source, name='source', dtype=tf.string)
+    with tf.name_scope(name or "zero_digits"):
+        source = ragged_tensor.convert_to_tensor_or_ragged_tensor(
+            source, name="source", dtype=tf.string
+        )
 
         if isinstance(source, tf.RaggedTensor):
             return source.with_flat_values(

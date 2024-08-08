@@ -1,13 +1,12 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import sys
 from pathlib import Path
-from setuptools import setup, find_packages, Extension
+
+from setuptools import Extension
+from setuptools import find_packages
+from setuptools import setup
 from setuptools.dist import Distribution
 
-__VERSION__ = '0.24.0'
+__VERSION__ = "0.25.0"
 
 
 def get_ext_modules():
@@ -27,18 +26,18 @@ class BinaryDistribution(Distribution):
         return True
 
 
-with open('README.md', 'r') as fh:
+with open("README.md", "r") as fh:
     long_description = fh.read()
 
 setup(
-    name='tfmiss',
+    name="tfmiss",
     version=__VERSION__,
-    description='Missing layers, ops & etc. for TensorFlow',
+    description="Missing layers, ops & etc. for TensorFlow",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url='https://github.com/shkarupa-alex/tfmiss',
-    author='Shkarupa Alex',
-    author_email='shkarupa.alex@gmail.com',
+    url="https://github.com/shkarupa-alex/tfmiss",
+    author="Shkarupa Alex",
+    author_email="shkarupa.alex@gmail.com",
     packages=find_packages(),
     ext_modules=get_ext_modules(),
     install_requires=Path("requirements.txt").read_text().splitlines(),
@@ -46,20 +45,20 @@ setup(
     zip_safe=False,
     distclass=BinaryDistribution,
     classifiers=[
-        'Development Status :: 5 - Production/Stable',
-        'Intended Audience :: Developers',
-        'Intended Audience :: Education',
-        'Intended Audience :: Science/Research',
-        'License :: OSI Approved :: MIT License',
-        'Programming Language :: Python :: 3.6',
-        'Programming Language :: Python :: 3.7',
-        'Programming Language :: Python :: 3.8',
-        'Topic :: Scientific/Engineering',
-        'Topic :: Scientific/Engineering :: Artificial Intelligence',
-        'Topic :: Software Development',
-        'Topic :: Software Development :: Libraries',
-        'Topic :: Software Development :: Libraries :: Python Modules',
+        "Development Status :: 5 - Production/Stable",
+        "Intended Audience :: Developers",
+        "Intended Audience :: Education",
+        "Intended Audience :: Science/Research",
+        "License :: OSI Approved :: MIT License",
+        "Programming Language :: Python :: 3.6",
+        "Programming Language :: Python :: 3.7",
+        "Programming Language :: Python :: 3.8",
+        "Topic :: Scientific/Engineering",
+        "Topic :: Scientific/Engineering :: Artificial Intelligence",
+        "Topic :: Software Development",
+        "Topic :: Software Development :: Libraries",
+        "Topic :: Software Development :: Libraries :: Python Modules",
     ],
-    license='MIT',
-    keywords='tensorflow layers ops',
+    license="MIT",
+    keywords="tensorflow layers ops",
 )

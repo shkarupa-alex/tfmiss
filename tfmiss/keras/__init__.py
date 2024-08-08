@@ -1,5 +1,2 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
-from tfmiss.keras import layers, metrics
+from tfmiss.keras import layers
+from tfmiss.keras import metrics

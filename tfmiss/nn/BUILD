@@ -6,6 +6,7 @@ py_library(
         "__init__.py",
         "dcnv2.py",
         "embedding.py",
+        "optiact.py",
         "qrnn.py",
     ],
     deps = [
@@ -26,6 +27,13 @@ py_test(
 py_test(
     name = "embedding_test",
     srcs = ["embedding_test.py"],
+    srcs_version = "PY2AND3",
+    deps = [":nn"],
+)
+
+py_test(
+    name = "optiact_test",
+    srcs = ["optiact_test.py"],
     srcs_version = "PY2AND3",
     deps = [":nn"],
 )

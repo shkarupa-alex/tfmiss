@@ -1,45 +1,49 @@
-from __future__ import absolute_import
-from __future__ import division
-from __future__ import print_function
-
 import tensorflow as tf
-from tf_keras import activations, backend, constraints, initializers, layers, regularizers
-from tf_keras.saving import register_keras_serializable
-from tf_keras.src.utils.control_flow_util import smart_cond
-from tf_keras.src.utils.tf_utils import shape_type_conversion
+from keras.src import activations
+from keras.src import constraints
+from keras.src import initializers
+from keras.src import layers
+from keras.src import regularizers
+from keras.src.layers.input_spec import InputSpec
+from keras.src.saving import register_keras_serializable
+
 from tfmiss.nn import fo_pool
 
 
-@register_keras_serializable(package='Miss')
+@register_keras_serializable(package="Miss")
 class QRNN(layers.Layer):
     """Residual block for Temporal Convolutional Network.
     Reference: https://arxiv.org/abs/1803.01271
-    An Empirical Evaluation of Generic Convolutional and Recurrent Networks for Sequence Modeling
+    An Empirical Evaluation of Generic Convolutional and Recurrent Networks
+    for Sequence Modeling
     Shaojie Bai, J. Zico Kolter, Vladlen Koltun (2018)
     """
 
-    def __init__(self,
-                 units,
-                 window,
-                 zoneout=0.0,
-                 output_gate=True,
-                 activation='tanh',
-                 gate_activation='sigmoid',
-                 use_bias=True,
-                 kernel_initializer='glorot_uniform',
-                 bias_initializer='zeros',
-                 kernel_regularizer=None,
-                 bias_regularizer=None,
-                 kernel_constraint=None,
-                 bias_constraint=None,
-                 return_sequences=False,
-                 return_state=False,
-                 go_backwards=False,
-                 zero_output_for_mask=False,
-                 **kwargs):
+    def __init__(
+        self,
+        units,
+        window,
+        zoneout=0.0,
+        output_gate=True,
+        activation="tanh",
+        gate_activation="sigmoid",
+        use_bias=True,
+        kernel_initializer="glorot_uniform",
+        bias_initializer="zeros",
+        kernel_regularizer=None,
+        bias_regularizer=None,
+        kernel_constraint=None,
+        bias_constraint=None,
+        return_sequences=False,
+        return_state=False,
+        go_backwards=False,
+        zero_output_for_mask=False,
+        **kwargs
+    ):
         super(QRNN, self).__init__(**kwargs)
-        self.input_spec = layers.InputSpec(ndim=3)
+        self.input_spec = InputSpec(ndim=3)
         self.supports_masking = return_sequences
+        self.stateful = False
 
         self.units = units
         self.window = window
@@ -62,53 +66,60 @@ class QRNN(layers.Layer):
 
         self.zero_output_for_mask = zero_output_for_mask
 
-    @shape_type_conversion
     def build(self, input_shape):
         if len(input_shape) != 3:
-            raise ValueError('Shape {} must have rank 3'.format(input_shape))
+            raise ValueError("Shape {} must have rank 3".format(input_shape))
 
         num_channels = input_shape[-1]
         if num_channels is None:
-            raise ValueError('Channel dimension of the inputs should be defined. Found `None`.')
+            raise ValueError(
+                "Channel dimension of the inputs should be defined. "
+                "Found `None`."
+            )
 
-        self.input_spec = layers.InputSpec(ndim=3, axes={-1: num_channels})
+        self.input_spec = InputSpec(ndim=3, axes={-1: num_channels})
 
         conv1d_channels = self.units * (3 if self.output_gate else 2)
         self.conv1d = layers.Conv1D(
             filters=conv1d_channels,
             kernel_size=self.window,
-            padding='causal',
+            padding="causal",
             use_bias=self.use_bias,
             kernel_initializer=self.kernel_initializer,
             bias_initializer=self.bias_initializer,
             kernel_regularizer=self.kernel_regularizer,
             bias_regularizer=self.bias_regularizer,
             kernel_constraint=self.kernel_constraint,
-            bias_constraint=self.bias_constraint)
+            bias_constraint=self.bias_constraint,
+            dtype=self.dtype_policy,
+        )
+        self.conv1d.build(input_shape)
 
-        if self.zoneout > 0.:
-            self.drop = layers.Dropout(self.zoneout)
+        if self.zoneout > 0.0:
+            self.drop = layers.Dropout(self.zoneout, dtype=self.dtype_policy)
 
         self.initial_state = self.add_weight(
-            name='initial_state',
+            name="initial_state",
             shape=(1, self.units),
-            initializer='zeros',
+            initializer="zeros",
             trainable=True,
-            dtype=self.dtype)
+            dtype=self.dtype,
+        )
 
-        self.act = layers.Activation(activation=self.activation)
-        self.gate_act = layers.Activation(activation=self.gate_activation)
+        self.act = layers.Activation(
+            activation=self.activation, dtype=self.dtype_policy
+        )
+        self.gate_act = layers.Activation(
+            activation=self.gate_activation, dtype=self.dtype_policy
+        )
 
         super(QRNN, self).build(input_shape)
 
-    def call(self, inputs, training=None, mask=None, initial_state=None):
+    def call(self, inputs, training=False, mask=None, initial_state=None):
         shape = tf.shape(inputs)
 
         if self.go_backwards:
             inputs = tf.reverse(inputs, [1])
-
-        if training is None:
-            training = backend.learning_phase()
 
         if mask is not None:
             mask = mask[..., None]
@@ -131,21 +142,20 @@ class QRNN(layers.Layer):
         sequence = self.act(sequence)
         forget = self.gate_act(forget)
 
-        if self.zoneout > 0.:
-            forget = smart_cond(
-                training,
-                lambda: self.drop(forget) * (1. - self.zoneout),  # tf.nn.dropout upscales preserved values, revert
-                lambda: tf.identity(forget))
+        if self.zoneout > 0.0 and training:
+            forget = self.drop(forget) * (
+                1.0 - self.zoneout
+            )  # tf.nn.dropout upscales preserved values, revert
 
         if mask is not None:
-            forget = tf.where(mask, forget, 0.)
+            forget = tf.where(mask, forget, 0.0)
 
         recurrent = fo_pool(sequence, forget, initial_state=initial_state)
         hidden = recurrent if not self.output_gate else recurrent * output
 
         if self.return_sequences:
             if mask is not None and self.zero_output_for_mask:
-                hidden = tf.where(mask, hidden, 0.)
+                hidden = tf.where(mask, hidden, 0.0)
 
             if self.go_backwards:
                 hidden = tf.reverse(hidden, [1])
@@ -153,7 +163,13 @@ class QRNN(layers.Layer):
             if mask is None or not self.output_gate:
                 hidden = hidden[:, -1, :]
             else:
-                last_idx = shape[1] - 1 - tf.argmax(tf.reverse(mask, [1]), axis=1, output_type='int32')
+                last_idx = (
+                    shape[1]
+                    - 1
+                    - tf.argmax(
+                        tf.reverse(mask, [1]), axis=1, output_type="int32"
+                    )
+                )
                 hidden = tf.gather(hidden, last_idx[..., 0], batch_dims=1)
 
         if self.return_state:
@@ -161,7 +177,6 @@ class QRNN(layers.Layer):
 
         return hidden
 
-    @shape_type_conversion
     def compute_output_shape(self, input_shape):
         hidden_shape = input_shape[:-1] + (self.units,)
         state_shape = (hidden_shape[0], hidden_shape[2])
@@ -182,24 +197,36 @@ class QRNN(layers.Layer):
 
     def get_config(self):
         config = super(QRNN, self).get_config()
-        config.update({
-            'units': self.units,
-            'window': self.window,
-            'zoneout': self.zoneout,
-            'output_gate': self.output_gate,
-            'activation': activations.serialize(self.activation),
-            'gate_activation': activations.serialize(self.gate_activation),
-            'use_bias': self.use_bias,
-            'kernel_initializer': initializers.serialize(self.kernel_initializer),
-            'bias_initializer': initializers.serialize(self.bias_initializer),
-            'kernel_regularizer': regularizers.serialize(self.kernel_regularizer),
-            'bias_regularizer': regularizers.serialize(self.bias_regularizer),
-            'kernel_constraint': constraints.serialize(self.kernel_constraint),
-            'bias_constraint': constraints.serialize(self.bias_constraint),
-            'return_sequences': self.return_sequences,
-            'return_state': self.return_state,
-            'go_backwards': self.go_backwards,
-            'zero_output_for_mask': self.zero_output_for_mask
-        })
+        config.update(
+            {
+                "units": self.units,
+                "window": self.window,
+                "zoneout": self.zoneout,
+                "output_gate": self.output_gate,
+                "activation": activations.serialize(self.activation),
+                "gate_activation": activations.serialize(self.gate_activation),
+                "use_bias": self.use_bias,
+                "kernel_initializer": initializers.serialize(
+                    self.kernel_initializer
+                ),
+                "bias_initializer": initializers.serialize(
+                    self.bias_initializer
+                ),
+                "kernel_regularizer": regularizers.serialize(
+                    self.kernel_regularizer
+                ),
+                "bias_regularizer": regularizers.serialize(
+                    self.bias_regularizer
+                ),
+                "kernel_constraint": constraints.serialize(
+                    self.kernel_constraint
+                ),
+                "bias_constraint": constraints.serialize(self.bias_constraint),
+                "return_sequences": self.return_sequences,
+                "return_state": self.return_state,
+                "go_backwards": self.go_backwards,
+                "zero_output_for_mask": self.zero_output_for_mask,
+            }
+        )
 
         return config
