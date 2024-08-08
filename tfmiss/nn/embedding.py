@@ -1,6 +1,5 @@
 import tensorflow as tf
 from tensorflow.python.framework import indexed_slices
-from tensorflow.python.framework import ops
 from tensorflow.python.framework import tensor_shape
 from tensorflow.python.ops import data_flow_ops
 from tensorflow.python.ops import embedding_ops
