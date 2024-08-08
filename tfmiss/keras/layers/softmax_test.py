@@ -1,9 +1,9 @@
 import numpy as np
 import tensorflow as tf
 from keras.src import layers
-from keras.src.dtype_policies import dtype_policy
 from keras.src import models
 from keras.src import testing
+from keras.src.dtype_policies import dtype_policy
 
 from tfmiss.keras.layers.softmax import AdaptiveSoftmax
 from tfmiss.keras.layers.softmax import NoiseContrastiveEstimation

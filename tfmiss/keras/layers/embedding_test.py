@@ -1,9 +1,9 @@
 import numpy as np
 import tensorflow as tf
-from keras.src.dtype_policies import dtype_policy
 from keras.src import models
 from keras.src import optimizers
 from keras.src import testing
+from keras.src.dtype_policies import dtype_policy
 
 from tfmiss.keras.layers.embedding import AdaptiveEmbedding
 

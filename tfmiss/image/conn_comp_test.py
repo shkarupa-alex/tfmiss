@@ -2,7 +2,8 @@ import cv2
 import numpy as np
 import tensorflow as tf
 from keras.src import backend
-from keras.src.utils import get_file, image_utils
+from keras.src.utils import get_file
+from keras.src.utils import image_utils
 
 from tfmiss.image.conn_comp import connected_components
 
@@ -113,8 +114,13 @@ class ConnectedComponentsTest(tf.test.TestCase):
 
     def test_real(self):
         test_image = get_file(
-            'elephant.jpg', 'https://storage.googleapis.com/tensorflow/keras.src-applications/tests/elephant.jpg')
-        image = image_utils.load_img(test_image, target_size=(400, 500), interpolation='bicubic')
+            "elephant.jpg",
+            "https://storage.googleapis.com/tensorflow/"
+            "keras.src-applications/tests/elephant.jpg",
+        )
+        image = image_utils.load_img(
+            test_image, target_size=(400, 500), interpolation="bicubic"
+        )
         image = image_utils.img_to_array(image)
         image = np.where(image > 127, image, 0).astype("uint8")
 
