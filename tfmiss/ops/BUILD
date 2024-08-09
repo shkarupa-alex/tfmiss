@@ -122,5 +122,7 @@ custom_op_library(
         "//third_party/icu/data:custom_data",
         "@icu//:common",
         "@re2//:re2",
+        # "@abseil-cpp//absl/status",
+        # "@abseil-cpp//absl/status:statusor"
     ]
 )
