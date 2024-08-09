@@ -10,13 +10,11 @@ py_library(
     deps = [
         "//tfmiss/ops",
     ],
-    srcs_version = "PY2AND3",
 )
 
 py_test(
     name = "preprocessing_test",
     srcs = ["preprocessing_test.py"],
-    srcs_version = "PY2AND3",
     deps = [
         "//tfmiss/text",
         ":preprocessing"
@@ -26,6 +24,5 @@ py_test(
 py_test(
     name = "sampling_test",
     srcs = ["sampling_test.py"],
-    srcs_version = "PY2AND3",
     deps = [":preprocessing"],
 )

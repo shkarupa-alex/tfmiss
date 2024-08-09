@@ -12,7 +12,6 @@ py_library(
     deps = [
         "//tfmiss/ops",
     ],
-    srcs_version = "PY2AND3",
 )
 
 
@@ -20,27 +19,23 @@ py_test(
     name = "dcnv2_test",
     size = "large",
     srcs = ["dcnv2_test.py"],
-    srcs_version = "PY2AND3",
     deps = [":nn"],
 )
 
 py_test(
     name = "embedding_test",
     srcs = ["embedding_test.py"],
-    srcs_version = "PY2AND3",
     deps = [":nn"],
 )
 
 py_test(
     name = "optiact_test",
     srcs = ["optiact_test.py"],
-    srcs_version = "PY2AND3",
     deps = [":nn"],
 )
 
 py_test(
     name = "qrnn_test",
     srcs = ["qrnn_test.py"],
-    srcs_version = "PY2AND3",
     deps = [":nn"],
 )

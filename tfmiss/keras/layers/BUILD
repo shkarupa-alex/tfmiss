@@ -20,13 +20,11 @@ py_library(
         "//tfmiss/nn",
         "//tfmiss/text"
     ],
-    srcs_version = "PY2AND3",
 )
 
 py_test(
     name = "dcnv2_test",
     srcs = ["dcnv2_test.py"],
-    srcs_version = "PY2AND3",
     deps = [
         ":layers"
     ],
@@ -35,7 +33,6 @@ py_test(
 py_test(
     name = "dropout_test",
     srcs = ["dropout_test.py"],
-    srcs_version = "PY2AND3",
     deps = [
         ":layers"
     ],
@@ -44,7 +41,6 @@ py_test(
 py_test(
     name = "embedding_test",
     srcs = ["embedding_test.py"],
-    srcs_version = "PY2AND3",
     deps = [
         ":layers"
     ],
@@ -53,7 +49,6 @@ py_test(
 py_test(
     name = "preprocessing_test",
     srcs = ["preprocessing_test.py"],
-    srcs_version = "PY2AND3",
     deps = [
         ":layers"
     ],
@@ -62,7 +57,6 @@ py_test(
 py_test(
     name = "qrnn_test",
     srcs = ["qrnn_test.py"],
-    srcs_version = "PY2AND3",
     deps = [
         ":layers"
     ],
@@ -71,14 +65,12 @@ py_test(
 py_test(
     name = "reduction_test",
     srcs = ["reduction_test.py"],
-    srcs_version = "PY2AND3",
     deps = [":layers"],
 )
 
 py_test(
     name = "scale_test",
     srcs = ["scale_test.py"],
-    srcs_version = "PY2AND3",
     deps = [
         ":layers"
     ],
@@ -87,7 +79,6 @@ py_test(
 py_test(
     name = "softmax_test",
     srcs = ["softmax_test.py"],
-    srcs_version = "PY2AND3",
     deps = [
         ":layers"
     ],
@@ -96,20 +87,17 @@ py_test(
 py_test(
     name = "todense_test",
     srcs = ["todense_test.py"],
-    srcs_version = "PY2AND3",
     deps = [":layers"],
 )
 
 py_test(
     name = "wordvec_test",
     srcs = ["wordvec_test.py"],
-    srcs_version = "PY2AND3",
     deps = [":layers"],
 )
 
 py_test(
     name = "wrappers_test",
     srcs = ["wrappers_test.py"],
-    srcs_version = "PY2AND3",
     deps = [":layers"],
 )

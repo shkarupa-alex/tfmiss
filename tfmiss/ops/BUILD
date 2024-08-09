@@ -10,7 +10,6 @@ py_library(
     data = [
         ":_tfmiss_ops.so",
     ],
-    srcs_version = "PY2AND3",
 )
 
 custom_op_library(

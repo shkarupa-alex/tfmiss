@@ -18,5 +18,4 @@ py_library(
         "//tfmiss/text",
         "//tfmiss/training",
     ],
-    srcs_version = "PY2AND3",
 )

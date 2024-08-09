@@ -12,5 +12,5 @@ py_library(
          "//tfmiss/keras/metrics",
          "//tfmiss/keras/optimizers"
     ],
-    srcs_version = "PY2AND3",
 )
+

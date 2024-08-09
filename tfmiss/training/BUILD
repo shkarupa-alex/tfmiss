@@ -8,19 +8,16 @@ py_library(
         "adapt.py",
         "bucket.py",
     ],
-    srcs_version = "PY2AND3",
 )
 
 py_test(
     name = "adapt_test",
     srcs = ["adapt_test.py"],
-    srcs_version = "PY2AND3",
     deps = [":training"],
 )
 
 py_test(
     name = "bucket_test",
     srcs = ["bucket_test.py"],
-    srcs_version = "PY2AND3",
     deps = [":training"],
 )
