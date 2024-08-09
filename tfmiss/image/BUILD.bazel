@@ -8,19 +8,18 @@ py_library(
         "euclidean_dist.py",
     ],
     data = [
-        "//tfmiss/ops"
+        "//tfmiss/ops",
     ],
 )
 
-
 py_test(
-   name = "conn_comp_test",
-   srcs = ["conn_comp_test.py"],
-   deps = [":image"],
+    name = "conn_comp_test",
+    srcs = ["conn_comp_test.py"],
+    deps = [":image"],
 )
 
 py_test(
-   name = "euclidean_dist_test",
-   srcs = ["euclidean_dist_test.py"],
-   deps = [":image"],
+    name = "euclidean_dist_test",
+    srcs = ["euclidean_dist_test.py"],
+    deps = [":image"],
 )

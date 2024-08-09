@@ -16,8 +16,8 @@ py_test(
     name = "preprocessing_test",
     srcs = ["preprocessing_test.py"],
     deps = [
+        ":preprocessing",
         "//tfmiss/text",
-        ":preprocessing"
     ],
 )
 

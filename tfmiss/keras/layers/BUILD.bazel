@@ -18,7 +18,7 @@ py_library(
     ],
     deps = [
         "//tfmiss/nn",
-        "//tfmiss/text"
+        "//tfmiss/text",
     ],
 )
 
@@ -26,7 +26,7 @@ py_test(
     name = "dcnv2_test",
     srcs = ["dcnv2_test.py"],
     deps = [
-        ":layers"
+        ":layers",
     ],
 )
 
@@ -34,7 +34,7 @@ py_test(
     name = "dropout_test",
     srcs = ["dropout_test.py"],
     deps = [
-        ":layers"
+        ":layers",
     ],
 )
 
@@ -42,7 +42,7 @@ py_test(
     name = "embedding_test",
     srcs = ["embedding_test.py"],
     deps = [
-        ":layers"
+        ":layers",
     ],
 )
 
@@ -50,7 +50,7 @@ py_test(
     name = "preprocessing_test",
     srcs = ["preprocessing_test.py"],
     deps = [
-        ":layers"
+        ":layers",
     ],
 )
 
@@ -58,7 +58,7 @@ py_test(
     name = "qrnn_test",
     srcs = ["qrnn_test.py"],
     deps = [
-        ":layers"
+        ":layers",
     ],
 )
 
@@ -72,7 +72,7 @@ py_test(
     name = "scale_test",
     srcs = ["scale_test.py"],
     deps = [
-        ":layers"
+        ":layers",
     ],
 )
 
@@ -80,7 +80,7 @@ py_test(
     name = "softmax_test",
     srcs = ["softmax_test.py"],
     deps = [
-        ":layers"
+        ":layers",
     ],
 )
 

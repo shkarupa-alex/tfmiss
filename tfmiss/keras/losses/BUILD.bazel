@@ -3,9 +3,9 @@ package(default_visibility = ["//visibility:public"])
 py_library(
     name = "losses",
     srcs = [
-     "__init__.py",
-     "f1.py",
-     "bitemp.py",
+        "__init__.py",
+        "bitemp.py",
+        "f1.py",
     ],
 )
 
