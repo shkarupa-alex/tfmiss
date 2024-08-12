@@ -97,8 +97,8 @@ custom_op_library(
     ],
     deps = [
         "//third_party/icu/data:custom_data",
-        "@com_google_absl//absl/status",
-        "@com_google_absl//absl/status:statusor",
+        "@abseil-cpp//absl/status",
+        "@abseil-cpp//absl/status:statusor",
         "@icu//:common",
         "@re2",
     ],
