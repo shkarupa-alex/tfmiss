@@ -18,9 +18,16 @@ http_archive(
 )
 
 http_archive(
+    name = "abseil-cpp",
+    # Match commit with https://github.com/tensorflow/tensorflow/blob/v2.17.0/third_party/absl/workspace.bzl#L10
+    strip_prefix = "abseil-cpp-fb3621f4f897824c0dbe0615fa94543df6192f30",
+    urls = ["https://github.com/abseil/abseil-cpp/archive/fb3621f4f897824c0dbe0615fa94543df6192f30.tar.gz"],
+)
+
+http_archive(
     name = "re2",
-    strip_prefix = "re2-2019-04-01",
-    urls = ["https://github.com/google/re2/archive/2019-04-01.tar.gz"],
+    strip_prefix = "re2-2024-03-01",
+    urls = ["https://github.com/google/re2/archive/2024-03-01.tar.gz"],
 )
 
 http_archive(
