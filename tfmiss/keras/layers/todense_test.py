@@ -32,7 +32,7 @@ class ToDenseTest(testing.TestCase, parameterized.TestCase):
         output = model.predict(input_data)
         self.assertAllClose(output, expected_output)
 
-    # TODO https://github.com/keras-team/keras/issues/19646
+    # TODO https://github.com/keras-team/keras/issues/18414
     # @parameterized.named_parameters(*test_util.generate_combinations_with_testcase_name(
     #     layer=[layers.SimpleRNN, layers.GRU, layers.LSTM]))
     # def test_ragged_input_rnn_layer(self, layer):

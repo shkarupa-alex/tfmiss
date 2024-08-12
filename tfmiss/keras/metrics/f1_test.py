@@ -366,16 +366,10 @@ class F1MacroTest(testing.TestCase):
     def test_config(self):
         r_obj = F1Macro(name="my_f1Macro")
         self.assertEqual(r_obj.name, "my_f1Macro")
-        # self.assertEqual(len(r_obj.variables), 4)
-        # self.assertEqual(
-        #     [v.name for v in r_obj.variables],
-        #     ['true_positives', 'false_positives',
-        #     'true_positives', 'false_negatives'])
 
         # Check save and restore config
         r_obj2 = F1Macro.from_config(r_obj.get_config())
         self.assertEqual(r_obj2.name, "my_f1Macro")
-        # self.assertEqual(len(r_obj2.variables), 4)
 
     def test_value_is_idempotent(self):
         r_obj = F1Macro()

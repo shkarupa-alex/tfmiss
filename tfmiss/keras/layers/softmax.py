@@ -246,8 +246,7 @@ class AdaptiveSoftmax(layers.Layer):
                 tail_mask, self._cutoff[0] + i, root_targets
             )
 
-            tail_inputs = inputs[tail_mask]
-            tail_logits = tail_inputs  # TODO: in one line?
+            tail_logits = inputs[tail_mask]
             for t in self.tails[i]:
                 tail_logits = t(tail_logits)
             tail_logits = tf.cast(tail_logits, "float32")
@@ -299,8 +298,7 @@ class AdaptiveSoftmax(layers.Layer):
             )
             parent_logprobs = root_logprobs[i + 1]
 
-            tail_inputs = inputs[tail_mask]
-            tail_logits = tail_inputs
+            tail_logits = inputs[tail_mask]
             for t in self.tails[i]:
                 tail_logits = t(tail_logits)
             tail_logits = tf.cast(tail_logits, "float32")
@@ -342,9 +340,7 @@ class AdaptiveSoftmax(layers.Layer):
         )
         full_loss.insert(0, root_loss)
 
-        full_loss = (
-            full_loss if mask is None else full_loss[mask]
-        )  # TODO: error?
+        full_loss = full_loss if mask is None else full_loss[mask]
         full_loss = tf.reduce_mean(full_loss)
 
         full_logprobs = tf.concat(full_logprobs, axis=-1)

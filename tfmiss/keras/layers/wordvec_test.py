@@ -6,11 +6,11 @@ from keras.src import backend
 from keras.src import testing
 from keras.src.saving import register_keras_serializable
 
-from tfmiss.keras.layers.wordvec import BpeEmbedding
 from tfmiss.keras.layers.wordvec import CnnEmbedding
 from tfmiss.keras.layers.wordvec import Highway
 from tfmiss.keras.layers.wordvec import NgramEmbedding
 from tfmiss.keras.layers.wordvec import WordEmbedding
+from tfmiss.keras.layers.wordvec import WPieceEmbedding
 
 
 class WordEmbeddingTest(testing.TestCase):
@@ -992,7 +992,7 @@ class NgramEmbeddingTest(testing.TestCase):
 
 
 @register_keras_serializable(package="Miss")
-class BpeEmbeddingWrap(BpeEmbedding):
+class WPieceEmbeddingWrap(WPieceEmbedding):
     def call(self, inputs, **kwargs):
         dense_shape = tf.unstack(tf.shape(inputs))
 
@@ -1016,14 +1016,14 @@ class BpeEmbeddingWrap(BpeEmbedding):
         return outputs
 
 
-class BpeEmbeddingTest(testing.TestCase):
+class WPieceEmbeddingTest(testing.TestCase):
     def test_reserved_words(self):
-        layer = BpeEmbedding()
+        layer = WPieceEmbedding()
         self.assertAllEqual(
             layer._reserved_words, [layer.UNK_MARK, layer.UNK_CHAR]
         )
 
-        layer = BpeEmbedding(reserved_words=["~TesT~"])
+        layer = WPieceEmbedding(reserved_words=["~TesT~"])
         self.assertAllEqual(
             layer._reserved_words, [layer.UNK_MARK, layer.UNK_CHAR, "~TesT~"]
         )
@@ -1045,18 +1045,18 @@ class BpeEmbeddingTest(testing.TestCase):
             "d",
             "##g",
         ]
-        layer = BpeEmbedding(vocab)
+        layer = WPieceEmbedding(vocab)
         self.assertAllEqual(
             layer._vocabulary, [layer.UNK_MARK, layer.UNK_CHAR] + vocab
         )
 
-        layer = BpeEmbedding(vocab, reserved_words=["~TesT~"])
+        layer = WPieceEmbedding(vocab, reserved_words=["~TesT~"])
         self.assertAllEqual(
             layer._vocabulary,
             [layer.UNK_MARK, layer.UNK_CHAR, "~TesT~"] + vocab,
         )
 
-        layer = BpeEmbedding(vocab + ["~TesT~"], reserved_words=["~TesT~"])
+        layer = WPieceEmbedding(vocab + ["~TesT~"], reserved_words=["~TesT~"])
         self.assertAllEqual(
             layer._vocabulary,
             [layer.UNK_MARK, layer.UNK_CHAR, "~TesT~"] + vocab,
@@ -1081,7 +1081,7 @@ class BpeEmbeddingTest(testing.TestCase):
             ("##g", 1),
         ]
 
-        layer = BpeEmbedding(vocab_size=4)
+        layer = WPieceEmbedding(vocab_size=4)
         self.assertAllEqual(layer.vocab(counts).most_common(), expected)
 
     def test_adapt_1d(self):
@@ -1113,7 +1113,7 @@ class BpeEmbeddingTest(testing.TestCase):
             [b"d", b"##o", b"##g"],
         ]
 
-        layer = BpeEmbedding(vocab)
+        layer = WPieceEmbedding(vocab)
 
         result = layer.adapt(data).numpy()
 
@@ -1155,7 +1155,7 @@ class BpeEmbeddingTest(testing.TestCase):
             ],
         ]
 
-        layer = BpeEmbedding(vocab)
+        layer = WPieceEmbedding(vocab)
 
         result = layer.adapt(data).numpy()
 
@@ -1197,7 +1197,7 @@ class BpeEmbeddingTest(testing.TestCase):
             ],
         ]
 
-        layer = BpeEmbedding(vocab)
+        layer = WPieceEmbedding(vocab)
 
         result = layer.adapt(tf.ragged.constant(data)).numpy()
 
@@ -1232,7 +1232,7 @@ class BpeEmbeddingTest(testing.TestCase):
             [14, 3, 15],
         ]
 
-        layer = BpeEmbedding(vocab)
+        layer = WPieceEmbedding(vocab)
 
         result = layer.preprocess(data).numpy()
 
@@ -1260,11 +1260,11 @@ class BpeEmbeddingTest(testing.TestCase):
     #         "##g",
     #     ]
     #
-    #     inputs = BpeEmbedding(vocab).preprocess(data)
+    #     inputs = WPieceEmbedding(vocab).preprocess(data)
     #     inputs = inputs.to_tensor(-1)
     #
     #     self.run_layer_test(
-    #         BpeEmbeddingWrap,
+    #         WPieceEmbeddingWrap,
     #         init_kwargs={
     #             "vocabulary": vocab,
     #             "output_dim": 12,
@@ -1279,7 +1279,7 @@ class BpeEmbeddingTest(testing.TestCase):
     #         expected_output_shape=(8, 12),
     #     )
     #     self.run_layer_test(
-    #         BpeEmbedding,
+    #         WPieceEmbedding,
     #         init_kwargs={
     #             "vocabulary": vocab,
     #             "output_dim": 12,
@@ -1317,11 +1317,11 @@ class BpeEmbeddingTest(testing.TestCase):
     #         "##g",
     #     ]
     #
-    #     inputs = BpeEmbedding(vocab).preprocess(data)
+    #     inputs = WPieceEmbedding(vocab).preprocess(data)
     #     inputs = inputs.to_tensor(-1)
     #
     #     self.run_layer_test(
-    #         BpeEmbeddingWrap,
+    #         WPieceEmbeddingWrap,
     #         init_kwargs={
     #             "vocabulary": vocab,
     #             "output_dim": 12,
@@ -1363,7 +1363,7 @@ class BpeEmbeddingTest(testing.TestCase):
     #         "##g",
     #     ]
     #
-    #     outputs = BpeEmbedding(vocab, 5, with_prep=True)(data)
+    #     outputs = WPieceEmbedding(vocab, 5, with_prep=True)(data)
     #     self.assertLen(outputs, 2)
     #     self.assertLen(outputs[0], 1)
     #     self.assertLen(outputs[0][0], 3)
@@ -1372,8 +1372,8 @@ class BpeEmbeddingTest(testing.TestCase):
     #     self.assertLen(outputs[1][1], 3)
     #     self.assertLen(outputs[1][1][2], 5)
     #
-    #     inputs = BpeEmbedding(vocab).preprocess(data)
-    #     outputs = BpeEmbedding(vocab, 5)(inputs)
+    #     inputs = WPieceEmbedding(vocab).preprocess(data)
+    #     outputs = WPieceEmbedding(vocab, 5)(inputs)
     #     self.assertLen(outputs, 2)
     #     self.assertLen(outputs[0], 1)
     #     self.assertLen(outputs[0][0], 3)
