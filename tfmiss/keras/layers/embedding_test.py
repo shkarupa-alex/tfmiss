@@ -89,7 +89,6 @@ class AdaptiveEmbeddingTest(testing.TestCase):
             cutoff=[1], output_dim=16, input_dim=2, factor=2
         )
         layer.build(tuple())
-        print([w.shape for w in layer.weights])
         layer.set_weights(
             [
                 np.array([[1] * 16]),
