@@ -9,12 +9,10 @@ py_library(
     data = [
         "//tfmiss/keras/optimizers/schedules",
     ],
-    srcs_version = "PY2AND3",
 )
 
 py_test(
     name = "adan_test",
     srcs = ["adan_test.py"],
-    srcs_version = "PY2AND3",
     deps = [":optimizers"],
 )

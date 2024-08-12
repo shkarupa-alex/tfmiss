@@ -1,9 +1,9 @@
 import numpy as np
 import tensorflow as tf
 from keras.src import layers
-from keras.src.dtype_policies import dtype_policy
 from keras.src import models
 from keras.src import testing
+from keras.src.dtype_policies import dtype_policy
 
 from tfmiss.keras.layers.softmax import AdaptiveSoftmax
 from tfmiss.keras.layers.softmax import NoiseContrastiveEstimation
@@ -153,7 +153,7 @@ class AdaptiveSoftmaxTest(testing.TestCase):
 
         self.assertGreater(eval_loss, train_loss)
 
-    # TODO: https://github.com/keras-team/keras/issues/19646
+    # TODO: https://github.com/keras-team/keras/issues/18414
     # def test_loss_mask_3d(self):
     #     inputs = tf.ragged.constant([
     #         [[1., 2.], [2., 3.], [2., 5.]],
@@ -264,7 +264,7 @@ class AdaptiveSoftmaxTest(testing.TestCase):
         )
         self.assertAllClose(np.ones_like(predictsum), predictsum)
 
-    # TODO: https://github.com/keras-team/keras/issues/19646
+    # TODO: https://github.com/keras-team/keras/issues/18414
     # def test_ragged_input(self):
     #     layer = AdaptiveSoftmax(
     #     units=16, cutoff=[1], return_probs=True, factor=2)
@@ -429,7 +429,7 @@ class SampledSofmaxTest(testing.TestCase):
 
         self.assertGreater(eval_loss, train_loss)
 
-    # TODO: https://github.com/keras-team/keras/issues/19646
+    # TODO: https://github.com/keras-team/keras/issues/18414
     # def test_loss_mask_3d(self):
     #     inputs = tf.ragged.constant([
     #         [[1., 2.], [2., 3.], [2., 5.]],
@@ -507,15 +507,13 @@ class SampledSofmaxTest(testing.TestCase):
 
         self.assertGreater(history["loss"][0], history["loss"][-1])
         self.assertGreater(history["val_loss"][0], history["val_loss"][-1])
-        # self.assertGreater(history['val_loss'][0], history['loss'][0])
-        # self.assertGreater(history['val_loss'][-1], history['loss'][-1])
         self.assertEqual(
             [sample_size // 100, seq_length, num_classes],
             list(predictions.shape),
         )
         self.assertAllClose(np.ones_like(predictsum), predictsum)
 
-    # TODO: https://github.com/keras-team/keras/issues/19646
+    # TODO: https://github.com/keras-team/keras/issues/18414
     # def test_with_ragged_input(self):
     #     layer = SampledSofmax(units=16, negatives=8, return_probs=True)
     #     logits_data = tf.ragged.constant([
@@ -728,7 +726,7 @@ class NoiseContrastiveEstimationTest(testing.TestCase):
         )
         self.assertAllClose(np.ones_like(predictsum), predictsum)
 
-    # TODO: https://github.com/keras-team/keras/issues/19646
+    # TODO: https://github.com/keras-team/keras/issues/18414
     # def test_with_ragged_input(self):
     #     layer = NoiseContrastiveEstimation(
     #     units=16, negatives=8, return_probs=True)

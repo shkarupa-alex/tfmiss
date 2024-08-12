@@ -8,9 +8,8 @@ py_library(
     data = [
         "//tfmiss/keras/callbacks",
         "//tfmiss/keras/layers",
-         "//tfmiss/keras/losses",
-         "//tfmiss/keras/metrics",
-         "//tfmiss/keras/optimizers"
+        "//tfmiss/keras/losses",
+        "//tfmiss/keras/metrics",
+        "//tfmiss/keras/optimizers",
     ],
-    srcs_version = "PY2AND3",
 )

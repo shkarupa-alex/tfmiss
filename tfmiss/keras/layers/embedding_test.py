@@ -1,9 +1,9 @@
 import numpy as np
 import tensorflow as tf
-from keras.src.dtype_policies import dtype_policy
 from keras.src import models
 from keras.src import optimizers
 from keras.src import testing
+from keras.src.dtype_policies import dtype_policy
 
 from tfmiss.keras.layers.embedding import AdaptiveEmbedding
 
@@ -89,7 +89,6 @@ class AdaptiveEmbeddingTest(testing.TestCase):
             cutoff=[1], output_dim=16, input_dim=2, factor=2
         )
         layer.build(tuple())
-        print([w.shape for w in layer.weights])
         layer.set_weights(
             [
                 np.array([[1] * 16]),

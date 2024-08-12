@@ -456,6 +456,8 @@ class SplitWordsTest(tf.test.TestCase):
 
     # TODO: check after ICU update
     # def test_icu_word_break(self):
+    #     import requests
+    #
     #     test_data = (
     #         requests.get(
     #             "https://www.unicode.org/Public/UCD/latest"
@@ -488,7 +490,7 @@ class SplitWordsTest(tf.test.TestCase):
     #             for code in example
     #         ]
     #         example = [
-    #             code.encode("utf-8").decode("unicode-escape")
+    #             code.encode().decode("unicode-escape")
     #             for code in example
     #         ]
     #         example = "".join(example).replace("×", "")
@@ -511,6 +513,8 @@ class SplitWordsTest(tf.test.TestCase):
     #     result_value = self.evaluate(result_value)
     #
     #     for exp, res, desc in zip(expected_value, result_value, description):
+    #         # if (exp != res).any():
+    #         #     print(b' '.join(exp).decode('utf-8'), desc[:10])
     #         self.assertAllEqual(exp, res, desc)
 
     def test_split_stop(self):

@@ -9,9 +9,9 @@ from tfmiss.keras.layers.softmax import AdaptiveSoftmax
 from tfmiss.keras.layers.softmax import NoiseContrastiveEstimation
 from tfmiss.keras.layers.softmax import SampledSofmax
 from tfmiss.keras.layers.todense import ToDense
-from tfmiss.keras.layers.wordvec import BpeEmbedding
 from tfmiss.keras.layers.wordvec import CnnEmbedding
 from tfmiss.keras.layers.wordvec import NgramEmbedding
 from tfmiss.keras.layers.wordvec import WordEmbedding
+from tfmiss.keras.layers.wordvec import WPieceEmbedding
 from tfmiss.keras.layers.wrappers import MapFlat
 from tfmiss.keras.layers.wrappers import WithRagged

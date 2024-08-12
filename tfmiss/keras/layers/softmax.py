@@ -137,35 +137,35 @@ class AdaptiveSoftmax(layers.Layer):
             prev_dim = dim
 
             tail_proj = layers.Dense(
-                        units=dim,
-                        activation=None,
-                        use_bias=False,
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer,
-                        kernel_regularizer=self.kernel_regularizer,
-                        bias_regularizer=self.bias_regularizer,
-                        kernel_constraint=self.kernel_constraint,
-                        bias_constraint=self.bias_constraint,
-                        name="tail_proj_{}".format(i),
-                        input_shape=(self.channels,),
-                        dtype=self.dtype_policy,
-                    )
+                units=dim,
+                activation=None,
+                use_bias=False,
+                kernel_initializer=self.kernel_initializer,
+                bias_initializer=self.bias_initializer,
+                kernel_regularizer=self.kernel_regularizer,
+                bias_regularizer=self.bias_regularizer,
+                kernel_constraint=self.kernel_constraint,
+                bias_constraint=self.bias_constraint,
+                name="tail_proj_{}".format(i),
+                input_shape=(self.channels,),
+                dtype=self.dtype_policy,
+            )
             tail_proj.build((None, self.channels))
             setattr(self, f"tail_{i}_proj", tail_proj)
 
             tail_scale = layers.Dense(
-                        units=self._cutoff[i + 1] - self._cutoff[i],
-                        activation=None,
-                        use_bias=False,
-                        kernel_initializer=self.kernel_initializer,
-                        bias_initializer=self.bias_initializer,
-                        bias_regularizer=self.bias_regularizer,
-                        kernel_regularizer=self.kernel_regularizer,
-                        kernel_constraint=self.kernel_constraint,
-                        bias_constraint=self.bias_constraint,
-                        name="tail_scale_{}".format(i),
-                        dtype=self.dtype_policy,
-                    )
+                units=self._cutoff[i + 1] - self._cutoff[i],
+                activation=None,
+                use_bias=False,
+                kernel_initializer=self.kernel_initializer,
+                bias_initializer=self.bias_initializer,
+                bias_regularizer=self.bias_regularizer,
+                kernel_regularizer=self.kernel_regularizer,
+                kernel_constraint=self.kernel_constraint,
+                bias_constraint=self.bias_constraint,
+                name="tail_scale_{}".format(i),
+                dtype=self.dtype_policy,
+            )
             tail_scale.build((None, dim))
             setattr(self, f"tail_{i}_scale", tail_scale)
 
@@ -246,8 +246,7 @@ class AdaptiveSoftmax(layers.Layer):
                 tail_mask, self._cutoff[0] + i, root_targets
             )
 
-            tail_inputs = inputs[tail_mask]
-            tail_logits = tail_inputs # TODO: in one line?
+            tail_logits = inputs[tail_mask]
             for t in self.tails[i]:
                 tail_logits = t(tail_logits)
             tail_logits = tf.cast(tail_logits, "float32")
@@ -299,8 +298,7 @@ class AdaptiveSoftmax(layers.Layer):
             )
             parent_logprobs = root_logprobs[i + 1]
 
-            tail_inputs = inputs[tail_mask]
-            tail_logits = tail_inputs
+            tail_logits = inputs[tail_mask]
             for t in self.tails[i]:
                 tail_logits = t(tail_logits)
             tail_logits = tf.cast(tail_logits, "float32")
@@ -342,9 +340,7 @@ class AdaptiveSoftmax(layers.Layer):
         )
         full_loss.insert(0, root_loss)
 
-        full_loss = (
-            full_loss if mask is None else full_loss[mask]
-        )  # TODO: error?
+        full_loss = full_loss if mask is None else full_loss[mask]
         full_loss = tf.reduce_mean(full_loss)
 
         full_logprobs = tf.concat(full_logprobs, axis=-1)

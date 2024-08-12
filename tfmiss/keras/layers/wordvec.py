@@ -350,7 +350,7 @@ class NgramEmbedding(WordEmbedding):
 
 
 @register_keras_serializable(package="Miss")
-class BpeEmbedding(WordEmbedding):  # TODO: rename to WordPiece
+class WPieceEmbedding(WordEmbedding):
     UNK_CHAR = "##[UNK]"
 
     def __init__(
@@ -610,7 +610,6 @@ class CnnEmbedding(WordEmbedding):
                 return initializers.RandomNormal(0.0, stddev)
 
             if "relu" == activations.serialize(self.activation):
-                # TODO: check for keras v3
                 return "random_uniform"
 
             return "glorot_uniform"

@@ -1,7 +1,8 @@
 import numpy as np
 import tensorflow as tf
 from absl.testing import parameterized
-from keras.src import utils
+from keras.src.utils import get_file
+from keras.src.utils import image_utils
 from scipy.ndimage import distance_transform_edt
 
 from tfmiss.image.euclidean_dist import euclidean_distance
@@ -185,13 +186,15 @@ class EuclideanDistanceTest(tf.test.TestCase, parameterized.TestCase):
         self.assertAllClose(result, expected)
 
     def test_real(self):
-        file = tf.keras.utils.get_file(
-            "grace_hopper.jpg",
-            "https://storage.googleapis.com/download.tensorflow.org/"
-            "example_images/grace_hopper.jpg",
+        test_image = get_file(
+            "elephant.jpg",
+            "https://storage.googleapis.com/tensorflow/"
+            "keras.src-applications/tests/elephant.jpg",
         )
-        image = tf.keras.utils.load_img(file, target_size=[400, 500])
-        image = utils.img_to_array(image)
+        image = image_utils.load_img(
+            test_image, target_size=(400, 500), interpolation="bicubic"
+        )
+        image = image_utils.img_to_array(image)
         image = np.where(image > 127, 255, 0)
 
         expected = np.stack(

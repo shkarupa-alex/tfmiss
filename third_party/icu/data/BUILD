@@ -10,9 +10,19 @@ exports_files(["LICENSE"])
 # Then, run the following from your icu4c/source directory:
 #   $ ICU_DATA_FILTER_FILE=<path_to_this_dir>/filter.json ./runConfigureICU Linux
 #   $ make clean && make
+#
+#
+#   ICU 64.2
 #   $ LD_LIBRARY_PATH=./lib:./stubdata:./tools/ctestfw:$LD_LIBRARY_PATH ./bin/genccode -f data/out/tmp/icudt64l data/out/tmp/icudt64l.dat
 #   $ echo "U_CAPI const void * U_EXPORT2 uprv_getICUData_other() { return icudt64l_dat.bytes; }" >> data/out/tmp/icudt64l.c
 #   $ mv data/out/tmp/icudt64l.c data/out/tmp/icudt.c
+#
+#   ICU 75.1
+#   $ DYLD_LIBRARY_PATH=./lib:./stubdata:./tools/ctestfw:$DYLD_LIBRARY_PATH ./bin/genccode -f data/out/tmp/icudt75l data/out/tmp/icudt75l.dat
+#   $ echo "U_CAPI const void * U_EXPORT2 uprv_getICUData_other() { return icudt75l_dat.bytes; }" >> data/out/tmp/icudt75l.c
+#   $ mv data/out/tmp/icudt75l.c data/out/tmp/icudt.c
+#
+#
 #   $ gzip data/out/tmp/icudt.c
 #   $ split -b 176k data/out/tmp/icudt.c.gz icudt.c.gz.
 #   $ mv icudt.c.gz.* <path_to_this_dir>/

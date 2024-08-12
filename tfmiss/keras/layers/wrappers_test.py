@@ -43,7 +43,7 @@ class WithRaggedTest(testing.TestCase):
         self.assertLen(outputs.shape, 3)
         self.assertEqual(outputs.shape[-1], 4)
 
-    # TODO https://github.com/keras-team/keras/issues/19646
+    # TODO https://github.com/keras-team/keras/issues/18414
     # def test_model(self):
     #     logits = tf.ragged.constant([
     #         [[1., 2.], [2., 3.], [2., 5.]],

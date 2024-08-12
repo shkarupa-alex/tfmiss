@@ -6,12 +6,10 @@ py_library(
         "__init__.py",
         "lrfind.py",
     ],
-    srcs_version = "PY2AND3",
 )
 
 py_test(
     name = "lrfind_test",
     srcs = ["lrfind_test.py"],
-    srcs_version = "PY2AND3",
     deps = [":callbacks"],
 )

@@ -1,4 +1,5 @@
 # Adapted from https://github.com/PgLoLo/optiacts
+# TODO: check memory consumption
 import numpy as np
 import tensorflow as tf
 
