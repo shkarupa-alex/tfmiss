@@ -6,7 +6,7 @@ from setuptools import find_packages
 from setuptools import setup
 from setuptools.dist import Distribution
 
-__VERSION__ = "0.25.1"
+__VERSION__ = "0.25.2"
 
 
 def get_ext_modules():
