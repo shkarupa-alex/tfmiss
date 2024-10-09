@@ -1,4 +1,3 @@
-from tfmiss.keras.layers.dcnv2 import DCNv2
 from tfmiss.keras.layers.dropout import TimestepDropout
 from tfmiss.keras.layers.embedding import AdaptiveEmbedding
 from tfmiss.keras.layers.preprocessing import WordShape
