@@ -4,7 +4,6 @@ py_library(
     name = "layers",
     srcs = [
         "__init__.py",
-        "dcnv2.py",
         "dropout.py",
         "embedding.py",
         "preprocessing.py",
@@ -19,14 +18,6 @@ py_library(
     deps = [
         "//tfmiss/nn",
         "//tfmiss/text",
-    ],
-)
-
-py_test(
-    name = "dcnv2_test",
-    srcs = ["dcnv2_test.py"],
-    deps = [
-        ":layers",
     ],
 )
 
